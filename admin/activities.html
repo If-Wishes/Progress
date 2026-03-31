@@ -1,0 +1,67 @@
+// Add to existing admin/activities.html script
+
+async function loadOtpsForAdmin() {
+    const response = await fetch('../data/otp_logs.json');
+    if (response.ok) {
+        const otps = await response.json();
+        localStorage.setItem('nexus_all_otp_records', JSON.stringify(otps));
+        return otps;
+    }
+    return JSON.parse(localStorage.getItem('nexus_all_otp_records') || '[]');
+}
+
+// Replace your existing renderActivitiesTable function with this
+async function renderActivitiesTable() {
+    const filterDate = document.getElementById('filterDate').value || getTodayStr();
+    const allOtps = await loadOtpsForAdmin();
+    const todayOtps = allOtps.filter(o => o.date === filterDate);
+    
+    const tbody = document.getElementById('activitiesTable');
+    const users = getUsers();
+    const userNumbers = JSON.parse(localStorage.getItem('nexus_analytics_numbers') || '[]');
+    
+    tbody.innerHTML = users.map(user => {
+        const numbersCount = userNumbers.filter(n => n.userId === user.id).reduce((s, n) => s + (n.numbers?.length || 0), 0);
+        
+        // Get user's phone last 4 digits from allocated numbers
+        const userPhoneLast4s = [];
+        userNumbers.filter(n => n.userId === user.id).forEach(entry => {
+            if (entry.numbers) {
+                entry.numbers.forEach(num => {
+                    const clean = num.replace(/\D/g, '');
+                    if (clean.length >= 4) userPhoneLast4s.push(clean.slice(-4));
+                });
+            }
+        });
+        
+        const userOtps = todayOtps.filter(otp => userPhoneLast4s.includes(otp.phone_last4));
+        const otpCount = userOtps.length;
+        const earnings = otpCount * 0.005;
+        const lastOtp = userOtps.sort((a, b) => b.timestamp - a.timestamp)[0];
+        
+        return `<tr class="border-b hover:bg-gray-50">
+            <td class="px-4 py-3 font-medium">${escapeHtml(user.username)}</td>
+            <td class="px-4 py-3 text-gray-600">${escapeHtml(user.email)}</td>
+            <td class="px-4 py-3 text-center font-bold">${numbersCount}</td>
+            <td class="px-4 py-3 text-center font-bold text-emerald-600">${otpCount}</td>
+            <td class="px-4 py-3 text-center font-bold">$${earnings.toFixed(2)}</td>
+            <td class="px-4 py-3 text-center text-xs">${lastOtp ? lastOtp.time : '—'}</td>
+        </tr>`;
+    }).join('');
+    
+    if (users.length === 0) tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8">No users</td></tr>';
+    
+    // Update global stats
+    const totalOtps = todayOtps.length;
+    document.getElementById('totalOtps').textContent = totalOtps;
+    document.getElementById('totalEarnings').textContent = `$${(totalOtps * 0.005).toFixed(2)}`;
+}
+
+// Update your DOMContentLoaded to use the new function
+document.addEventListener('DOMContentLoaded', () => {
+    initData();
+    document.getElementById('filterDate').value = getTodayStr();
+    renderActivitiesTable();
+    document.getElementById('applyFilter').onclick = renderActivitiesTable;
+    // ... rest of your existing code
+});
