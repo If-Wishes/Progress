@@ -560,49 +560,192 @@ async function loadOtps() {
         // Set default dates for past page
         const end = new Date();
         const start = new Date();
-        start.setDate(end.getDate() - 6);
-        document.getElementById('pastStartDate').value = start.toISOString().slice(0,10);
-        document.getElementById('pastEndDate').value = end.toISOString().slice(0,10);
+        start.setDate(end.getDate() - 6);<script src="../js/data.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+    if (!requireUserAuth()) {}
+    
+    let currentUser = getCurrentUser();
+    let userNumbers = [];
+    let userOtps = [];
+    
+    function loadUserNumbers() {
+        const analytics = JSON.parse(localStorage.getItem('nexus_analytics_numbers') || '[]');
+        userNumbers = analytics.filter(n => n.userId === currentUser.userId);
+        const countries = [...new Set(userNumbers.map(n => n.country))];
+        const sel = document.getElementById('countrySelect');
+        if (sel) {
+            sel.innerHTML = '<option value="">-- Select Country --</option>' + 
+                countries.map(c => `<option value="${c}">${getCountryFlag(c)} ${c}</option>`).join('');
+        }
+    }
+    
+    function getCountryFlag(country) {
+        const flags = {
+            'Jordan': '🇯🇴', 'Tajikistan': '🇹🇯', 'Nigeria': '🇳🇬', 
+            'Myanmar': '🇲🇲', 'Hungary': '🇭🇺', 'Slovenia': '🇸🇮', 
+            'Venezuela': '🇻🇪', 'Uzbekistan': '🇺🇿'
+        };
+        return flags[country] || '🌍';
+    }
+    
+    function displayNumbers(country) {
+        const data = userNumbers.find(n => n.country === country);
+        const div = document.getElementById('numbersDisplay');
+        if (!data || !data.numbers || data.numbers.length === 0) {
+            div.innerHTML = '<div class="text-center py-8 text-gray-400">No numbers for this country</div>';
+            return;
+        }
+        div.innerHTML = `
+            <div class="border rounded-xl overflow-hidden">
+                <div class="bg-gray-50 px-4 py-2 font-semibold">${getCountryFlag(country)} ${country}</div>
+                <div class="divide-y">
+                    ${data.numbers.map(num => `<div class="px-4 py-2 font-mono">${escapeHtml(num)}</div>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+    
+    async function loadOtps() {
+        // Load OTPs from bot data
+        const allOtps = await loadOtpsFromBot();
         
-        // Event listeners
-        document.getElementById('countrySelect')?.addEventListener('change', (e) => {
-            if (e.target.value) displayNumbersForCountry(e.target.value);
-        });
-        document.getElementById('fetchPastBtn')?.addEventListener('click', renderPastOtps);
-        
-        // Dropdown menu
-        document.getElementById('menuButton').addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleDropdown();
-        });
-        
-        document.addEventListener('click', (e) => {
-            if (!document.getElementById('menuButton').contains(e.target) && 
-                !document.getElementById('dropdownMenu').contains(e.target)) {
-                closeDropdown();
+        // Get user's numbers last 4 digits
+        const userPhoneLast4s = [];
+        userNumbers.forEach(entry => {
+            if (entry.numbers) {
+                entry.numbers.forEach(number => {
+                    const clean = number.replace(/\D/g, '');
+                    if (clean.length >= 4) userPhoneLast4s.push(clean.slice(-4));
+                });
             }
         });
         
-        // Menu items
-        document.querySelectorAll('[data-page]').forEach(link => {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                switchPage(link.dataset.page);
-                closeDropdown();
-            });
-        });
+        // Filter OTPs for this user
+        userOtps = allOtps.filter(otp => userPhoneLast4s.includes(otp.phone_last4));
+        userOtps.sort((a, b) => b.timestamp - a.timestamp);
         
-        // Logout
-        document.getElementById('logoutBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            userLogout();
-        });
+        // Save to localStorage for quick access
+        localStorage.setItem(`nexus_otp_${currentUser.userId}`, JSON.stringify(userOtps));
         
-        // Add OTP button
-        document.getElementById('addOtpFloatBtn').addEventListener('click', showAddOtpForm);
+        return userOtps;
+    }
+    
+    function renderTodayOtps() {
+        const today = getTodayStr();
+        const todayOtps = userOtps.filter(o => o.date === today);
+        const tbody = document.getElementById('todayTable');
+        const empty = document.getElementById('todayEmpty');
         
-        // Start with Allocation page
-        switchPage('allocation');
+        if (!tbody) return;
+        
+        if (todayOtps.length === 0) {
+            tbody.innerHTML = '';
+            if (empty) empty.classList.remove('hidden');
+            return;
+        }
+        if (empty) empty.classList.add('hidden');
+        
+        tbody.innerHTML = todayOtps.map(o => `
+            <tr class="otp-row">
+                <td class="px-6 py-3 font-mono">${escapeHtml(o.phone_last4 ? '***' + o.phone_last4 : 'Unknown')}</td>
+                <td class="px-6 py-3">${escapeHtml(o.sender || 'Bot')}</td>
+                <td class="px-6 py-3 font-bold text-emerald-600">${escapeHtml(o.otp)}</td>
+                <td class="px-6 py-3 text-gray-500">${o.time || ''}</td>
+            </tr>
+        `).join('');
+    }
+    
+    function updateTotalStats() {
+        const today = getTodayStr();
+        const todayCount = userOtps.filter(o => o.date === today).length;
+        const totalEarnings = todayCount * 0.005;
+        
+        document.getElementById('totalOtpCount').textContent = todayCount;
+        document.getElementById('totalEarnings').textContent = `$${totalEarnings.toFixed(2)}`;
+    }
+    
+    function fetchPastOtps() {
+        const start = document.getElementById('startDate').value;
+        const end = document.getElementById('endDate').value;
+        if (!start || !end) return;
+        
+        const filtered = userOtps.filter(o => o.date >= start && o.date <= end);
+        const tbody = document.getElementById('pastTable');
+        const empty = document.getElementById('pastEmpty');
+        
+        if (!tbody) return;
+        
+        if (filtered.length === 0) {
+            tbody.innerHTML = '';
+            if (empty) empty.classList.remove('hidden');
+            return;
+        }
+        if (empty) empty.classList.add('hidden');
+        
+        tbody.innerHTML = filtered.map(o => `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-3 text-xs">${o.date}</td>
+                <td class="px-6 py-3 font-mono">${escapeHtml(o.phone_last4 ? '***' + o.phone_last4 : 'Unknown')}</td>
+                <td class="px-6 py-3">${escapeHtml(o.sender || 'Bot')}</td>
+                <td class="px-6 py-3 font-bold text-emerald-600">${escapeHtml(o.otp)}</td>
+                <td class="px-6 py-3 text-gray-500">${o.time || ''}</td>
+            </tr>
+        `).join('');
+    }
+    
+    async function refreshUserData() {
+        await loadOtps();
+        renderTodayOtps();
+        updateTotalStats();
+        fetchPastOtps();
+    }
+    
+    function addTestOtp() {
+        const phoneLast4 = prompt("Enter last 4 digits of phone number:", "4567");
+        const otpCode = prompt("Enter OTP code:", "123456");
+        const sender = prompt("Enter sender name:", "Test");
+        
+        if (phoneLast4 && otpCode) {
+            addManualOtp(phoneLast4, otpCode, sender);
+            refreshUserData();
+            alert(`✅ Test OTP added!\nPhone: ***${phoneLast4}\nOTP: ${otpCode}\nEarned: $0.005`);
+        }
+    }
+    
+    document.addEventListener('DOMContentLoaded', async () => {
+        initData();
+        
+        document.getElementById('userName').innerText = currentUser.username;
+        document.getElementById('userEmail').innerText = currentUser.email;
+        
+        loadUserNumbers();
+        await loadOtps();
+        
+        const end = new Date();
+        const start = new Date();
+        start.setDate(end.getDate() - 6);
+        document.getElementById('startDate').value = start.toISOString().slice(0,10);
+        document.getElementById('endDate').value = end.toISOString().slice(0,10);
+        
+        document.getElementById('countrySelect').onchange = e => { if(e.target.value) displayNumbers(e.target.value); };
+        document.getElementById('fetchBtn').onclick = fetchPastOtps;
+        document.getElementById('refreshOtpsBtn').onclick = refreshUserData;
+        
+        renderTodayOtps();
+        updateTotalStats();
+        fetchPastOtps();
+        
+        // Dropdown menu
+        const menuBtn = document.getElementById('menuButton');
+        const dropdown = document.getElementById('dropdownMenu');
+        if (menuBtn) {
+            menuBtn.onclick = (e) => { e.stopPropagation(); dropdown.classList.toggle('hidden'); };
+            document.addEventListener('click', () => dropdown.classList.add('hidden'));
+        }
+        
+        document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); userLogout(); };
+        document.getElementById('allocationPage').classList.add('active-page');
     });
 </script>
 </body>
