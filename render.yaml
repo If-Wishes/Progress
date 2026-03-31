@@ -1,0 +1,30 @@
+services:
+  # Web Service - Static Site (Your Dashboard)
+  - type: web
+    name: nexuspanel-site
+    runtime: static
+    buildCommand: echo "Static site deployed"
+    staticPublishPath: ./
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: SITE_URL
+        value: https://nexuspanel-site.onrender.com
+
+  # Worker Service - Telegram Bot
+  - type: worker
+    name: nexuspanel-bot
+    runtime: python
+    buildCommand: pip install -r bot/requirements.txt
+    startCommand: python bot/telegram_bot.py
+    envVars:
+      - key: BOT_TOKEN
+        value: 7941038643:AAFFM8jv2RkFyyxzgdzuyqy6UiCHNZhIlWo
+      - key: PYTHON_VERSION
+        value: 3.11.0
