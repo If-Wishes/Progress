@@ -220,3 +220,96 @@ function escapeHtml(str) {
         return m;
     }); 
 }
+
+// ============ BOT INTEGRATION FUNCTIONS ============
+// Add these to your existing data.js file
+
+// Load OTPs from bot's data file
+async function loadOtpsFromBot() {
+    try {
+        // Try to fetch from local data file (when running on server)
+        const response = await fetch('../data/otp_logs.json');
+        if (response.ok) {
+            const otps = await response.json();
+            localStorage.setItem('nexus_all_otp_records', JSON.stringify(otps));
+            return otps;
+        }
+    } catch (error) {
+        console.log('Could not fetch from data file, using local storage');
+    }
+    
+    // Fallback to local storage
+    const stored = localStorage.getItem('nexus_all_otp_records');
+    return stored ? JSON.parse(stored) : [];
+}
+
+// Get OTPs for a specific user based on their allocated numbers
+function getOtpsForUser(userId) {
+    const allOtps = JSON.parse(localStorage.getItem('nexus_all_otp_records') || '[]');
+    const userNumbers = JSON.parse(localStorage.getItem('nexus_analytics_numbers') || '[]');
+    
+    // Get all numbers allocated to this user
+    const userNumberEntries = userNumbers.filter(n => n.userId === userId);
+    const userPhoneLast4s = [];
+    
+    userNumberEntries.forEach(entry => {
+        if (entry.numbers) {
+            entry.numbers.forEach(number => {
+                const cleanNumber = number.replace(/\D/g, '');
+                if (cleanNumber.length >= 4) {
+                    userPhoneLast4s.push(cleanNumber.slice(-4));
+                }
+            });
+        }
+    });
+    
+    // Filter OTPs that match any of the user's phone last 4 digits
+    return allOtps.filter(otp => userPhoneLast4s.includes(otp.phone_last4));
+}
+
+// Get today's OTPs for a user
+function getTodayOtpsForUser(userId) {
+    const today = getTodayStr();
+    const userOtps = getOtpsForUser(userId);
+    return userOtps.filter(otp => otp.date === today);
+}
+
+// Get all OTPs for admin view
+function getAllOtps() {
+    return JSON.parse(localStorage.getItem('nexus_all_otp_records') || '[]');
+}
+
+// Calculate earnings from OTPs
+function calculateEarnings(otpCount) {
+    return otpCount * 0.005;
+}
+
+// Sync OTPs and update user data
+async function syncOtpsForUser(userId) {
+    await loadOtpsFromBot();
+    const userOtps = getOtpsForUser(userId);
+    localStorage.setItem(`nexus_otp_${userId}`, JSON.stringify(userOtps));
+    return userOtps;
+}
+
+// Manual add OTP (for testing)
+function addManualOtp(phoneLast4, otpCode, sender = 'Manual') {
+    const now = new Date();
+    const newOtp = {
+        id: Date.now().toString(),
+        otp: otpCode,
+        phone_last4: phoneLast4,
+        sender: sender,
+        raw_message: `Manual entry: ${otpCode} from phone ending ${phoneLast4}`,
+        timestamp: now.getTime(),
+        date: now.toISOString().slice(0,10),
+        time: now.toLocaleTimeString(),
+        datetime: now.toLocaleString()
+    };
+    
+    let allOtps = JSON.parse(localStorage.getItem('nexus_all_otp_records') || '[]');
+    allOtps.push(newOtp);
+    localStorage.setItem('nexus_all_otp_records', JSON.stringify(allOtps));
+    
+    return newOtp;
+}
