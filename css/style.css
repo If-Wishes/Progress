@@ -1,0 +1,104 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    background-color: #f9fafb;
+}
+
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.1);
+}
+
+.table-row-hover:hover {
+    background-color: #f9fafb;
+}
+
+.modal {
+    transition: all 0.3s ease;
+}
+
+.number-thread-input {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+}
+
+.custom-country-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #f9fafb;
+    margin-bottom: 6px;
+}
+
+.custom-country-item:hover {
+    background: #f3f4f6;
+}
+
+.stat-card {
+    transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+button:active {
+    transform: scale(0.97);
+}
+
+@media (max-width: 640px) {
+    table {
+        font-size: 12px;
+    }
+    .px-6 {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+}
+
+.hidden-panel {
+    display: none;
+}
+
+.role-card.active {
+    border-color: #4f46e5;
+    background: #eef2ff;
+}
+
+.role-card.active i {
+    color: #4f46e5;
+}
+
+.role-card.active p {
+    color: #4f46e5;
+}
