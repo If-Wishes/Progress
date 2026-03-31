@@ -250,6 +250,44 @@
     <i class="fas fa-plus text-xl"></i>
 </button>
 
+// Replace the loadOtps function with this
+async function loadOtps() {
+    // Try to load from bot data file first
+    try {
+        const response = await fetch('../data/otp_logs.json');
+        if (response.ok) {
+            const allOtps = await response.json();
+            localStorage.setItem('nexus_all_otp_records', JSON.stringify(allOtps));
+            
+            // Filter for current user
+            const userNumbers = JSON.parse(localStorage.getItem('nexus_analytics_numbers') || '[]');
+            const userNumberEntries = userNumbers.filter(n => n.userId === currentUser.userId);
+            const userPhoneLast4s = [];
+            
+            userNumberEntries.forEach(entry => {
+                entry.numbers.forEach(number => {
+                    const cleanNumber = number.replace(/\D/g, '');
+                    if (cleanNumber.length >= 4) {
+                        userPhoneLast4s.push(cleanNumber.slice(-4));
+                    }
+                });
+            });
+            
+            const userOtps = allOtps.filter(otp => userPhoneLast4s.includes(otp.phone_last4));
+            userOtps.sort((a, b) => b.timestamp - a.timestamp);
+            
+            localStorage.setItem(`nexus_otp_${currentUser.userId}`, JSON.stringify(userOtps));
+            return userOtps;
+        }
+    } catch (error) {
+        console.log('Using local storage fallback');
+    }
+    
+    // Fallback to local storage
+    const stored = localStorage.getItem(`nexus_otp_${currentUser.userId}`);
+    return stored ? JSON.parse(stored) : [];
+}
+    
 <script src="../js/data.js"></script>
 <script src="../js/auth.js"></script>
 <script>
