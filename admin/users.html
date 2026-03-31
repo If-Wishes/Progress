@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusPanel | Manage Users</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-gray-50">
+
+<nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center gap-4">
+                <a href="dashboard.html" class="text-gray-600 hover:text-gray-800"><i class="fas fa-arrow-left"></i></a>
+                <div class="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center"><i class="fas fa-chart-line text-white text-sm"></i></div>
+                <span class="text-xl font-bold">Nexus<span class="text-indigo-600">Panel</span></span>
+                <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">Admin</span>
+            </div>
+            <button onclick="adminLogout()" class="text-gray-500 hover:text-red-600"><i class="fas fa-sign-out-alt text-lg"></i></button>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <div><h1 class="text-2xl font-bold text-gray-900">User Management</h1><p class="text-gray-500">Create, edit, or remove user accounts</p></div>
+        <button id="createUserBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl"><i class="fas fa-plus mr-2"></i>New User</button>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-gray-50">……
+                    <th class="px-6 py-3 text-left">Username</th><th class="px-6 py-3 text-left">Email</th><th class="px-6 py-3 text-left">Created</th><th class="px-6 py-3 text-center">Actions</th>
+                </thead>
+                <tbody id="usersList" class="divide-y divide-gray-100"></tbody>
+             </table>
+        </div>
+    </div>
+</main>
+
+<div id="userModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full mx-4 p-6">
+        <h3 class="text-xl font-bold mb-4" id="modalTitle">Create User</h3>
+        <input type="hidden" id="editUserId">
+        <input type="text" id="modalUsername" placeholder="Username" class="w-full border rounded-xl px-4 py-3 mb-3">
+        <input type="email" id="modalEmail" placeholder="Email" class="w-full border rounded-xl px-4 py-3 mb-4">
+        <div class="flex justify-end gap-3">
+            <button id="closeModal" class="px-4 py-2 border rounded-xl">Cancel</button>
+            <button id="saveUser" class="px-4 py-2 bg-indigo-600 text-white rounded-xl">Save</button>
+        </div>
+    </div>
+</div>
+
+<script src="../js/data.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+    if (!requireAdminAuth()) {}
+    
+    function renderUsers() {
+        const users = getUsers();
+        document.getElementById('usersList').innerHTML = users.map(u => `
+            <tr><td class="px-6 py-3 font-medium">${escapeHtml(u.username)}</td>
+            <td class="px-6 py-3">${escapeHtml(u.email)}</td>
+            <td class="px-6 py-3 text-xs">${u.createdAt || '—'}</td>
+            <td class="px-6 py-3 text-center"><button onclick="editUser('${u.id}')" class="text-indigo-600 mr-3"><i class="fas fa-edit"></i></button>
+            <button onclick="deleteUser('${u.id}')" class="text-red-500"><i class="fas fa-trash-alt"></i></button></td></tr>
+        `).join('');
+    }
+    
+    function openModal(editMode, userData) {
+        document.getElementById('userModal').classList.remove('hidden');
+        if (editMode && userData) {
+            document.getElementById('modalTitle').innerText = 'Edit User';
+            document.getElementById('editUserId').value = userData.id;
+            document.getElementById('modalUsername').value = userData.username;
+            document.getElementById('modalEmail').value = userData.email;
+        } else {
+            document.getElementById('modalTitle').innerText = 'Create User';
+            document.getElementById('editUserId').value = '';
+            document.getElementById('modalUsername').value = '';
+            document.getElementById('modalEmail').value = '';
+        }
+    }
+    
+    function saveUser() {
+        const username = document.getElementById('modalUsername').value.trim();
+        const email = document.getElementById('modalEmail').value.trim();
+        if (!username || !email) { alert('Fill all fields'); return; }
+        const editId = document.getElementById('editUserId').value;
+        if (editId) updateUser(editId, username, email);
+        else createUser(username, email);
+        document.getElementById('userModal').classList.add('hidden');
+        renderUsers();
+    }
+    
+    window.editUser = (id) => { const u = getUsers().find(u=>u.id===id); if(u) openModal(true, u); };
+    window.deleteUser = (id) => { if(confirm('Delete user?')) { deleteUserById(id); renderUsers(); } };
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        initData();
+        renderUsers();
+        document.getElementById('createUserBtn').onclick = () => openModal(false);
+        document.getElementById('closeModal').onclick = () => document.getElementById('userModal').classList.add('hidden');
+        document.getElementById('saveUser').onclick = saveUser;
+    });
+</script>
+</body>
+</html>

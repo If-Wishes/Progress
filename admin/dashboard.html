@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusPanel | Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-gray-50">
+
+<nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center">
+                <div class="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+                    <i class="fas fa-chart-line text-white text-sm"></i>
+                </div>
+                <span class="ml-2 text-xl font-bold text-gray-800">Nexus<span class="text-indigo-600">Panel</span></span>
+                <span class="ml-3 text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">Admin</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden sm:block">
+                    <p class="text-sm font-medium text-gray-800" id="adminName">Admin</p>
+                    <p class="text-xs text-gray-500">Super Administrator</p>
+                </div>
+                <button onclick="adminLogout()" class="text-gray-500 hover:text-red-600 transition">
+                    <i class="fas fa-sign-out-alt text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
+        <p class="text-gray-500 mt-1">Manage users, track requests, and monitor activity</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl shadow-lg p-6">
+            <div class="flex items-center justify-between">
+                <div><p class="text-indigo-100 text-sm">Total Users</p><p class="text-white text-3xl font-bold mt-1" id="statUsers">0</p></div>
+                <i class="fas fa-users text-indigo-200 text-4xl opacity-75"></i>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl shadow-lg p-6">
+            <div class="flex items-center justify-between">
+                <div><p class="text-emerald-100 text-sm">Today's Requests</p><p class="text-white text-3xl font-bold mt-1" id="statToday">0</p></div>
+                <i class="fas fa-phone-alt text-emerald-200 text-4xl opacity-75"></i>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl shadow-lg p-6">
+            <div class="flex items-center justify-between">
+                <div><p class="text-amber-100 text-sm">Total Requests</p><p class="text-white text-3xl font-bold mt-1" id="statTotal">0</p></div>
+                <i class="fas fa-chart-line text-amber-200 text-4xl opacity-75"></i>
+            </div>
+        </div>
+        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6">
+            <div class="flex items-center justify-between">
+                <div><p class="text-purple-100 text-sm">Active Countries</p><p class="text-white text-3xl font-bold mt-1" id="statCountries">0</p></div>
+                <i class="fas fa-globe text-purple-200 text-4xl opacity-75"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-semibold text-gray-800">👥 Recent Users</h2>
+                <a href="users.html" class="text-indigo-600 text-sm hover:underline">Manage →</a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50 text-gray-600 text-xs">……
+                        <th class="px-4 py-2 text-left">Username</th><th class="px-4 py-2 text-left">Email</th><th class="px-4 py-2 text-left">Created</th>
+                    </thead>
+                    <tbody id="recentUsers" class="divide-y divide-gray-100"></tbody>
+                 </table>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">📊 Quick Actions</h2>
+            <div class="space-y-3">
+                <a href="users.html" class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+                    <i class="fas fa-user-plus text-indigo-600"></i><span>Create New User</span>
+                </a>
+                <a href="analytics.html" class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
+                    <i class="fas fa-chart-bar text-emerald-600"></i><span>View Analytics</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="../js/data.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+    if (!requireAdminAuth()) { /* redirect */ }
+    
+    function updateStats() {
+        initData();
+        const users = getUsers();
+        const requests = getAllRequests();
+        const today = getTodayStr();
+        
+        document.getElementById('statUsers').textContent = users.length;
+        document.getElementById('statToday').textContent = requests.filter(r => r.date === today).reduce((s,r)=>s+r.count,0);
+        document.getElementById('statTotal').textContent = requests.reduce((s,r)=>s+r.count,0);
+        
+        const analyticsData = JSON.parse(localStorage.getItem('nexus_analytics_numbers') || '[]');
+        document.getElementById('statCountries').textContent = new Set(analyticsData.map(i=>i.country)).size;
+        
+        const recent = [...users].reverse().slice(0,5);
+        document.getElementById('recentUsers').innerHTML = recent.map(u => `
+            <tr><td class="px-4 py-2 font-medium">${escapeHtml(u.username)}</td>
+            <td class="px-4 py-2">${escapeHtml(u.email)}</td>
+            <td class="px-4 py-2 text-xs">${u.createdAt || '—'}</td></tr>
+        `).join('');
+    }
+    
+    updateStats();
+</script>
+</body>
+</html>
