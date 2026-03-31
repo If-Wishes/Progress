@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusPanel | User Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="../css/style.css">
+</head>
+<body class="bg-gray-50">
+
+<nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center">
+                <div class="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center"><i class="fas fa-chart-line text-white text-sm"></i></div>
+                <span class="ml-2 text-xl font-bold">Nexus<span class="text-emerald-600">Panel</span></span>
+                <span class="ml-3 text-xs bg-emerald-100 text-emerald-600 px-2 py-1 rounded-full">User</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right"><p class="text-sm font-medium" id="userName">User</p><p class="text-xs text-gray-500" id="userEmail"></p></div>
+                <button onclick="userLogout()" class="text-gray-500 hover:text-red-600"><i class="fas fa-sign-out-alt text-lg"></i></button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="mb-8"><h1 class="text-2xl font-bold" id="welcomeMsg">Welcome!</h1><p class="text-gray-500">Track your requests and activity</p></div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl shadow-sm border p-6 text-center">
+            <h2 class="text-lg font-semibold mb-4">📊 Today's Requests</h2>
+            <div class="text-5xl font-bold text-emerald-600" id="todayCount">0</div>
+            <button id="addRequestBtn" class="mt-4 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-5 py-2 rounded-xl"><i class="fas fa-plus mr-2"></i>Add Request</button>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm border p-6">
+            <h2 class="text-lg font-semibold mb-4">📅 Request History</h2>
+            <div class="grid grid-cols-2 gap-2 mb-3"><input type="date" id="startDate" class="border rounded-xl px-3 py-2"><input type="date" id="endDate" class="border rounded-xl px-3 py-2"></div>
+            <button id="fetchHistory" class="w-full bg-gray-100 py-2 rounded-xl mb-3">Fetch History</button>
+            <div class="overflow-x-auto max-h-48"><table class="w-full text-sm"><thead><tr><th>Date</th><th>Requests</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+        </div>
+    </div>
+
+    <div class="mt-6 bg-white rounded-2xl shadow-sm border p-6">
+        <h2 class="text-lg font-semibold mb-4">📈 Your Stats</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div class="text-center p-3 bg-gray-50 rounded-xl"><p class="text-2xl font-bold text-emerald-600" id="totalReqs">0</p><p class="text-xs">Total Requests</p></div>
+            <div class="text-center p-3 bg-gray-50 rounded-xl"><p class="text-2xl font-bold text-emerald-600" id="avgReqs">0</p><p class="text-xs">Avg/Day (30d)</p></div>
+            <div class="text-center p-3 bg-gray-50 rounded-xl"><p class="text-2xl font-bold text-emerald-600" id="bestDay">0</p><p class="text-xs">Best Day</p></div>
+            <div class="text-center p-3 bg-gray-50 rounded-xl"><p class="text-2xl font-bold text-emerald-600" id="accountAge">0</p><p class="text-xs">Account Age (days)</p></div>
+        </div>
+    </div>
+</main>
+
+<script src="../js/data.js"></script>
+<script src="../js/auth.js"></script>
+<script>
+    if (!requireUserAuth()) {}
+    
+    let currentUser = getCurrentUser();
+    
+    function loadData() {
+        document.getElementById('userName').innerText = currentUser.username;
+        document.getElementById('userEmail').innerText = currentUser.email;
+        document.getElementById('welcomeMsg').innerHTML = `Welcome, ${currentUser.username}!`;
+        
+        const requests = getAllRequests().filter(r => r.userId === currentUser.userId);
+        const today = getTodayStr();
+        const todayReq = requests.find(r => r.date === today)?.count || 0;
+        document.getElementById('todayCount').innerText = todayReq;
+        
+        const total = requests.reduce((s,r)=>s+r.count,0);
+        document.getElementById('totalReqs').innerText = total;
+        
+        const last30 = [];
+        for(let i=0;i<30;i++) { let d=new Date(); d.setDate(d.getDate()-i); last30.push(d.toISOString().slice(0,10)); }
+        const last30Reqs = requests.filter(r=>last30.includes(r.date)).reduce((s,r)=>s+r.count,0);
+        document.getElementById('avgReqs').innerText = Math.round(last30Reqs/30);
+        
+        const best = Math.max(...requests.map(r=>r.count),0);
+        document.getElementById('bestDay').innerText = best;
+        
+        const userData = getUsers().find(u=>u.id===currentUser.userId);
+        if(userData && userData.createdAt) {
+            const days = Math.floor((new Date() - new Date(userData.createdAt)) / (86400000));
+            document.getElementById('accountAge').innerText = days;
+        }
+        
+        const end = new Date(); const start = new Date(); start.setDate(end.getDate()-6);
+        document.getElementById('startDate').value = start.toISOString().slice(0,10);
+        document.getElementById('endDate').value = end.toISOString().slice(0,10);
+        fetchHistory();
+    }
+    
+    function fetchHistory() {
+        const start = document.getElementById('startDate').value;
+        const end = document.getElementById('endDate').value;
+        const logs = getRequestsInRange(currentUser.userId, start, end);
+        document.getElementById('historyBody').innerHTML = logs.length ? logs.map(l=>`<tr><td class="py-1">${l.date}</td><td class="font-bold">${l.count}</td></tr>`).join('') : '<tr><td colspan="2" class="text-center py-3 text-gray-400">No requests</td></tr>';
+    }
+    
+    function addRequest() {
+        incrementRequestToday(currentUser.userId);
+        loadData();
+        fetchHistory();
+        const btn = document.getElementById('addRequestBtn');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Added!';
+        btn.classList.add('bg-green-500','text-white');
+        setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('bg-green-500','text-white'); }, 1000);
+    }
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        initData();
+        loadData();
+        document.getElementById('addRequestBtn').onclick = addRequest;
+        document.getElementById('fetchHistory').onclick = fetchHistory;
+    });
+</script>
+</body>
+</html>
