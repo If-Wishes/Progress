@@ -1,3 +1,38 @@
+// Add this function to js/data.js
+function createUserWithPassword(username, password, email = null) {
+    const newId = crypto.randomUUID();
+    const today = getTodayStr();
+    const userEmail = email || `${username}@nexuspanel.com`;
+    
+    // Check if username already exists
+    if (globalUsers.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+        return { success: false, message: 'Username already exists' };
+    }
+    
+    globalUsers.push({ 
+        id: newId, 
+        username, 
+        email: userEmail, 
+        createdAt: today 
+    });
+    
+    globalUserCredentials.push({
+        userId: newId,
+        username: username,
+        email: userEmail,
+        password: password,
+        createdAt: today,
+        role: 'user'
+    });
+    
+    if (!globalRequests.some(r => r.userId === newId && r.date === today)) {
+        globalRequests.push({ id: crypto.randomUUID(), userId: newId, date: today, count: 0 });
+    }
+    
+    saveToLocal();
+    return { success: true, userId: newId, password: password };
+}
+
 // Shared data management - persists across pages via localStorage
 
 let globalUsers = [];
