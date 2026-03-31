@@ -7,116 +7,564 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .page {
+            display: none;
+        }
+        .page.active-page {
+            display: block;
+        }
+        .dropdown-menu {
+            transition: all 0.2s ease;
+        }
+        .dropdown-item {
+            transition: background 0.2s ease;
+        }
+        .otp-row:hover {
+            background: #fef3c7;
+        }
+        .stats-card {
+            transition: transform 0.2s ease;
+        }
+        .stats-card:hover {
+            transform: translateY(-2px);
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
 
+<!-- Top Navigation Bar -->
 <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex items-center">
-                <div class="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center"><i class="fas fa-chart-line text-white text-sm"></i></div>
-                <span class="ml-2 text-xl font-bold">Nexus<span class="text-emerald-600">Panel</span></span>
+                <div class="h-8 w-8 rounded-lg bg-emerald-600 flex items-center justify-center">
+                    <i class="fas fa-chart-line text-white text-sm"></i>
+                </div>
+                <span class="ml-2 text-xl font-bold text-gray-800">Nexus<span class="text-emerald-600">Panel</span></span>
                 <span class="ml-3 text-xs bg-emerald-100 text-emerald-600 px-2 py-1 rounded-full">User</span>
             </div>
-            <div class="flex items-center gap-4">
-                <div class="text-right"><p class="text-sm font-medium" id="userName">User</p><p class="text-xs text-gray-500" id="userEmail"></p></div>
-                <button onclick="userLogout()" class="text-gray-500 hover:text-red-600"><i class="fas fa-sign-out-alt text-lg"></i></button>
+            
+            <!-- User Dropdown Menu -->
+            <div class="flex items-center gap-4 relative">
+                <div class="text-right hidden sm:block">
+                    <p class="text-sm font-medium text-gray-800" id="userName">User</p>
+                    <p class="text-xs text-gray-500" id="userEmail">email@example.com</p>
+                </div>
+                
+                <div class="relative">
+                    <button id="menuButton" class="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 rounded-full px-3 py-2 transition">
+                        <i class="fas fa-user-circle text-gray-600 text-xl"></i>
+                        <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
+                    </button>
+                    
+                    <!-- Dropdown Menu -->
+                    <div id="dropdownMenu" class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-200 hidden z-50">
+                        <div class="py-1">
+                            <a href="#" data-page="allocation" class="dropdown-item flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition">
+                                <i class="fas fa-globe w-5 text-emerald-500"></i>
+                                <span>📌 Allocation</span>
+                            </a>
+                            <a href="#" data-page="today" class="dropdown-item flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition">
+                                <i class="fas fa-chart-simple w-5 text-blue-500"></i>
+                                <span>📊 Today's Stat</span>
+                            </a>
+                            <a href="#" data-page="total" class="dropdown-item flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition">
+                                <i class="fas fa-calculator w-5 text-amber-500"></i>
+                                <span>💰 Total OTP</span>
+                            </a>
+                            <a href="#" data-page="past" class="dropdown-item flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 transition">
+                                <i class="fas fa-calendar-alt w-5 text-purple-500"></i>
+                                <span>📅 Past Records</span>
+                            </a>
+                            <div class="border-t border-gray-100 my-1"></div>
+                            <a href="#" id="logoutBtn" class="dropdown-item flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 transition">
+                                <i class="fas fa-sign-out-alt w-5"></i>
+                                <span>Logout</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </nav>
 
+<!-- Main Content -->
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="mb-8"><h1 class="text-2xl font-bold" id="welcomeMsg">Welcome!</h1><p class="text-gray-500">Track your requests and activity</p></div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-white rounded-2xl shadow-sm border p-6 text-center">
-            <h2 class="text-lg font-semibold mb-4">📊 Today's Requests</h2>
-            <div class="text-5xl font-bold text-emerald-600" id="todayCount">0</div>
-            <button id="addRequestBtn" class="mt-4 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 px-5 py-2 rounded-xl"><i class="fas fa-plus mr-2"></i>Add Request</button>
+    
+    <!-- Allocation Page -->
+    <div id="allocationPage" class="page">
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-gray-900">📌 Number Allocation</h1>
+            <p class="text-gray-500 mt-1">Select a country to view numbers assigned to you</p>
         </div>
-        <div class="bg-white rounded-2xl shadow-sm border p-6">
-            <h2 class="text-lg font-semibold mb-4">📅 Request History</h2>
-            <div class="grid grid-cols-2 gap-2 mb-3"><input type="date" id="startDate" class="border rounded-xl px-3 py-2"><input type="date" id="endDate" class="border rounded-xl px-3 py-2"></div>
-            <button id="fetchHistory" class="w-full bg-gray-100 py-2 rounded-xl mb-3">Fetch History</button>
-            <div class="overflow-x-auto max-h-48"><table class="w-full text-sm"><thead><tr><th>Date</th><th>Requests</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+        
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Select Country</label>
+            <select id="countrySelect" class="w-full md:w-64 border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50 mb-6">
+                <option value="">-- Select Country --</option>
+            </select>
+            
+            <div id="numbersDisplay" class="mt-4">
+                <div class="text-center py-8 text-gray-400">
+                    <i class="fas fa-globe text-4xl mb-2"></i>
+                    <p>Select a country to view numbers</p>
+                </div>
+            </div>
         </div>
     </div>
-
-    <div class="mt-6 bg-white rounded-2xl shadow-sm border p-6">
-        <h2 class="text-lg font-semibold mb-4">📈 Your Stats</h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div class="text-center p-3 bg-gray-50 rounded-xl"><p class="text-2xl font-bold text-emerald-600" id="totalReqs">0</p><p class="text-xs">Total Requests</p></div>
-            <div class="text-center p-3 bg-gray-50 rounded-xl"><p class="text-2xl font-bold text-emerald-600" id="avgReqs">0</p><p class="text-xs">Avg/Day (30d)</p></div>
-            <div class="text-center p-3 bg-gray-50 rounded-xl"><p class="text-2xl font-bold text-emerald-600" id="bestDay">0</p><p class="text-xs">Best Day</p></div>
-            <div class="text-center p-3 bg-gray-50 rounded-xl"><p class="text-2xl font-bold text-emerald-600" id="accountAge">0</p><p class="text-xs">Account Age (days)</p></div>
+    
+    <!-- Today's Stat Page -->
+    <div id="todayPage" class="page">
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-gray-900">📊 Today's OTP Statistics</h1>
+            <p class="text-gray-500 mt-1">OTP received today from your numbers</p>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left font-semibold text-gray-600">Number</th>
+                            <th class="px-6 py-3 text-left font-semibold text-gray-600">Sender</th>
+                            <th class="px-6 py-3 text-left font-semibold text-gray-600">Code</th>
+                            <th class="px-6 py-3 text-left font-semibold text-gray-600">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="todayOtpTable" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+            <div id="todayEmptyMsg" class="text-center py-8 text-gray-400 hidden">
+                <i class="fas fa-inbox text-4xl mb-2"></i>
+                <p>No OTP received today</p>
+                <p class="text-sm mt-1">Click the + button below to add a test OTP</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Total OTP Page -->
+    <div id="totalPage" class="page">
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-gray-900">💰 Total OTP Earnings</h1>
+            <p class="text-gray-500 mt-1">Today's OTP summary and earnings</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div class="stats-card bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-emerald-100 text-sm">Total OTP Today</p>
+                        <p class="text-white text-4xl font-bold mt-1" id="totalOtpCount">0</p>
+                    </div>
+                    <i class="fas fa-message text-emerald-200 text-5xl opacity-75"></i>
+                </div>
+            </div>
+            <div class="stats-card bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl shadow-lg p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-amber-100 text-sm">Total Earnings</p>
+                        <p class="text-white text-4xl font-bold mt-1" id="totalEarnings">$0.00</p>
+                        <p class="text-amber-100 text-xs mt-1">($0.005 per OTP)</p>
+                    </div>
+                    <i class="fas fa-dollar-sign text-amber-200 text-5xl opacity-75"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <h3 class="font-semibold text-gray-800 mb-3">📊 Rate Information</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div class="p-3 bg-gray-50 rounded-xl">
+                    <p class="text-xs text-gray-500">Rate per OTP</p>
+                    <p class="text-xl font-bold text-emerald-600">$0.005</p>
+                </div>
+                <div class="p-3 bg-gray-50 rounded-xl">
+                    <p class="text-xs text-gray-500">100 OTPs =</p>
+                    <p class="text-xl font-bold text-emerald-600">$0.50</p>
+                </div>
+                <div class="p-3 bg-gray-50 rounded-xl">
+                    <p class="text-xs text-gray-500">1,000 OTPs =</p>
+                    <p class="text-xl font-bold text-emerald-600">$5.00</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Past Records Page -->
+    <div id="pastPage" class="page">
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-gray-900">📅 Past OTP Records</h1>
+            <p class="text-gray-500 mt-1">View OTP history by date range</p>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                    <input type="date" id="pastStartDate" class="w-full border border-gray-200 rounded-xl px-4 py-2.5">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                    <input type="date" id="pastEndDate" class="w-full border border-gray-200 rounded-xl px-4 py-2.5">
+                </div>
+            </div>
+            <button id="fetchPastBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl transition">
+                <i class="fas fa-search mr-2"></i>Fetch Records
+            </button>
+        </div>
+        
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
+                <h3 class="font-semibold text-gray-800">OTP Records</h3>
+                <div class="text-sm">
+                    <span class="font-bold text-emerald-600" id="pastTotalEarnings">$0.00</span>
+                    <span class="text-gray-500 ml-2">total earnings</span>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left">Date</th>
+                            <th class="px-6 py-3 text-left">Number</th>
+                            <th class="px-6 py-3 text-left">Sender</th>
+                            <th class="px-6 py-3 text-left">Code</th>
+                            <th class="px-6 py-3 text-left">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pastOtpTable" class="divide-y divide-gray-100"></tbody>
+                </table>
+            </div>
+            <div id="pastEmptyMsg" class="text-center py-8 text-gray-400 hidden">
+                <i class="fas fa-calendar-times text-4xl mb-2"></i>
+                <p>No OTP records in this date range</p>
+            </div>
         </div>
     </div>
 </main>
 
+<!-- Floating Add OTP Button -->
+<button id="addOtpFloatBtn" class="fixed bottom-6 right-6 bg-emerald-600 text-white p-4 rounded-full shadow-lg hover:bg-emerald-700 transition z-20">
+    <i class="fas fa-plus text-xl"></i>
+</button>
+
 <script src="../js/data.js"></script>
 <script src="../js/auth.js"></script>
 <script>
+    // Check authentication
     if (!requireUserAuth()) {}
     
     let currentUser = getCurrentUser();
+    let userNumbers = [];
+    let otpRecords = [];
     
-    function loadData() {
-        document.getElementById('userName').innerText = currentUser.username;
-        document.getElementById('userEmail').innerText = currentUser.email;
-        document.getElementById('welcomeMsg').innerHTML = `Welcome, ${currentUser.username}!`;
+    // Load user numbers from admin analytics
+    function loadUserNumbers() {
+        const analyticsData = JSON.parse(localStorage.getItem('nexus_analytics_numbers') || '[]');
+        userNumbers = analyticsData.filter(item => item.userId === currentUser.userId);
+        populateCountrySelect();
+    }
+    
+    function populateCountrySelect() {
+        const select = document.getElementById('countrySelect');
+        if (!select) return;
         
-        const requests = getAllRequests().filter(r => r.userId === currentUser.userId);
-        const today = getTodayStr();
-        const todayReq = requests.find(r => r.date === today)?.count || 0;
-        document.getElementById('todayCount').innerText = todayReq;
-        
-        const total = requests.reduce((s,r)=>s+r.count,0);
-        document.getElementById('totalReqs').innerText = total;
-        
-        const last30 = [];
-        for(let i=0;i<30;i++) { let d=new Date(); d.setDate(d.getDate()-i); last30.push(d.toISOString().slice(0,10)); }
-        const last30Reqs = requests.filter(r=>last30.includes(r.date)).reduce((s,r)=>s+r.count,0);
-        document.getElementById('avgReqs').innerText = Math.round(last30Reqs/30);
-        
-        const best = Math.max(...requests.map(r=>r.count),0);
-        document.getElementById('bestDay').innerText = best;
-        
-        const userData = getUsers().find(u=>u.id===currentUser.userId);
-        if(userData && userData.createdAt) {
-            const days = Math.floor((new Date() - new Date(userData.createdAt)) / (86400000));
-            document.getElementById('accountAge').innerText = days;
+        const countries = [...new Set(userNumbers.map(item => item.country))];
+        if (countries.length === 0) {
+            select.innerHTML = '<option value="">-- No numbers allocated --</option>';
+            return;
         }
         
-        const end = new Date(); const start = new Date(); start.setDate(end.getDate()-6);
-        document.getElementById('startDate').value = start.toISOString().slice(0,10);
-        document.getElementById('endDate').value = end.toISOString().slice(0,10);
-        fetchHistory();
+        select.innerHTML = '<option value="">-- Select Country --</option>' + 
+            countries.map(country => `<option value="${country}">${getCountryFlag(country)} ${country}</option>`).join('');
     }
     
-    function fetchHistory() {
-        const start = document.getElementById('startDate').value;
-        const end = document.getElementById('endDate').value;
-        const logs = getRequestsInRange(currentUser.userId, start, end);
-        document.getElementById('historyBody').innerHTML = logs.length ? logs.map(l=>`<tr><td class="py-1">${l.date}</td><td class="font-bold">${l.count}</td></tr>`).join('') : '<tr><td colspan="2" class="text-center py-3 text-gray-400">No requests</td></tr>';
+    function getCountryFlag(country) {
+        const flags = {
+            'Jordan': '🇯🇴', 'Tajikistan': '🇹🇯', 'Nigeria': '🇳🇬', 
+            'Myanmar': '🇲🇲', 'Hungary': '🇭🇺', 'Slovenia': '🇸🇮', 'Venezuela': '🇻🇪'
+        };
+        return flags[country] || '🌍';
     }
     
-    function addRequest() {
-        incrementRequestToday(currentUser.userId);
-        loadData();
-        fetchHistory();
-        const btn = document.getElementById('addRequestBtn');
-        const orig = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-check"></i> Added!';
-        btn.classList.add('bg-green-500','text-white');
-        setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('bg-green-500','text-white'); }, 1000);
+    function displayNumbersForCountry(country) {
+        const container = document.getElementById('numbersDisplay');
+        const numbers = userNumbers.find(item => item.country === country);
+        
+        if (!numbers || numbers.numbers.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-8 text-gray-400">
+                    <i class="fas fa-phone-slash text-4xl mb-2"></i>
+                    <p>No numbers allocated for ${country}</p>
+                </div>
+            `;
+            return;
+        }
+        
+        container.innerHTML = `
+            <div class="border border-gray-200 rounded-xl overflow-hidden">
+                <div class="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                    <h3 class="font-semibold text-gray-700">Numbers in ${getCountryFlag(country)} ${country}</h3>
+                </div>
+                <div class="divide-y divide-gray-100">
+                    ${numbers.numbers.map(num => `
+                        <div class="px-4 py-3 hover:bg-gray-50">
+                            <div class="flex items-center gap-2">
+                                <i class="fas fa-phone text-emerald-500"></i>
+                                <span class="font-mono text-gray-800">${escapeHtml(num)}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
     }
     
+    // OTP Management
+    function addOtp(number, sender, code) {
+        const today = getTodayStr();
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString();
+        
+        const newOtp = {
+            id: crypto.randomUUID(),
+            userId: currentUser.userId,
+            number: number,
+            sender: sender,
+            code: code,
+            date: today,
+            time: timeStr,
+            timestamp: now.toISOString()
+        };
+        
+        otpRecords.push(newOtp);
+        localStorage.setItem(`nexus_otp_${currentUser.userId}`, JSON.stringify(otpRecords));
+        
+        // Update displays based on active page
+        const activePage = document.querySelector('.page.active-page')?.id;
+        if (activePage === 'todayPage') renderTodayOtps();
+        if (activePage === 'totalPage') updateTotalStats();
+    }
+    
+    function loadOtpRecords() {
+        const stored = localStorage.getItem(`nexus_otp_${currentUser.userId}`);
+        otpRecords = stored ? JSON.parse(stored) : [];
+        
+        // Add demo OTPs if empty and user has numbers
+        if (otpRecords.length === 0 && userNumbers.length > 0 && userNumbers[0]?.numbers?.length > 0) {
+            const demoNumbers = userNumbers[0].numbers;
+            addOtp(demoNumbers[0], 'Google', '123456');
+            addOtp(demoNumbers[0], 'Facebook', '789012');
+            if (demoNumbers[1]) {
+                addOtp(demoNumbers[1], 'WhatsApp', '345678');
+            }
+        }
+    }
+    
+    function renderTodayOtps() {
+        const today = getTodayStr();
+        const todayOtps = otpRecords.filter(otp => otp.date === today);
+        const tbody = document.getElementById('todayOtpTable');
+        const emptyMsg = document.getElementById('todayEmptyMsg');
+        
+        if (todayOtps.length === 0) {
+            tbody.innerHTML = '';
+            emptyMsg.classList.remove('hidden');
+            return;
+        }
+        
+        emptyMsg.classList.add('hidden');
+        tbody.innerHTML = todayOtps.map(otp => `
+            <tr class="otp-row">
+                <td class="px-6 py-3 font-mono text-sm">${escapeHtml(otp.number)}</td>
+                <td class="px-6 py-3">${escapeHtml(otp.sender)}</td>
+                <td class="px-6 py-3 font-mono font-bold text-emerald-600">${escapeHtml(otp.code)}</td>
+                <td class="px-6 py-3 text-gray-500 text-xs">${otp.time}</td>
+            </tr>
+        `).join('');
+    }
+    
+    function updateTotalStats() {
+        const today = getTodayStr();
+        const todayOtps = otpRecords.filter(otp => otp.date === today);
+        const totalCount = todayOtps.length;
+        const totalEarnings = totalCount * 0.005;
+        
+        document.getElementById('totalOtpCount').textContent = totalCount;
+        document.getElementById('totalEarnings').textContent = `$${totalEarnings.toFixed(2)}`;
+    }
+    
+    function renderPastOtps() {
+        const startDate = document.getElementById('pastStartDate').value;
+        const endDate = document.getElementById('pastEndDate').value;
+        
+        if (!startDate || !endDate) return;
+        
+        const filteredOtps = otpRecords.filter(otp => otp.date >= startDate && otp.date <= endDate);
+        const tbody = document.getElementById('pastOtpTable');
+        const emptyMsg = document.getElementById('pastEmptyMsg');
+        const totalEarningsSpan = document.getElementById('pastTotalEarnings');
+        
+        if (filteredOtps.length === 0) {
+            tbody.innerHTML = '';
+            emptyMsg.classList.remove('hidden');
+            totalEarningsSpan.textContent = '$0.00';
+            return;
+        }
+        
+        emptyMsg.classList.add('hidden');
+        const totalEarnings = filteredOtps.length * 0.005;
+        totalEarningsSpan.textContent = `$${totalEarnings.toFixed(2)}`;
+        
+        tbody.innerHTML = filteredOtps.map(otp => `
+            <tr class="hover:bg-gray-50">
+                <td class="px-6 py-3 text-gray-600 text-xs">${otp.date}</td>
+                <td class="px-6 py-3 font-mono text-sm">${escapeHtml(otp.number)}</td>
+                <td class="px-6 py-3">${escapeHtml(otp.sender)}</td>
+                <td class="px-6 py-3 font-mono font-bold text-emerald-600">${escapeHtml(otp.code)}</td>
+                <td class="px-6 py-3 text-gray-500 text-xs">${otp.time}</td>
+            </tr>
+        `).join('');
+    }
+    
+    // Add OTP Modal
+    function showAddOtpForm() {
+        const modalHtml = `
+            <div id="addOtpModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+                <div class="bg-white rounded-2xl max-w-md w-full mx-4 p-6">
+                    <h3 class="text-xl font-bold mb-4">➕ Add OTP</h3>
+                    <div class="space-y-3">
+                        <select id="otpNumber" class="w-full border rounded-xl px-4 py-2.5">
+                            <option value="">Select Number</option>
+                            ${userNumbers.flatMap(item => item.numbers.map(num => `<option value="${num}">${num}</option>`)).join('')}
+                        </select>
+                        <input type="text" id="otpSender" placeholder="Sender (e.g., Google, Facebook)" class="w-full border rounded-xl px-4 py-2.5">
+                        <input type="text" id="otpCode" placeholder="OTP Code" class="w-full border rounded-xl px-4 py-2.5">
+                    </div>
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button id="closeOtpModal" class="px-4 py-2 border rounded-xl text-gray-600 hover:bg-gray-50">Cancel</button>
+                        <button id="saveOtpBtn" class="px-4 py-2 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700">Add OTP</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        document.getElementById('closeOtpModal').onclick = () => document.getElementById('addOtpModal').remove();
+        document.getElementById('saveOtpBtn').onclick = () => {
+            const number = document.getElementById('otpNumber').value;
+            const sender = document.getElementById('otpSender').value;
+            const code = document.getElementById('otpCode').value;
+            
+            if (number && sender && code) {
+                addOtp(number, sender, code);
+                document.getElementById('addOtpModal').remove();
+                
+                // Refresh current page
+                const activePage = document.querySelector('.page.active-page')?.id;
+                if (activePage === 'todayPage') renderTodayOtps();
+                if (activePage === 'totalPage') updateTotalStats();
+                if (activePage === 'pastPage') renderPastOtps();
+            } else {
+                alert('Please fill all fields');
+            }
+        };
+    }
+    
+    // Page Navigation
+    function switchPage(pageId) {
+        document.querySelectorAll('.page').forEach(page => page.classList.remove('active-page'));
+        document.getElementById(pageId + 'Page').classList.add('active-page');
+        
+        // Update page title
+        const titles = {
+            allocation: '📌 Number Allocation',
+            today: '📊 Today\'s OTP Statistics',
+            total: '💰 Total OTP Earnings',
+            past: '📅 Past OTP Records'
+        };
+        document.querySelector('h1')?.setAttribute('data-title', titles[pageId]);
+        
+        // Load page-specific data
+        if (pageId === 'allocation') {
+            loadUserNumbers();
+        } else if (pageId === 'today') {
+            renderTodayOtps();
+        } else if (pageId === 'total') {
+            updateTotalStats();
+        }
+    }
+    
+    // Dropdown Menu Toggle
+    function toggleDropdown() {
+        const dropdown = document.getElementById('dropdownMenu');
+        dropdown.classList.toggle('hidden');
+    }
+    
+    function closeDropdown() {
+        document.getElementById('dropdownMenu').classList.add('hidden');
+    }
+    
+    // Initialize
     document.addEventListener('DOMContentLoaded', () => {
         initData();
-        loadData();
-        document.getElementById('addRequestBtn').onclick = addRequest;
-        document.getElementById('fetchHistory').onclick = fetchHistory;
+        
+        // Set user info
+        document.getElementById('userName').innerText = currentUser.username;
+        document.getElementById('userEmail').innerText = currentUser.email;
+        
+        loadUserNumbers();
+        loadOtpRecords();
+        
+        // Set default dates for past page
+        const end = new Date();
+        const start = new Date();
+        start.setDate(end.getDate() - 6);
+        document.getElementById('pastStartDate').value = start.toISOString().slice(0,10);
+        document.getElementById('pastEndDate').value = end.toISOString().slice(0,10);
+        
+        // Event listeners
+        document.getElementById('countrySelect')?.addEventListener('change', (e) => {
+            if (e.target.value) displayNumbersForCountry(e.target.value);
+        });
+        document.getElementById('fetchPastBtn')?.addEventListener('click', renderPastOtps);
+        
+        // Dropdown menu
+        document.getElementById('menuButton').addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleDropdown();
+        });
+        
+        document.addEventListener('click', (e) => {
+            if (!document.getElementById('menuButton').contains(e.target) && 
+                !document.getElementById('dropdownMenu').contains(e.target)) {
+                closeDropdown();
+            }
+        });
+        
+        // Menu items
+        document.querySelectorAll('[data-page]').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchPage(link.dataset.page);
+                closeDropdown();
+            });
+        });
+        
+        // Logout
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            userLogout();
+        });
+        
+        // Add OTP button
+        document.getElementById('addOtpFloatBtn').addEventListener('click', showAddOtpForm);
+        
+        // Start with Allocation page
+        switchPage('allocation');
     });
 </script>
 </body>
