@@ -1,3 +1,61 @@
+// Add these functions to js/data.js
+
+// Function to load OTPs from the bot's data file
+// You need to serve the data folder via your web server
+async function loadOtpsFromBot() {
+    try {
+        // This assumes your data folder is accessible via web server
+        const response = await fetch('../data/otp_logs.json');
+        if (response.ok) {
+            const otps = await response.json();
+            localStorage.setItem('nexus_all_otp_records', JSON.stringify(otps));
+            return otps;
+        }
+    } catch (error) {
+        console.log('Could not load OTPs from bot, using local storage');
+    }
+    
+    // Fallback to local storage
+    const stored = localStorage.getItem('nexus_all_otp_records');
+    return stored ? JSON.parse(stored) : [];
+}
+
+// Function to match OTPs with user's numbers
+function getOtpsForUser(userId) {
+    const allOtps = JSON.parse(localStorage.getItem('nexus_all_otp_records') || '[]');
+    const userNumbers = JSON.parse(localStorage.getItem('nexus_analytics_numbers') || '[]');
+    
+    // Get all numbers allocated to this user
+    const userNumberEntries = userNumbers.filter(n => n.userId === userId);
+    const userPhoneLast4s = [];
+    
+    userNumberEntries.forEach(entry => {
+        entry.numbers.forEach(number => {
+            // Extract last 4 digits from each allocated number
+            const cleanNumber = number.replace(/\D/g, '');
+            if (cleanNumber.length >= 4) {
+                userPhoneLast4s.push(cleanNumber.slice(-4));
+            }
+        });
+    });
+    
+    // Filter OTPs that match any of the user's phone last 4 digits
+    return allOtps.filter(otp => userPhoneLast4s.includes(otp.phone_last4));
+}
+
+// Update user dashboard to show real OTPs
+function updateUserWithRealOtps() {
+    const currentUser = getCurrentUser();
+    if (!currentUser) return;
+    
+    const userOtps = getOtpsForUser(currentUser.userId);
+    
+    // Save to user's local storage for quick access
+    localStorage.setItem(`nexus_otp_${currentUser.userId}`, JSON.stringify(userOtps));
+    
+    return userOtps;
+}
+
 // Add this function to js/data.js
 function createUserWithPassword(username, password, email = null) {
     const newId = crypto.randomUUID();
