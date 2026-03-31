@@ -26,32 +26,75 @@
 
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div class="flex justify-between items-center mb-6">
-        <div><h1 class="text-2xl font-bold text-gray-900">User Management</h1><p class="text-gray-500">Create, edit, or remove user accounts</p></div>
-        <button id="createUserBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl"><i class="fas fa-plus mr-2"></i>New User</button>
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">User Management</h1>
+            <p class="text-gray-500">Create, edit, or remove user accounts</p>
+        </div>
+        <button id="createUserBtn" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl">
+            <i class="fas fa-plus mr-2"></i>New User
+        </button>
     </div>
 
     <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-sm">
-                <thead class="bg-gray-50">……
-                    <th class="px-6 py-3 text-left">Username</th><th class="px-6 py-3 text-left">Email</th><th class="px-6 py-3 text-left">Created</th><th class="px-6 py-3 text-center">Actions</th>
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left">Username</th>
+                        <th class="px-6 py-3 text-left">Email</th>
+                        <th class="px-6 py-3 text-left">Created</th>
+                        <th class="px-6 py-3 text-center">Actions</th>
+                    </tr>
                 </thead>
                 <tbody id="usersList" class="divide-y divide-gray-100"></tbody>
-             </table>
+            </table>
         </div>
     </div>
 </main>
 
+<!-- Create/Edit User Modal -->
 <div id="userModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-2xl max-w-md w-full mx-4 p-6">
-        <h3 class="text-xl font-bold mb-4" id="modalTitle">Create User</h3>
+        <h3 class="text-xl font-bold mb-4" id="modalTitle">Create User Account</h3>
         <input type="hidden" id="editUserId">
-        <input type="text" id="modalUsername" placeholder="Username" class="w-full border rounded-xl px-4 py-3 mb-3">
-        <input type="email" id="modalEmail" placeholder="Email" class="w-full border rounded-xl px-4 py-3 mb-4">
-        <div class="flex justify-end gap-3">
-            <button id="closeModal" class="px-4 py-2 border rounded-xl">Cancel</button>
-            <button id="saveUser" class="px-4 py-2 bg-indigo-600 text-white rounded-xl">Save</button>
+        
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Username *</label>
+            <input type="text" id="modalUsername" placeholder="Enter username" class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-300">
         </div>
+        
+        <div class="mb-4" id="passwordField">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Password *</label>
+            <input type="password" id="modalPassword" placeholder="Enter password" class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-300">
+            <p class="text-xs text-gray-400 mt-1">User will use this password to login</p>
+        </div>
+        
+        <div class="mb-4 hidden" id="emailField">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Email (Optional)</label>
+            <input type="email" id="modalEmail" placeholder="user@example.com" class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-300">
+        </div>
+        
+        <div class="flex justify-end gap-3 mt-6">
+            <button id="closeModal" class="px-4 py-2 border rounded-xl text-gray-600 hover:bg-gray-50">Cancel</button>
+            <button id="saveUser" class="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Show Password Modal (for new user creation) -->
+<div id="passwordModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full mx-4 p-6 text-center">
+        <div class="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-check-circle text-green-500 text-2xl"></i>
+        </div>
+        <h3 class="text-xl font-bold text-gray-800 mb-2">User Created Successfully!</h3>
+        <p class="text-gray-600 mb-4">Here are the login credentials:</p>
+        <div class="bg-gray-50 rounded-xl p-4 mb-4 text-left">
+            <p class="text-sm"><strong>Username:</strong> <span id="newUsername" class="font-mono"></span></p>
+            <p class="text-sm mt-2"><strong>Password:</strong> <span id="newPassword" class="font-mono"></span></p>
+        </div>
+        <p class="text-xs text-gray-400 mb-4">Please save this password. The user can change it later.</p>
+        <button id="closePasswordModal" class="px-6 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700">Got it</button>
     </div>
 </div>
 
@@ -62,51 +105,207 @@
     
     function renderUsers() {
         const users = getUsers();
-        document.getElementById('usersList').innerHTML = users.map(u => `
-            <tr><td class="px-6 py-3 font-medium">${escapeHtml(u.username)}</td>
-            <td class="px-6 py-3">${escapeHtml(u.email)}</td>
-            <td class="px-6 py-3 text-xs">${u.createdAt || '—'}</td>
-            <td class="px-6 py-3 text-center"><button onclick="editUser('${u.id}')" class="text-indigo-600 mr-3"><i class="fas fa-edit"></i></button>
-            <button onclick="deleteUser('${u.id}')" class="text-red-500"><i class="fas fa-trash-alt"></i></button></td></tr>
-        `).join('');
+        const credentials = getUserCredentials();
+        
+        document.getElementById('usersList').innerHTML = users.map(u => {
+            const cred = credentials.find(c => c.userId === u.id);
+            const email = cred?.email || u.email || `${u.username}@nexuspanel.com`;
+            
+            return `
+            <tr class="border-b border-gray-100 hover:bg-gray-50">
+                <td class="px-6 py-3 font-medium">${escapeHtml(u.username)}</td>
+                <td class="px-6 py-3 text-gray-600">${escapeHtml(email)}</td>
+                <td class="px-6 py-3 text-xs text-gray-500">${u.createdAt || '—'}</td>
+                <td class="px-6 py-3 text-center">
+                    <button onclick="editUser('${u.id}')" class="text-indigo-600 hover:text-indigo-800 mr-3">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button onclick="deleteUser('${u.id}')" class="text-red-500 hover:text-red-700">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                    <button onclick="resetPassword('${u.id}')" class="text-amber-600 hover:text-amber-800 ml-3" title="Reset Password">
+                        <i class="fas fa-key"></i>
+                    </button>
+                </td>
+            </tr>
+        `}).join('');
     }
     
-    function openModal(editMode, userData) {
-        document.getElementById('userModal').classList.remove('hidden');
+    let isEditMode = false;
+    
+    function openModal(editMode = false, userData = null) {
+        const modal = document.getElementById('userModal');
+        const passwordField = document.getElementById('passwordField');
+        const emailField = document.getElementById('emailField');
+        
+        modal.classList.remove('hidden');
+        
         if (editMode && userData) {
+            isEditMode = true;
             document.getElementById('modalTitle').innerText = 'Edit User';
             document.getElementById('editUserId').value = userData.id;
             document.getElementById('modalUsername').value = userData.username;
-            document.getElementById('modalEmail').value = userData.email;
+            document.getElementById('modalPassword').value = '';
+            document.getElementById('modalEmail').value = userData.email || '';
+            passwordField.classList.add('hidden');
+            emailField.classList.remove('hidden');
         } else {
-            document.getElementById('modalTitle').innerText = 'Create User';
+            isEditMode = false;
+            document.getElementById('modalTitle').innerText = 'Create User Account';
             document.getElementById('editUserId').value = '';
             document.getElementById('modalUsername').value = '';
+            document.getElementById('modalPassword').value = '';
             document.getElementById('modalEmail').value = '';
+            passwordField.classList.remove('hidden');
+            emailField.classList.add('hidden');
         }
+    }
+    
+    function closeModal() {
+        document.getElementById('userModal').classList.add('hidden');
     }
     
     function saveUser() {
         const username = document.getElementById('modalUsername').value.trim();
-        const email = document.getElementById('modalEmail').value.trim();
-        if (!username || !email) { alert('Fill all fields'); return; }
         const editId = document.getElementById('editUserId').value;
-        if (editId) updateUser(editId, username, email);
-        else createUser(username, email);
-        document.getElementById('userModal').classList.add('hidden');
-        renderUsers();
+        
+        if (!username) {
+            alert('Username is required');
+            return;
+        }
+        
+        if (isEditMode) {
+            // Edit existing user
+            const email = document.getElementById('modalEmail').value.trim() || `${username}@nexuspanel.com`;
+            updateUser(editId, username, email);
+            closeModal();
+            renderUsers();
+        } else {
+            // Create new user
+            const password = document.getElementById('modalPassword').value;
+            
+            if (!password) {
+                alert('Password is required for new user');
+                return;
+            }
+            
+            if (password.length < 4) {
+                alert('Password must be at least 4 characters');
+                return;
+            }
+            
+            // Check if username already exists
+            const existingUser = getUsers().find(u => u.username.toLowerCase() === username.toLowerCase());
+            if (existingUser) {
+                alert('Username already exists. Please choose another.');
+                return;
+            }
+            
+            // Auto-generate email from username
+            const autoEmail = `${username}@nexuspanel.com`;
+            
+            // Create user with custom password
+            const result = createUserWithCustomPassword(username, autoEmail, password);
+            
+            closeModal();
+            
+            // Show password modal with credentials
+            document.getElementById('newUsername').textContent = username;
+            document.getElementById('newPassword').textContent = password;
+            document.getElementById('passwordModal').classList.remove('hidden');
+            
+            renderUsers();
+        }
     }
     
-    window.editUser = (id) => { const u = getUsers().find(u=>u.id===id); if(u) openModal(true, u); };
-    window.deleteUser = (id) => { if(confirm('Delete user?')) { deleteUserById(id); renderUsers(); } };
+    // Override the createUser function to accept custom password
+    function createUserWithCustomPassword(username, email, password) {
+        const newId = crypto.randomUUID();
+        const today = getTodayStr();
+        
+        // Add to users array
+        globalUsers.push({ 
+            id: newId, 
+            username, 
+            email, 
+            createdAt: today 
+        });
+        
+        // Add to credentials with custom password
+        globalUserCredentials.push({
+            userId: newId,
+            username: username,
+            email: email,
+            password: password,
+            createdAt: today,
+            role: 'user'
+        });
+        
+        // Initialize request log
+        if (!globalRequests.some(r => r.userId === newId && r.date === today)) {
+            globalRequests.push({ id: crypto.randomUUID(), userId: newId, date: today, count: 0 });
+        }
+        
+        saveToLocal();
+        return { userId: newId, password: password };
+    }
+    
+    function resetPassword(userId) {
+        const user = getUsers().find(u => u.id === userId);
+        if (!user) return;
+        
+        const newPassword = prompt(`Enter new password for ${user.username}:`, 'password123');
+        if (newPassword && newPassword.length >= 4) {
+            const cred = globalUserCredentials.find(c => c.userId === userId);
+            if (cred) {
+                cred.password = newPassword;
+                saveToLocal();
+                alert(`Password for ${user.username} has been reset to: ${newPassword}`);
+            }
+        } else if (newPassword) {
+            alert('Password must be at least 4 characters');
+        }
+    }
+    
+    window.editUser = (id) => {
+        const user = getUsers().find(u => u.id === id);
+        if (user) {
+            const cred = getUserCredentials().find(c => c.userId === id);
+            openModal(true, { ...user, email: cred?.email || user.email });
+        }
+    };
+    
+    window.deleteUser = (id) => {
+        const user = getUsers().find(u => u.id === id);
+        if (confirm(`Delete user "${user?.username}"? This will remove all their request data.`)) {
+            deleteUserById(id);
+            renderUsers();
+        }
+    };
+    
+    window.resetPassword = resetPassword;
     
     document.addEventListener('DOMContentLoaded', () => {
         initData();
         renderUsers();
+        
         document.getElementById('createUserBtn').onclick = () => openModal(false);
-        document.getElementById('closeModal').onclick = () => document.getElementById('userModal').classList.add('hidden');
+        document.getElementById('closeModal').onclick = closeModal;
         document.getElementById('saveUser').onclick = saveUser;
+        document.getElementById('closePasswordModal').onclick = () => {
+            document.getElementById('passwordModal').classList.add('hidden');
+        };
+        
+        // Close modals when clicking outside
+        document.getElementById('userModal').addEventListener('click', (e) => {
+            if (e.target.id === 'userModal') closeModal();
+        });
+        document.getElementById('passwordModal').addEventListener('click', (e) => {
+            if (e.target.id === 'passwordModal') {
+                document.getElementById('passwordModal').classList.add('hidden');
+            }
+        });
     });
 </script>
 </body>
-</html>
+                </html>
