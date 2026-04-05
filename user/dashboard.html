@@ -88,7 +88,7 @@
                 </select>
             </div>
             <div id="numbersDisplay" class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 text-center text-gray-400">Select a range to view numbers</div>
-            <div class="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400"><i class="fas fa-info-circle text-purple-500"></i><span>Numbers that have received OTPs are hidden from this list.</span></div>
+            <div class="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400"><i class="fas fa-info-circle text-purple-500"></i><span>Numbers that have received OTPs are marked as used.</span></div>
         </div>
 
         <!-- Today's Stat Page -->
@@ -96,7 +96,7 @@
             <h1 class="text-2xl font-bold text-gray-900">📊 Today's OTP Statistics</h1>
             <p class="text-gray-500 text-sm mt-1 mb-4">OTP received today on your numbers</p>
             <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
-                <div class="overflow-x-auto"><table class="data-table w-full text-sm"><thead><tr><th class="px-6 py-4 text-left font-semibold text-gray-600">Country</th><th class="px-6 py-4 text-left font-semibold text-gray-600">Phone Number</th><th class="px-6 py-4 text-left font-semibold text-gray-600">Last3</th><th class="px-6 py-4 text-left font-semibold text-gray-600">Sender</th><th class="px-6 py-4 text-left font-semibold text-gray-600">OTP Code</th><th class="px-6 py-4 text-left font-semibold text-gray-600">Range</th><th class="px-6 py-4 text-left font-semibold text-gray-600">Time</th></tr></thead><tbody id="todayOtpTable" class="divide-y divide-gray-100"></tbody></table></div>
+                <div class="overflow-x-auto"><table class="data-table w-full text-sm"><thead><tr><th class="px-6 py-4 text-left font-semibold text-gray-600">Range</th><th class="px-6 py-4 text-left font-semibold text-gray-600">Phone Number</th><th class="px-6 py-4 text-left font-semibold text-gray-600">Last3</th><th class="px-6 py-4 text-left font-semibold text-gray-600">Sender</th><th class="px-6 py-4 text-left font-semibold text-gray-600">OTP Code</th><th class="px-6 py-4 text-left font-semibold text-gray-600">Time</th></tr></thead><tbody id="todayOtpTable" class="divide-y divide-gray-100"></tbody></table></div>
                 <div id="todayEmptyMsg" class="text-center py-12 text-gray-400 hidden"><i class="fas fa-inbox text-4xl mb-3 opacity-50"></i><p>No OTP received today</p></div>
             </div>
         </div>
@@ -126,7 +126,7 @@
             </div>
             <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
                 <div class="px-6 py-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center"><h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>OTP Records</h3><div class="text-sm bg-purple-50 px-3 py-1.5 rounded-lg"><span class="font-bold text-purple-600" id="pastTotalEarnings">$0.00</span><span class="text-gray-500 ml-1">total earnings</span></div></div>
-                <div class="overflow-x-auto max-h-[500px] overflow-y-auto"><table class="data-table w-full text-sm"><thead class="sticky top-0 bg-purple-50"><tr><th class="px-6 py-3 text-left font-semibold text-gray-600">📅 Date</th><th class="px-6 py-3 text-left font-semibold text-gray-600">🌍 Country</th><th class="px-6 py-3 text-left font-semibold text-gray-600">📞 Phone Number</th><th class="px-6 py-3 text-left font-semibold text-gray-600">🔐 Last3</th><th class="px-6 py-3 text-left font-semibold text-gray-600">✉️ Sender</th><th class="px-6 py-3 text-left font-semibold text-gray-600">🔢 OTP Code</th><th class="px-6 py-3 text-left font-semibold text-gray-600">📌 Range</th><th class="px-6 py-3 text-left font-semibold text-gray-600">⏰ Time</th><th class="px-6 py-3 text-left font-semibold text-gray-600">💰 Earned</th></tr></thead><tbody id="pastOtpTable" class="divide-y divide-gray-100"></tbody></table></div>
+                <div class="overflow-x-auto max-h-[500px] overflow-y-auto"><table class="data-table w-full text-sm"><thead class="sticky top-0 bg-purple-50"><tr><th class="px-6 py-3 text-left font-semibold text-gray-600">📅 Date</th><th class="px-6 py-3 text-left font-semibold text-gray-600">Range</th><th class="px-6 py-3 text-left font-semibold text-gray-600">Phone Number</th><th class="px-6 py-3 text-left font-semibold text-gray-600">Last3</th><th class="px-6 py-3 text-left font-semibold text-gray-600">Sender</th><th class="px-6 py-3 text-left font-semibold text-gray-600">OTP Code</th><th class="px-6 py-3 text-left font-semibold text-gray-600">Time</th><th class="px-6 py-3 text-left font-semibold text-gray-600">Earned</th></tr></thead><tbody id="pastOtpTable" class="divide-y divide-gray-100"></tbody></table></div>
                 <div id="pastEmptyMsg" class="text-center py-12 text-gray-400 hidden"><i class="fas fa-calendar-times text-4xl mb-3 opacity-50"></i><p>No OTP records in this date range</p></div>
             </div>
         </div>
@@ -139,10 +139,9 @@ const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 
 let currentUser = null;
 let userNumbers = [];
-let userPhoneNumbers = [];
 let userPhoneLast3s = [];
 let userOtps = [];
-let userNumberMap = new Map(); // last3 -> { number, range_name, country }
+let userNumberMap = new Map(); // last3 -> { number, range_name }
 window.rangeNumbersStore = {};
 
 function getTodayStr() { return new Date().toISOString().slice(0, 10); }
@@ -177,22 +176,21 @@ async function fetchUserOtps() {
     return data || [];
 }
 
-function updateUserPhoneArrays() {
-    userPhoneNumbers = []; userPhoneLast3s = [];
+function updateUserData() {
+    userPhoneLast3s = [];
     userNumberMap.clear();
-    userNumbers.forEach(i => { 
-        if (i && i.number) { 
-            userPhoneNumbers.push(i.number); 
-            const l3 = getLast3Digits(i.number); 
-            if (l3 && l3.length === 3) {
-                userPhoneLast3s.push(l3);
-                userNumberMap.set(l3, { number: i.number, range_name: i.range_name, country: i.country || i.range_name });
-            }
+    userNumbers.forEach(item => { 
+        if (item && item.number && item.last3) { 
+            userPhoneLast3s.push(item.last3);
+            userNumberMap.set(item.last3, { 
+                number: item.number, 
+                range_name: item.range_name 
+            });
         } 
     });
     userPhoneLast3s = [...new Set(userPhoneLast3s)];
-    console.log('User has', userPhoneNumbers.length, 'numbers');
-    console.log('Last3 digits:', userPhoneLast3s);
+    console.log('User last3 digits:', userPhoneLast3s);
+    console.log('Number map:', userNumberMap);
 }
 
 function processAllocatedNumbers(raw) { 
@@ -236,11 +234,6 @@ function displayNumbers(range) {
     const availableNumbers = rangeData.numbers.filter(n => !usedLast3s.has(getLast3Digits(n)));
     const usedNumbers = rangeData.numbers.filter(n => usedLast3s.has(getLast3Digits(n)));
     
-    if (availableNumbers.length === 0 && usedNumbers.length > 0) {
-        div.innerHTML = '<div class="text-center py-12 text-purple-600"><i class="fas fa-check-circle text-4xl mb-3"></i><p class="font-medium">All numbers have been used!</p><p class="text-sm mt-1">Contact admin for more numbers.</p></div>';
-        return;
-    }
-    
     const rangeKey = range.replace(/\s/g, '_');
     window.rangeNumbersStore[rangeKey] = availableNumbers;
     
@@ -271,14 +264,12 @@ function renderTodayOtps() {
         const numberInfo = userNumberMap.get(o.phone_last3);
         const phoneNumber = numberInfo?.number || '***' + o.phone_last3;
         const rangeName = numberInfo?.range_name || o.range_name || 'Unknown';
-        const country = numberInfo?.country || rangeName;
         return `<tr class="otp-row border-b border-gray-100 hover:bg-purple-50">
-            <td class="px-6 py-3 text-sm">${escapeHtml(country)}<\/td>
+            <td class="px-6 py-3 text-sm">${escapeHtml(rangeName)}<\/td>
             <td class="px-6 py-3 font-mono text-sm">${escapeHtml(maskPhoneNumber(phoneNumber))}<\/td>
             <td class="px-6 py-3 font-mono text-sm">${escapeHtml(o.phone_last3)}<\/td>
             <td class="px-6 py-3">${escapeHtml(o.sender || o.service || 'Unknown')}<\/td>
             <td class="px-6 py-3"><span class="font-mono font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg">${escapeHtml(o.otp)}<\/span><\/td>
-            <td class="px-6 py-3">${escapeHtml(rangeName)}<\/td>
             <td class="px-6 py-3 text-gray-500 text-xs">${o.time_raw || (o.message_time ? new Date(o.message_time).toLocaleTimeString() : '')}<\/td>
         <\/tr>`;
     }).join('');
@@ -303,15 +294,13 @@ function fetchPastOtps() {
         const numberInfo = userNumberMap.get(o.phone_last3);
         const phoneNumber = numberInfo?.number || '***' + o.phone_last3;
         const rangeName = numberInfo?.range_name || o.range_name || 'Unknown';
-        const country = numberInfo?.country || rangeName;
         return `<tr class="hover:bg-purple-50 border-b border-gray-100">
             <td class="px-6 py-3 text-gray-600 text-xs whitespace-nowrap">${o.date || 'N/A'}<\/td>
-            <td class="px-6 py-3 text-sm">${escapeHtml(country)}<\/td>
+            <td class="px-6 py-3 text-sm">${escapeHtml(rangeName)}<\/td>
             <td class="px-6 py-3 font-mono text-sm">${escapeHtml(maskPhoneNumber(phoneNumber))}<\/td>
             <td class="px-6 py-3 font-mono text-sm">${escapeHtml(o.phone_last3)}<\/td>
             <td class="px-6 py-3">${escapeHtml(o.sender || o.service || 'Unknown')}<\/td>
             <td class="px-6 py-3"><span class="font-mono font-bold text-purple-600">${escapeHtml(o.otp)}<\/span><\/td>
-            <td class="px-6 py-3">${escapeHtml(rangeName)}<\/td>
             <td class="px-6 py-3 text-gray-500 text-xs">${o.time_raw || (o.message_time ? new Date(o.message_time).toLocaleTimeString() : '')}<\/td>
             <td class="px-6 py-3 text-emerald-600 font-semibold">+$0.005<\/td>
         <\/tr>`;
@@ -341,7 +330,7 @@ async function initDashboard() {
     document.getElementById('userEmail').innerText = currentUser.email || '';
     
     userNumbers = await fetchUserAllocatedNumbers(currentUser.id);
-    updateUserPhoneArrays();
+    updateUserData();
     userOtps = await fetchUserOtps();
     
     const end = new Date(), start = new Date(); start.setDate(end.getDate() - 6);
