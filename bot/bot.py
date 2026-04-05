@@ -7,12 +7,12 @@ import threading
 import logging
 from flask import Flask
 
-# 🔐 CONFIG
+# 🔐 CONFIG (YOUR REAL API)
 BOT_TOKEN = "7783590119:AAGScPFVEreH-fvwSQNTuamGlFOGI-VDK7w"
 SUPABASE_URL = "https://uizrpckqnproauqllono.supabase.co"
 API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE"
 
-# 🔕 DISABLE ALL LOGGING (Flask + Werkzeug + Requests)
+# 🔕 DISABLE LOGS
 logging.getLogger().setLevel(logging.CRITICAL)
 logging.getLogger("werkzeug").setLevel(logging.CRITICAL)
 
@@ -20,13 +20,13 @@ app = Flask(__name__)
 
 last_id = 0
 
-# 🌐 KEEP ALIVE (NO TEXT OUTPUT)
+# 🌐 KEEP ALIVE
 @app.route('/')
 def home():
-    return ""  # empty response
+    return ""
 
 
-# 🔄 SAFE REQUESTS (NO ERRORS EVER)
+# 🔄 SAFE REQUESTS
 def safe_get(url, **kwargs):
     try:
         return requests.get(url, **kwargs)
@@ -40,7 +40,15 @@ def safe_post(url, **kwargs):
         return None
 
 
-# 🤖 TELEGRAM POLLER (FULLY SILENT)
+# ⏱️ FIX TIME FORMAT (IMPORTANT)
+def clean_time(t):
+    try:
+        return str(t).strip()
+    except:
+        return None
+
+
+# 🤖 TELEGRAM BOT
 def poll():
     global last_id
 
@@ -48,12 +56,12 @@ def poll():
         try:
             res = safe_get(
                 f"https://api.telegram.org/bot{BOT_TOKEN}/getUpdates",
-                params={"offset": last_id + 1, "timeout": 25},
-                timeout=35
+                params={"offset": last_id + 1, "timeout": 10},
+                timeout=15
             )
 
             if not res:
-                time.sleep(5)
+                time.sleep(3)
                 continue
 
             try:
@@ -70,7 +78,7 @@ def poll():
                     if not text:
                         continue
 
-                    # 📥 Extract
+                    # 📥 Extract Data
                     country = re.search(r'Country:\s*(.+)', text)
                     phone = re.search(r'Number:\s*(.+)', text)
                     sender = re.search(r'Sender:\s*(.+)', text)
@@ -87,19 +95,21 @@ def poll():
                         "phone_last3": phone_last3,
                         "sender": sender.group(1).strip() if sender else None,
                         "range_name": range_val.group(1).strip() if range_val else None,
-                        "message_time": time_raw.group(1).strip() if time_raw else None,
+                        "message_time": clean_time(time_raw.group(1)) if time_raw else None,
                         "message": msg.group(1).strip() if msg else None
                     }
 
+                    # 🚀 SEND TO SUPABASE
                     safe_post(
                         f"{SUPABASE_URL}/rest/v1/otp_logs",
                         headers={
                             "apikey": API_KEY,
                             "Authorization": f"Bearer {API_KEY}",
-                            "Content-Type": "application/json"
+                            "Content-Type": "application/json",
+                            "Prefer": "return=minimal"
                         },
                         json=payload,
-                        timeout=10
+                        timeout=8
                     )
 
                 except:
@@ -111,12 +121,15 @@ def poll():
         time.sleep(2)
 
 
-# 🚀 RUN BACKGROUND THREAD
-threading.Thread(target=poll, daemon=True).start()
+# 🚀 START THREAD AFTER SERVER READY
+def start_bot():
+    t = threading.Thread(target=poll, daemon=True)
+    t.start()
 
 
-# ▶️ START SERVER (NO LOGS)
+# ▶️ RUN SERVER
 if __name__ == "__main__":
-    import os
+    start_bot()  # start bot here (important fix)
+
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
