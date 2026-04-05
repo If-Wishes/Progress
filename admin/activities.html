@@ -9,9 +9,7 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); min-height: 100vh; }
-        .page { display: none; }
-        .page.active-page { display: block; }
-        .hidden-dropdown { display: none; }
+        .hidden-dropdown { display: none !important; }
         .loading-spinner {
             display: inline-block;
             width: 20px;
@@ -22,62 +20,32 @@
             animation: spin 0.6s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .stat-card {
-            transition: all 0.3s ease;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.25);
-        }
-        .user-select {
-            border: 2px solid #e5e7eb;
-            transition: all 0.3s;
-        }
-        .user-select:focus {
-            border-color: #7c3aed;
-            outline: none;
-            ring: 2px solid #c4b5fd;
-        }
-        .table-container {
-            overflow-x: auto;
-            max-height: 550px;
-            overflow-y: auto;
-        }
-        .table-container::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        .table-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-        .table-container::-webkit-scrollbar-thumb {
-            background: #a78bfa;
-            border-radius: 10px;
-        }
-        .table-container::-webkit-scrollbar-thumb:hover {
-            background: #7c3aed;
-        }
-        .nav-link {
-            transition: all 0.2s;
-        }
-        .nav-link:hover {
-            background-color: #f5f3ff;
-            color: #7c3aed;
-        }
-        .btn-primary-purple {
-            background: #7c3aed;
-            transition: all 0.2s ease;
-        }
-        .btn-primary-purple:hover {
-            background: #6d28d9;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
-        }
+        .stat-card { transition: all 0.3s ease; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.25); }
+        .user-select { border: 2px solid #e5e7eb; transition: all 0.3s; }
+        .user-select:focus { border-color: #7c3aed; outline: none; ring: 2px solid #c4b5fd; }
+        .table-container { overflow-x: auto; max-height: 550px; overflow-y: auto; }
+        .table-container::-webkit-scrollbar { width: 8px; height: 8px; }
+        .table-container::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-thumb { background: #a78bfa; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-thumb:hover { background: #7c3aed; }
+        .nav-link { transition: all 0.2s; display: block; width: 100%; text-align: left; }
+        .nav-link:hover { background-color: #f5f3ff; color: #7c3aed; }
+        .btn-primary-purple { background: #7c3aed; transition: all 0.2s ease; }
+        .btn-primary-purple:hover { background: #6d28d9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3); }
         .stat-card-purple-1 { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
         .stat-card-purple-2 { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
         .stat-card-purple-3 { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
         .stat-card-purple-4 { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+        
+        /* Dropdown animation */
+        .dropdown-enter {
+            animation: dropdownFade 0.2s ease;
+        }
+        @keyframes dropdownFade {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -99,17 +67,17 @@
                     <p class="text-xs text-gray-500">Super User</p>
                 </div>
                 <div class="relative">
-                    <button id="menuButton" class="flex items-center gap-2 bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition">
+                    <button id="menuButton" class="flex items-center gap-2 bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition cursor-pointer">
                         <i class="fas fa-user-circle text-purple-600 text-lg"></i>
                         <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
                     </button>
-                    <div id="dropdownMenu" class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden">
-                        <a href="#" data-page="dashboard" class="nav-link block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-tachometer-alt w-5 text-purple-500 mr-2"></i> Dashboard</a>
-                        <a href="#" data-page="users" class="nav-link block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-users w-5 text-purple-500 mr-2"></i> Users</a>
-                        <a href="#" data-page="allocation" class="nav-link block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-phone-alt w-5 text-purple-500 mr-2"></i> Numbers Allocation</a>
-                        <a href="#" data-page="activities" class="nav-link block px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-clipboard-list w-5 text-purple-500 mr-2"></i> User Activities</a>
+                    <div id="dropdownMenu" class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden dropdown-enter">
+                        <a href="#" data-page="dashboard" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-tachometer-alt w-5 text-purple-500 mr-2"></i> Dashboard</a>
+                        <a href="#" data-page="users" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-users w-5 text-purple-500 mr-2"></i> Users</a>
+                        <a href="#" data-page="allocation" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-phone-alt w-5 text-purple-500 mr-2"></i> Numbers Allocation</a>
+                        <a href="#" data-page="activities" class="nav-link px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-clipboard-list w-5 text-purple-500 mr-2"></i> User Activities</a>
                         <div class="border-t border-gray-100 my-1"></div>
-                        <a href="../index.html" id="logoutBtn" class="nav-link block px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
+                        <a href="#" id="logoutBtn" class="nav-link px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
                     </div>
                 </div>
             </div>
@@ -118,7 +86,6 @@
 </nav>
 
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <!-- Dashboard Content -->
     <div id="dashboardContent">
         <!-- User Selection Section -->
         <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 mb-6">
@@ -247,7 +214,7 @@ function formatDateTime(messageTime, date, time) {
 // ================= SUPABASE FETCH FUNCTIONS =================
 async function fetchAllUsers() {
     try {
-        const url = `${SUPABASE_URL}/rest/v1/users?select=id,username,email,role&role=eq.user&order=username.asc`;
+        const url = `${SUPABASE_URL}/rest/v1/users?select=id,username,email,role&order=username.asc`;
         const response = await fetch(url, {
             headers: { 'apikey': SUPABASE_API_KEY }
         });
@@ -290,17 +257,14 @@ async function fetchAllOtps() {
     }
 }
 
-// ================= FILTER OTPs BY USER AND DATE RANGE =================
 function filterOtpsByUserAndDate(otps, phoneLast3s, start, end) {
     let filtered = otps.filter(otp => phoneLast3s.includes(otp.phone_last3));
-    
     if (start && end) {
         filtered = filtered.filter(otp => {
             const otpDate = otp.date || otp.message_time?.slice(0, 10);
             return otpDate >= start && otpDate <= end;
         });
     }
-    
     return filtered;
 }
 
@@ -315,11 +279,9 @@ function updateUserPhoneArrays(numbers) {
     userPhoneLast3s = [...new Set(userPhoneLast3s)];
 }
 
-// ================= UPDATE UI =================
 function updateUserDropdown() {
     const select = document.getElementById('userSelect');
     select.innerHTML = '<option value="">-- Select a User --</option>';
-    
     allUsers.forEach(user => {
         select.innerHTML += `<option value="${user.id}">${escapeHtml(user.username)} (${escapeHtml(user.email || 'No email')})</option>`;
     });
@@ -335,37 +297,30 @@ async function loadUserData() {
         return;
     }
     
-    // Show loading
     document.getElementById('otpTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12"><div class="loading-spinner mx-auto"></div><p class="mt-3 text-gray-500">Loading user activities...</p></td></tr>';
     
-    // Fetch user's allocated numbers
     const numbers = await fetchUserAllocatedNumbers(selectedUserId);
     userNumbers = numbers;
     updateUserPhoneArrays(userNumbers);
     
-    // Fetch all OTPs and filter
     const allOtps = await fetchAllOtps();
     userOtps = filterOtpsByUserAndDate(allOtps, userPhoneLast3s, startDate, endDate);
     
-    // Calculate statistics
     const totalOtps = userOtps.length;
     const totalEarnings = totalOtps * 0.005;
     const uniqueNumbers = [...new Set(userOtps.map(otp => otp.phone_last3))].length;
     const activeRanges = [...new Set(userOtps.map(otp => otp.country).filter(c => c))].length;
     
-    // Update stats cards
     document.getElementById('totalOtps').textContent = totalOtps;
     document.getElementById('totalEarnings').textContent = `$${totalEarnings.toFixed(2)}`;
     document.getElementById('uniqueNumbers').textContent = uniqueNumbers;
     document.getElementById('activeRanges').textContent = activeRanges;
     
-    // Render table
     if (userOtps.length === 0) {
         document.getElementById('otpTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-400"><i class="fas fa-inbox text-4xl mb-3 opacity-40"></i><br/>📭 No OTPs found for this user in selected date range</td></tr>';
         return;
     }
     
-    // Build number mapping for display
     const numberMap = {};
     userNumbers.forEach(item => {
         const last3 = getLast3Digits(item.number);
@@ -377,7 +332,6 @@ async function loadUserData() {
         const maskedNumber = maskPhoneNumber(fullNumber);
         const timeStr = formatDateTime(otp.message_time, otp.date, otp.time);
         const rangeName = otp.country || 'Unknown';
-        
         return `
             <tr class="hover:bg-purple-50 transition border-b border-gray-100">
                 <td class="px-6 py-3 text-gray-500 text-xs">${index + 1}</td>
@@ -393,7 +347,6 @@ async function loadUserData() {
     }).join('');
 }
 
-// ================= PAGE STATE MANAGEMENT =================
 function saveSelectedUser() {
     localStorage.setItem('elite_admin_selected_user', selectedUserId);
     localStorage.setItem('elite_admin_start_date', startDate);
@@ -404,67 +357,95 @@ function loadSavedState() {
     selectedUserId = localStorage.getItem('elite_admin_selected_user') || '';
     startDate = localStorage.getItem('elite_admin_start_date') || '';
     endDate = localStorage.getItem('elite_admin_end_date') || '';
-    
     if (startDate) document.getElementById('startDate').value = startDate;
     if (endDate) document.getElementById('endDate').value = endDate;
     if (selectedUserId) document.getElementById('userSelect').value = selectedUserId;
 }
 
-// ================= DROPDOWN MENU =================
+// ================= DROPDOWN MENU - FIXED =================
 function setupDropdown() {
     const menuBtn = document.getElementById('menuButton');
     const dropdown = document.getElementById('dropdownMenu');
+    
     if (menuBtn) {
-        menuBtn.onclick = (e) => { e.stopPropagation(); dropdown.classList.toggle('hidden-dropdown'); };
-        document.addEventListener('click', () => dropdown.classList.add('hidden-dropdown'));
+        // Toggle dropdown on button click
+        menuBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdown.classList.toggle('hidden-dropdown');
+        });
     }
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!menuBtn.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden-dropdown');
+        }
+    });
 }
 
-// ================= NAVIGATION HANDLING (MOCK FOR DEMO) =================
+// ================= NAVIGATION =================
 function setupNavigation() {
     const navLinks = document.querySelectorAll('[data-page]');
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
             const page = link.getAttribute('data-page');
-            // For demo purposes, just show alert since we only have activities page fully implemented
-            if (page !== 'activities') {
-                alert(`Navigation to "${page}" page would work in full application. Currently showing User Activities.`);
-            } else {
-                // Already on activities page
-                console.log('Already on activities page');
+            
+            // Save current state
+            saveSelectedUser();
+            
+            // Map page to HTML file
+            const pageMap = {
+                'dashboard': 'dashboard.html',
+                'users': 'users.html',
+                'allocation': 'analytics.html',
+                'activities': 'activities.html'
+            };
+            
+            const targetPage = pageMap[page];
+            if (targetPage) {
+                window.location.href = targetPage;
             }
-            dropdown.classList.add('hidden-dropdown');
         });
     });
 }
 
-// ================= MAIN INITIALIZATION =================
+function logout() {
+    localStorage.removeItem('elite_session');
+    localStorage.removeItem('elite_admin_selected_user');
+    localStorage.removeItem('elite_admin_start_date');
+    localStorage.removeItem('elite_admin_end_date');
+    window.location.href = '../index.html';
+}
+
 async function initAdminDashboard() {
-    // Set default date range (last 30 days)
+    const session = JSON.parse(localStorage.getItem('elite_session') || '{}');
+    if (session.username) {
+        document.getElementById('adminName').innerText = session.username;
+    } else {
+        window.location.href = '../index.html';
+        return;
+    }
+    
     const end = new Date();
     const start = new Date();
     start.setDate(end.getDate() - 30);
     
     if (!document.getElementById('startDate').value) {
-        const defaultStart = start.toISOString().slice(0, 10);
-        document.getElementById('startDate').value = defaultStart;
-        startDate = defaultStart;
+        document.getElementById('startDate').value = start.toISOString().slice(0, 10);
     }
     if (!document.getElementById('endDate').value) {
-        const defaultEnd = end.toISOString().slice(0, 10);
-        document.getElementById('endDate').value = defaultEnd;
-        endDate = defaultEnd;
+        document.getElementById('endDate').value = end.toISOString().slice(0, 10);
     }
     
-    // Load saved state (overrides defaults if any)
+    startDate = document.getElementById('startDate').value;
+    endDate = document.getElementById('endDate').value;
+    
     loadSavedState();
     
-    // Fetch all users
     allUsers = await fetchAllUsers();
     updateUserDropdown();
     
-    // Set selected user in dropdown if exists
     if (selectedUserId) {
         document.getElementById('userSelect').value = selectedUserId;
         await loadUserData();
@@ -472,6 +453,14 @@ async function initAdminDashboard() {
     
     setupDropdown();
     setupNavigation();
+    
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            logout();
+        });
+    }
 }
 
 // ================= EVENT LISTENERS =================
@@ -488,10 +477,9 @@ document.getElementById('applyFilterBtn').addEventListener('click', async () => 
     await loadUserData();
 });
 
-// ================= START APP =================
 document.addEventListener('DOMContentLoaded', async () => {
     await initAdminDashboard();
 });
 </script>
 </body>
-    </html>
+</html>
