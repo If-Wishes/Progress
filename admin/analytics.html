@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELITE Panel | Range Allocation</title>
+    <title>ELITE Admin | Range Allocation</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -18,27 +18,6 @@
         }
         .used-number:hover {
             background-color: #fecaca !important;
-        }
-        /* Carmine & Carrot Theme */
-        .btn-carmine {
-            background-color: #dc2626;
-            transition: all 0.2s ease;
-        }
-        .btn-carmine:hover {
-            background-color: #b91c1c;
-            transform: translateY(-1px);
-        }
-        .btn-carrot {
-            background-color: #f97316;
-            transition: all 0.2s ease;
-        }
-        .btn-carrot:hover {
-            background-color: #ea580c;
-            transform: translateY(-1px);
-        }
-        .range-tag {
-            background: linear-gradient(135deg, #fef2f2 0%, #ffedd5 100%);
-            border-left: 3px solid #dc2626;
         }
         .modal-overlay {
             position: fixed;
@@ -65,30 +44,33 @@
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gradient-to-br from-purple-50 to-gray-100 min-h-screen">
 
-<nav class="bg-white shadow-sm border-b border-orange-100 sticky top-0 z-50">
+<nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex items-center gap-4">
-                <a href="dashboard.html" class="text-gray-600 hover:text-carmine-600"><i class="fas fa-arrow-left"></i></a>
-                <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-red-600 to-orange-500 flex items-center justify-center">
+                <a href="dashboard.html" class="text-gray-600 hover:text-purple-600"><i class="fas fa-arrow-left"></i></a>
+                <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center shadow-md">
                     <i class="fas fa-crown text-white text-sm"></i>
                 </div>
-                <span class="text-xl font-bold">ELITE<span class="text-orange-500">Panel</span></span>
-                <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">Admin</span>
+                <span class="text-xl font-bold text-gray-800">ELITE<span class="text-purple-600">Admin</span></span>
+                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">Range Allocation</span>
             </div>
             <div class="flex items-center gap-4 relative">
-                <div class="text-right"><p class="text-sm font-medium" id="adminName">Admin</p><p class="text-xs text-gray-500">Range Allocation</p></div>
+                <div class="text-right hidden sm:block">
+                    <p class="text-sm font-medium text-gray-800" id="adminName">Admin</p>
+                    <p class="text-xs text-gray-500">Number Allocation</p>
+                </div>
                 <div class="relative">
-                    <button id="menuBtn" class="bg-gray-100 rounded-full px-3 py-2 hover:bg-orange-50 transition"><i class="fas fa-user-shield text-orange-500"></i><i class="fas fa-chevron-down text-xs"></i></button>
-                    <div id="dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border hidden-dropdown z-50">
-                        <a href="dashboard.html" class="block px-4 py-2 hover:bg-orange-50">Dashboard</a>
-                        <a href="users.html" class="block px-4 py-2 hover:bg-orange-50">Users</a>
-                        <a href="analytics.html" class="block px-4 py-2 bg-orange-50 text-orange-600">Range Allocation</a>
-                        <a href="activities.html" class="block px-4 py-2 hover:bg-orange-50">User Activities</a>
-                        <div class="border-t"></div>
-                        <a href="#" id="logoutBtn" class="block px-4 py-2 text-red-600">Logout</a>
+                    <button id="menuBtn" class="bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition"><i class="fas fa-user-shield text-purple-600"></i><i class="fas fa-chevron-down text-xs"></i></button>
+                    <div id="dropdown" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden">
+                        <a href="dashboard.html" class="block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-tachometer-alt mr-2 text-purple-500"></i>Dashboard</a>
+                        <a href="users.html" class="block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-users mr-2 text-purple-500"></i>Users</a>
+                        <a href="analytics.html" class="block px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-phone-alt mr-2 text-purple-500"></i>Range Allocation</a>
+                        <a href="activities.html" class="block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-history mr-2 text-purple-500"></i>Activities</a>
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <a href="#" id="logoutBtn" class="block px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a>
                     </div>
                 </div>
             </div>
@@ -98,16 +80,16 @@
 
 <main class="max-w-7xl mx-auto px-4 py-8">
     <h1 class="text-2xl font-bold text-gray-800">📌 Range Allocation</h1>
-    <p class="text-gray-500 mb-6">Manage number ranges - <span class="text-red-600">Red highlighted numbers</span> have received OTPs</p>
+    <p class="text-gray-500 mb-6">Manage numbers - <span class="text-red-600">Red highlighted numbers</span> have received OTPs</p>
     
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Add Numbers Form -->
-        <div class="bg-white rounded-2xl border border-orange-100 shadow-sm p-6">
-            <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-plus-circle text-orange-500"></i> Add Numbers to Range</h2>
+        <div class="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+            <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-plus-circle text-purple-500"></i> Add Numbers</h2>
             
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-2">👤 Select User *</label>
-                <select id="userSelect" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
+                <select id="userSelect" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
                     <option value="">-- Select User --</option>
                 </select>
             </div>
@@ -115,27 +97,29 @@
             <div class="mb-4">
                 <div class="flex justify-between items-center mb-2">
                     <label class="block text-sm font-medium text-gray-700">🌍 Select Range *</label>
-                    <button id="addRangeBtn" class="text-xs bg-gradient-to-r from-red-500 to-orange-500 text-white px-3 py-1 rounded-full hover:shadow-md transition">
+                    <button id="addRangeBtn" class="text-xs bg-gradient-to-r from-purple-500 to-purple-600 text-white px-3 py-1 rounded-full hover:shadow-md transition">
                         <i class="fas fa-plus mr-1"></i> New Range
                     </button>
                 </div>
-                <select id="rangeSelect" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
+                <select id="rangeSelect" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
                     <option value="">-- Select Range --</option>
+                    <option value="Carmine">❤️ Carmine</option>
+                    <option value="Carrot">🥕 Carrot</option>
                 </select>
             </div>
             
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-2">📞 Phone Numbers *</label>
-                <textarea id="numbersInput" rows="5" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 font-mono text-sm focus:ring-2 focus:ring-orange-500 outline-none" 
+                <textarea id="numbersInput" rows="5" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 font-mono text-sm focus:ring-2 focus:ring-purple-500 outline-none" 
                     placeholder="Enter phone numbers (one per line or comma separated)
 Example:
 +2348123456789
-+998901234567
-+1234567890"></textarea>
++2348023456789
++998901234567"></textarea>
                 <p class="text-xs text-gray-400 mt-1">Numbers must have at least 3 digits for matching</p>
             </div>
             
-            <button id="addBtn" class="w-full bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white py-2.5 rounded-xl transition shadow-md">
+            <button id="addBtn" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-2.5 rounded-xl transition shadow-md">
                 <i class="fas fa-plus mr-2"></i>Allocate Numbers
             </button>
             
@@ -143,10 +127,9 @@ Example:
         </div>
         
         <!-- Allocated Numbers List -->
-        <div class="bg-white rounded-2xl border border-orange-100 shadow-sm p-6">
-            <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-list-ul text-orange-500"></i> Allocated Numbers</h2>
-            <select id="filterSelect" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mb-4 bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
-                <option value="">-- All Users --</option>
+        <div class="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
+            <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-list-ul text-purple-500"></i> Allocated Numbers</h2>
+            <select id="filterSelect" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 mb-4 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
             </select>
             <div id="allocationsList" class="max-h-96 overflow-y-auto space-y-3">
                 <div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
@@ -159,16 +142,16 @@ Example:
 <div id="rangeModal" class="modal-overlay hidden">
     <div class="modal-content p-6">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-gray-800"><i class="fas fa-tag text-orange-500 mr-2"></i>Add New Range</h3>
+            <h3 class="text-xl font-bold text-gray-800"><i class="fas fa-tag text-purple-500 mr-2"></i>Add New Range</h3>
             <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
         </div>
         <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Range Name *</label>
-            <input type="text" id="newRangeName" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-orange-500 outline-none" placeholder="e.g., Europe Premium, Asia Gold">
+            <input type="text" id="newRangeName" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-purple-500 outline-none" placeholder="e.g., Europe Premium, Asia Gold">
             <p class="text-xs text-gray-400 mt-1">Use a unique name for this range</p>
         </div>
         <div class="flex gap-3">
-            <button id="saveRangeBtn" class="flex-1 bg-gradient-to-r from-red-600 to-orange-500 text-white py-2.5 rounded-xl transition">Save Range</button>
+            <button id="saveRangeBtn" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-2.5 rounded-xl transition">Save Range</button>
             <button id="cancelModalBtn" class="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-xl hover:bg-gray-300 transition">Cancel</button>
         </div>
     </div>
@@ -178,17 +161,15 @@ Example:
 const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
 const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
 
-// Custom Ranges Storage (Supabase table: ranges)
-let customRanges = [];
-
 const session = JSON.parse(localStorage.getItem('elite_session') || 'null');
 if (!session || session.role !== 'admin') window.location.href = '../index.html';
 document.getElementById('adminName').innerText = session.username;
 
 let usersList = [];
-let usedNumbersSet = new Set(); // Store last3 digits that have received OTPs
+let usedNumbersSet = new Set();
+let customRanges = [];
 
-// Helper functions
+// Helper function to extract last 3 digits
 function getLast3Digits(number) {
     let cleaned = number.replace(/[^0-9]/g, '');
     return cleaned.slice(-3);
@@ -199,16 +180,14 @@ function escapeHtml(str) {
     return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m));
 }
 
-function getRangeFlag(rangeName) {
-    // Default emoji for ranges
+function getRangeFlag(range) {
     const flags = {
-        'Carmine': '❤️', 'Carrot': '🥕', 'Europe Premium': '🇪🇺', 'Asia Gold': '🌟',
-        'Americas': '🌎', 'Africa Pro': '🌍', 'Middle East': '🕌', 'South East': '🐉'
+        'Carmine': '❤️', 'Carrot': '🥕',
     };
-    return flags[rangeName] || '📌';
+    return flags[range] || '📌';
 }
 
-// Fetch all OTPs to know used numbers
+// Fetch all OTPs to know which numbers are used
 async function fetchUsedNumbers() {
     try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=phone_last3`, {
@@ -219,49 +198,41 @@ async function fetchUsedNumbers() {
         otps.forEach(otp => {
             if (otp.phone_last3) usedNumbersSet.add(otp.phone_last3);
         });
-        console.log(`Loaded ${usedNumbersSet.size} used numbers`);
+        console.log(`Found ${usedNumbersSet.size} used numbers`);
     } catch (err) {
         console.error("Error fetching OTPs:", err);
     }
 }
 
-// Load custom ranges from Supabase (table: ranges) or initialize default
+// Load ranges
 async function loadRanges() {
     try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/ranges?select=*&order=name.asc`, {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/ranges?select=name`, {
             headers: { 'apikey': API_KEY }
         });
         let data = await res.json();
-        if (data.length === 0) {
-            // Default ranges: Carmine and Carrot
-            const defaultRanges = [{ name: 'Carmine' }, { name: 'Carrot' }];
-            for (const r of defaultRanges) {
-                await fetch(`${SUPABASE_URL}/rest/v1/ranges`, {
-                    method: 'POST',
-                    headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: r.name })
-                });
-            }
-            const refetch = await fetch(`${SUPABASE_URL}/rest/v1/ranges?select=*&order=name.asc`, {
-                headers: { 'apikey': API_KEY }
-            });
-            data = await refetch.json();
+        if (data.length > 0) {
+            customRanges = data.map(r => r.name);
+        } else {
+            customRanges = ['Carmine', 'Carrot', 'Nigeria', 'Uzbekistan', 'Jordan'];
         }
-        customRanges = data;
-        updateRangeDropdowns();
+        updateRangeDropdown();
     } catch (err) {
-        console.error("Load ranges error:", err);
-        // Fallback default
-        customRanges = [{ name: 'Carmine' }, { name: 'Carrot' }];
-        updateRangeDropdowns();
+        customRanges = ['Carmine', 'Carrot', 'Nigeria', 'Uzbekistan', 'Jordan'];
+        updateRangeDropdown();
     }
 }
 
-// Add new range to Supabase
+function updateRangeDropdown() {
+    const rangeSelect = document.getElementById('rangeSelect');
+    rangeSelect.innerHTML = '<option value="">-- Select Range --</option>' + 
+        customRanges.map(r => `<option value="${escapeHtml(r)}">${getRangeFlag(r)} ${escapeHtml(r)}</option>`).join('');
+}
+
+// Add new range
 async function addNewRange(rangeName) {
     if (!rangeName.trim()) return false;
-    const exists = customRanges.some(r => r.name.toLowerCase() === rangeName.trim().toLowerCase());
-    if (exists) return false;
+    if (customRanges.some(r => r.toLowerCase() === rangeName.trim().toLowerCase())) return false;
     
     try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/ranges`, {
@@ -275,20 +246,13 @@ async function addNewRange(rangeName) {
         }
         return false;
     } catch (err) {
-        console.error("Add range error:", err);
         return false;
     }
 }
 
-function updateRangeDropdowns() {
-    const rangeSelect = document.getElementById('rangeSelect');
-    rangeSelect.innerHTML = '<option value="">-- Select Range --</option>' + 
-        customRanges.map(r => `<option value="${escapeHtml(r.name)}">${getRangeFlag(r.name)} ${escapeHtml(r.name)}</option>`).join('');
-}
-
-// Load users
+// Load users for dropdowns
 async function loadUsers() {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id,username&role=eq.user`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id,username`, {
         headers: { 'apikey': API_KEY }
     });
     usersList = await res.json();
@@ -303,7 +267,7 @@ async function loadUsers() {
     filterSelect.onchange = loadAllocatedNumbers;
 }
 
-// Load allocated numbers with used highlighting
+// Load and display allocated numbers
 async function loadAllocatedNumbers() {
     const filterUserId = document.getElementById('filterSelect').value;
     let url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&order=allocated_at.desc`;
@@ -316,20 +280,19 @@ async function loadAllocatedNumbers() {
     const container = document.getElementById('allocationsList');
     
     if (allocations.length === 0) {
-        container.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-database"></i><br/>No numbers allocated yet</div>';
+        container.innerHTML = '<div class="text-center py-8 text-gray-400">No numbers allocated yet</div>';
         return;
     }
     
-    // Group by user and range (country field is now used as 'range')
+    // Group by user and range
     const grouped = {};
     for (const item of allocations) {
-        const rangeName = item.country || 'Unknown'; // country field stores range name
-        const key = `${item.user_id}_${rangeName}`;
+        const key = `${item.user_id}_${item.country}`;
         if (!grouped[key]) {
             grouped[key] = {
                 userId: item.user_id,
                 userName: item.users?.username || 'Unknown',
-                range: rangeName,
+                range: item.country,
                 numbers: []
             };
         }
@@ -343,11 +306,11 @@ async function loadAllocatedNumbers() {
         const totalCount = g.numbers.length;
         
         html += `
-            <div class="border border-orange-100 rounded-xl overflow-hidden shadow-sm range-tag">
-                <div class="bg-gradient-to-r from-red-50 to-orange-50 px-4 py-3 flex justify-between items-center">
+            <div class="border border-purple-100 rounded-xl overflow-hidden shadow-sm">
+                <div class="bg-gradient-to-r from-purple-50 to-white px-4 py-3 flex justify-between items-center">
                     <div>
                         <span class="font-semibold text-gray-800">👤 ${escapeHtml(g.userName)}</span>
-                        <span class="ml-2 inline-flex items-center gap-1 text-sm font-medium text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                        <span class="ml-2 inline-flex items-center gap-1 text-sm font-medium text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
                             ${getRangeFlag(g.range)} ${escapeHtml(g.range)}
                         </span>
                         ${usedCount > 0 ? `<span class="ml-2 text-xs text-red-600 bg-red-100 px-2 py-0.5 rounded-full">⚠️ ${usedCount}/${totalCount} used</span>` : `<span class="ml-2 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">✅ ${totalCount} active</span>`}
@@ -375,7 +338,7 @@ async function loadAllocatedNumbers() {
                         `;
                     }).join('')}
                 </div>
-                <div class="bg-gray-50 px-4 py-2 text-xs text-gray-500 border-t border-orange-100">
+                <div class="bg-gray-50 px-4 py-2 text-xs text-gray-500 border-t border-purple-100">
                     📊 Total: ${totalCount} numbers | Used: ${usedCount} | Active: ${totalCount - usedCount}
                 </div>
             </div>
@@ -384,19 +347,31 @@ async function loadAllocatedNumbers() {
     container.innerHTML = html;
 }
 
-// Add numbers to user with selected range
+// Add numbers to user
 async function addNumbers() {
     const userId = document.getElementById('userSelect').value;
     const rangeName = document.getElementById('rangeSelect').value;
     const numbersInput = document.getElementById('numbersInput').value;
     const messageBox = document.getElementById('messageBox');
     
-    if (!userId) { showMessage('Please select a user', 'error'); return; }
-    if (!rangeName) { showMessage('Please select a range', 'error'); return; }
-    if (!numbersInput.trim()) { showMessage('Please enter phone numbers', 'error'); return; }
+    if (!userId) {
+        showMessage('Please select a user', 'error');
+        return;
+    }
+    if (!rangeName) {
+        showMessage('Please select a range', 'error');
+        return;
+    }
+    if (!numbersInput.trim()) {
+        showMessage('Please enter phone numbers', 'error');
+        return;
+    }
     
     let numbers = numbersInput.split(/[,\n]/).map(n => n.trim()).filter(n => n.length > 0);
-    if (numbers.length === 0) { showMessage('No valid numbers found', 'error'); return; }
+    if (numbers.length === 0) {
+        showMessage('No valid numbers found', 'error');
+        return;
+    }
     
     showMessage('Adding numbers...', 'info');
     
@@ -421,7 +396,7 @@ async function addNumbers() {
                 user_id: userId,
                 number: number,
                 last3: last3,
-                country: rangeName  // country field stores the range name
+                country: rangeName
             })
         });
         
@@ -436,8 +411,9 @@ async function addNumbers() {
         showMessage(`✅ Successfully added ${successCount} numbers to range "${escapeHtml(rangeName)}"!`, 'success');
         document.getElementById('numbersInput').value = '';
         await loadAllocatedNumbers();
+        await fetchUsedNumbers();
     } else {
-        showMessage(`❌ Failed to add numbers. Ensure numbers have at least 3 digits and range exists.`, 'error');
+        showMessage(`❌ Failed to add numbers. Check that numbers have at least 3 digits.`, 'error');
     }
     
     setTimeout(() => {
@@ -445,9 +421,9 @@ async function addNumbers() {
     }, 3000);
 }
 
-// Delete all numbers for a user in a specific range
+// Delete all numbers for a user in a range
 async function deleteRangeNumbers(userId, range) {
-    if (!confirm(`Delete ALL numbers for user in range "${range}"? This action cannot be undone.`)) return;
+    if (!confirm(`Delete all numbers for this user in ${range}?`)) return;
     
     const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&country=eq.${encodeURIComponent(range)}`, {
         method: 'DELETE',
@@ -456,16 +432,14 @@ async function deleteRangeNumbers(userId, range) {
     
     if (res.ok) {
         await loadAllocatedNumbers();
-        showMessage(`🗑️ Deleted all numbers in range "${range}"`, 'success');
+        showMessage('Numbers deleted successfully', 'success');
         setTimeout(() => {
             document.getElementById('messageBox').classList.add('hidden');
         }, 2000);
-    } else {
-        showMessage('Error deleting numbers', 'error');
     }
 }
 
-// Delete single number
+// Delete a single number
 async function deleteSingleNumber(numberId) {
     if (!confirm('Delete this number?')) return;
     
@@ -476,25 +450,24 @@ async function deleteSingleNumber(numberId) {
     
     if (res.ok) {
         await loadAllocatedNumbers();
+        await fetchUsedNumbers();
         showMessage('Number deleted', 'success');
     }
 }
 
-// Show message helper
 function showMessage(msg, type) {
     const messageBox = document.getElementById('messageBox');
     messageBox.textContent = msg;
-    messageBox.className = `mt-4 text-sm text-center p-2 rounded-lg ${type === 'success' ? 'bg-green-100 text-green-700' : type === 'error' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`;
+    messageBox.className = `mt-4 text-sm text-center p-2 rounded-lg ${type === 'success' ? 'bg-green-100 text-green-700' : type === 'error' ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-purple-700'}`;
     messageBox.classList.remove('hidden');
 }
 
-// Logout
 function logout() {
     localStorage.removeItem('elite_session');
     window.location.href = '../index.html';
 }
 
-// Modal handling for adding new range
+// Modal handling
 function setupModal() {
     const modal = document.getElementById('rangeModal');
     const addRangeBtn = document.getElementById('addRangeBtn');
@@ -527,22 +500,33 @@ function setupModal() {
         setTimeout(() => document.getElementById('messageBox').classList.add('hidden'), 2000);
     };
     
-    // Click outside to close
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
 }
 
-// Make global functions
+// Make functions global
 window.deleteRangeNumbers = deleteRangeNumbers;
 window.deleteSingleNumber = deleteSingleNumber;
 
+// Dropdown setup
+function setupDropdown() {
+    const menuBtn = document.getElementById('menuBtn');
+    const dropdown = document.getElementById('dropdown');
+    if (menuBtn) {
+        menuBtn.onclick = (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('hidden-dropdown');
+        };
+        document.addEventListener('click', () => dropdown.classList.add('hidden-dropdown'));
+    }
+}
+
 // Event listeners
-document.getElementById('menuBtn').onclick = e => { e.stopPropagation(); document.getElementById('dropdown').classList.toggle('hidden-dropdown'); };
-document.addEventListener('click', () => document.getElementById('dropdown').classList.add('hidden-dropdown'));
-document.getElementById('logoutBtn').onclick = e => { e.preventDefault(); logout(); };
+document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); logout(); };
 document.getElementById('addBtn').onclick = addNumbers;
 
-// Initialize app
+// Initialize
 async function init() {
+    setupDropdown();
     await loadRanges();
     await fetchUsedNumbers();
     await loadUsers();
