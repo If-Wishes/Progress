@@ -25,6 +25,38 @@
             transform: translateY(-5px);
             box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.3);
         }
+        .otp-entry {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border: 1px solid #e9d5ff;
+            transition: all 0.2s;
+        }
+        .otp-entry:hover {
+            border-color: #7c3aed;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+        }
+        .otp-badge {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        .otp-exceeded {
+            background-color: #fef2f2;
+            opacity: 0.7;
+        }
+        .otp-exceeded:hover {
+            background-color: #fee2e2;
+        }
+        .nav-link:hover {
+            background-color: #f5f3ff;
+            color: #7c3aed;
+        }
         .table-container::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -36,17 +68,6 @@
         .table-container::-webkit-scrollbar-thumb {
             background: #a78bfa;
             border-radius: 10px;
-        }
-        .nav-link:hover {
-            background-color: #f5f3ff;
-            color: #7c3aed;
-        }
-        .otp-exceeded {
-            background-color: #fef2f2;
-            opacity: 0.7;
-        }
-        .otp-exceeded:hover {
-            background-color: #fee2e2;
         }
     </style>
 </head>
@@ -83,7 +104,7 @@
 <main class="max-w-7xl mx-auto px-4 py-8">
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-900">📊 Smart OTP Tracker</h1>
-        <p class="text-gray-500 text-sm mt-1">Tracking only OTPs that match allocated numbers across all users (Max 2 OTPs per number per day)</p>
+        <p class="text-gray-500 text-sm mt-1">Tracking OTPs that match allocated numbers (Max 2 OTPs per number per day)</p>
     </div>
 
     <!-- Date Range Filter Section -->
@@ -106,80 +127,44 @@
         </div>
         <div id="filterResult" class="mt-4 text-sm text-gray-600 hidden bg-purple-50 p-3 rounded-lg">
             <i class="fas fa-chart-line mr-1 text-purple-500"></i>Showing OTPs from <span id="filterStartDate" class="font-medium text-purple-700"></span> to <span id="filterEndDate" class="font-medium text-purple-700"></span>
-            <span id="filterInfo" class="ml-2 text-gray-500">(Max 2 OTPs per number per day - exceeded ones not counted)</span>
         </div>
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="stat-card bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl shadow-lg p-6 text-white">
-            <div class="flex items-center justify-between">
-                <p class="text-purple-100 text-sm font-medium">Total Users</p>
-                <i class="fas fa-users text-purple-300 text-xl opacity-70"></i>
-            </div>
+            <p class="text-purple-100 text-sm font-medium">Total Users</p>
             <p class="text-white text-3xl font-bold mt-2" id="statUsers">0</p>
         </div>
         <div class="stat-card bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl shadow-lg p-6 text-white">
-            <div class="flex items-center justify-between">
-                <p class="text-emerald-100 text-sm font-medium">Total Numbers</p>
-                <i class="fas fa-database text-emerald-300 text-xl opacity-70"></i>
-            </div>
+            <p class="text-emerald-100 text-sm font-medium">Total Numbers</p>
             <p class="text-white text-3xl font-bold mt-2" id="statNumbers">0</p>
         </div>
         <div class="stat-card bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl shadow-lg p-6 text-white">
-            <div class="flex items-center justify-between">
-                <p class="text-amber-100 text-sm font-medium">Valid OTPs</p>
-                <i class="fas fa-key text-amber-300 text-xl opacity-70"></i>
-            </div>
+            <p class="text-amber-100 text-sm font-medium">Valid OTPs</p>
             <p class="text-white text-3xl font-bold mt-2" id="statOtps">0</p>
             <p class="text-amber-100 text-xs mt-1">(First 2 per number/day)</p>
         </div>
         <div class="stat-card bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl shadow-lg p-6 text-white">
-            <div class="flex items-center justify-between">
-                <p class="text-rose-100 text-sm font-medium">Total Earnings</p>
-                <i class="fas fa-coins text-rose-300 text-xl opacity-70"></i>
-            </div>
+            <p class="text-rose-100 text-sm font-medium">Total Earnings</p>
             <p class="text-white text-3xl font-bold mt-2" id="statEarnings">$0.00</p>
             <p class="text-rose-100 text-xs mt-1">($0.005 per valid OTP)</p>
         </div>
-        <div class="stat-card bg-gradient-to-br from-slate-500 to-slate-600 rounded-2xl shadow-lg p-6 text-white">
-            <div class="flex items-center justify-between">
-                <p class="text-slate-100 text-sm font-medium">Exceeded OTPs</p>
-                <i class="fas fa-ban text-slate-300 text-xl opacity-70"></i>
-            </div>
-            <p class="text-white text-3xl font-bold mt-2" id="statExceeded">0</p>
-            <p class="text-slate-100 text-xs mt-1">(Not counted/earned)</p>
-        </div>
     </div>
 
-    <!-- Recent OTPs Table -->
+    <!-- OTP Records - Card View (Same as User Panel) -->
     <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
         <div class="p-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center">
-            <h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>Matched OTP Records</h3>
-            <div class="text-xs text-gray-500 bg-purple-100 px-3 py-1.5 rounded-full">
-                <i class="fas fa-info-circle mr-1 text-purple-500"></i> Max 2 OTPs per number per day (exceeded ones are grayed out)
+            <h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>OTP Records</h3>
+            <div class="text-sm text-gray-500">
+                <i class="fas fa-info-circle mr-1 text-purple-400"></i> Max 2 OTPs per number per day
             </div>
         </div>
-        <div class="overflow-x-auto table-container max-h-[500px] overflow-y-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-purple-50 sticky top-0">
-                    <tr>
-                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">#</th>
-                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Date</th>
-                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Phone (Last 3)</th>
-                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Matched User</th>
-                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">OTP Code</th>
-                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Service</th>
-                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Range</th>
-                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Time</th>
-                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Status</th>
-                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Earned</th>
-                    </tr>
-                </thead>
-                <tbody id="otpTableBody" class="divide-y divide-gray-100">
-                    <tr><td colspan="10" class="text-center py-12 text-gray-400"><div class="loading-spinner mx-auto mb-3"></div>Loading matched OTPs...</td></tr>
-                </tbody>
-            </table>
+        <div id="otpRecordsList" class="p-4 space-y-3 max-h-[600px] overflow-y-auto">
+            <div class="text-center py-12 text-gray-400">
+                <div class="loading-spinner mx-auto mb-3"></div>
+                <p>Loading OTP records...</p>
+            </div>
         </div>
     </div>
 </main>
@@ -193,28 +178,33 @@ const session = JSON.parse(localStorage.getItem('elite_session') || 'null');
 if (!session || session.role !== 'admin') window.location.href = '../index.html';
 document.getElementById('adminName').innerText = session.username || 'Administrator';
 
-// Global data stores
 let allAllocatedNumbers = [];
 let allOtps = [];
-let matchedOtps = [];
-let usersMap = new Map();
 
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m));
 }
 
-function maskPhoneByLast3(last3) {
-    if (!last3) return '***';
-    return `***${last3}`;
+function maskPhoneNumber(phoneNumber) {
+    if (!phoneNumber) return '***';
+    const digits = phoneNumber.toString().replace(/\D/g, '');
+    if (digits.length <= 6) return '***' + digits.slice(-3);
+    return digits.slice(0,2) + '•'.repeat(Math.min(7, digits.length - 5)) + digits.slice(-3);
 }
 
-function formatTime(messageTime, time) {
+function formatTime(messageTime) {
     if (messageTime) {
         const d = new Date(messageTime);
         if (!isNaN(d.getTime())) return d.toLocaleTimeString();
     }
-    return time || '';
+    return '-';
+}
+
+function getPanelDate(o) {
+    let t = new Date(o.message_time || o.created_at || o.date || new Date());
+    t.setHours(t.getHours() - 1);
+    return t.toISOString().slice(0, 10);
 }
 
 async function fetchAllAllocatedNumbers() {
@@ -223,12 +213,6 @@ async function fetchAllAllocatedNumbers() {
         const res = await fetch(url, { headers: { 'apikey': API_KEY } });
         const data = await res.json();
         allAllocatedNumbers = data || [];
-        usersMap.clear();
-        for (const item of allAllocatedNumbers) {
-            if (item.user_id && item.users?.username) {
-                usersMap.set(item.user_id, item.users.username);
-            }
-        }
         return allAllocatedNumbers;
     } catch (err) {
         console.error("Fetch allocated numbers error:", err);
@@ -251,100 +235,6 @@ async function fetchOtps(startDate, endDate) {
     }
 }
 
-function matchOtpsWithAllocatedNumbers(otps, allocatedNumbers) {
-    // Create map of last3 -> allocated number details
-    const last3Map = new Map();
-    for (const allocated of allocatedNumbers) {
-        if (allocated.last3 && !last3Map.has(allocated.last3)) {
-            last3Map.set(allocated.last3, {
-                userId: allocated.user_id,
-                username: allocated.users?.username || 'Unknown',
-                range: allocated.range_name || allocated.country || 'Unknown',
-                fullNumber: allocated.number
-            });
-        }
-    }
-    
-    // Match OTPs and apply daily limit (max 2 per number per day)
-    const matched = [];
-    const dailyCountMap = new Map(); // key: "date_last3"
-    
-    for (const otp of otps) {
-        if (otp.phone_last3 && last3Map.has(otp.phone_last3)) {
-            const match = last3Map.get(otp.phone_last3);
-            const otpDate = otp.date || otp.message_time?.slice(0, 10);
-            const key = `${otpDate}_${otp.phone_last3}`;
-            const currentCount = dailyCountMap.get(key) || 0;
-            const isValid = currentCount < 2;
-            
-            if (isValid) {
-                dailyCountMap.set(key, currentCount + 1);
-            }
-            
-            matched.push({
-                ...otp,
-                matchedUser: match.username,
-                matchedUserId: match.userId,
-                matchedRange: match.range,
-                matchedFullNumber: match.fullNumber,
-                isValid: isValid,
-                dailyCount: currentCount + (isValid ? 1 : 0)
-            });
-        }
-    }
-    return matched;
-}
-
-function updateUI(matchedList, startDate, endDate) {
-    const validOtps = matchedList.filter(otp => otp.isValid === true);
-    const exceededOtps = matchedList.filter(otp => otp.isValid === false);
-    const totalOtps = validOtps.length;
-    const totalEarnings = totalOtps * 0.005;
-    
-    document.getElementById('statOtps').textContent = totalOtps;
-    document.getElementById('statEarnings').textContent = `$${totalEarnings.toFixed(2)}`;
-    document.getElementById('statExceeded').textContent = exceededOtps.length;
-    
-    if (startDate && endDate) {
-        document.getElementById('filterStartDate').textContent = startDate;
-        document.getElementById('filterEndDate').textContent = endDate;
-        document.getElementById('filterResult').classList.remove('hidden');
-    } else {
-        document.getElementById('filterResult').classList.add('hidden');
-    }
-    
-    const tbody = document.getElementById('otpTableBody');
-    if (matchedList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-12 text-gray-400"><i class="fas fa-inbox text-4xl mb-3 opacity-50"></i><br/>No OTPs match any allocated numbers in this date range</td></tr>';
-        return;
-    }
-    
-    tbody.innerHTML = matchedList.map((otp, idx) => {
-        const isValid = otp.isValid;
-        const rowClass = isValid ? '' : 'otp-exceeded';
-        const statusBadge = isValid 
-            ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✓ Counted</span>'
-            : '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">✗ Exceeded Limit</span>';
-        const earnedText = isValid ? '+$0.005' : '$0.00';
-        const earnedClass = isValid ? 'text-emerald-600 font-semibold' : 'text-gray-400';
-        
-        return `
-            <tr class="hover:bg-purple-50 transition border-b border-gray-100 ${rowClass}">
-                <td class="px-6 py-3 text-gray-500 text-xs">${idx + 1}</td>
-                <td class="px-6 py-3 text-gray-600 text-xs whitespace-nowrap">${otp.date || 'N/A'}</td>
-                <td class="px-6 py-3 font-mono text-sm"><span class="bg-gray-100 px-2 py-1 rounded-lg">${escapeHtml(maskPhoneByLast3(otp.phone_last3))}</span></td>
-                <td class="px-6 py-3"><span class="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium"><i class="fas fa-user-circle text-xs"></i> ${escapeHtml(otp.matchedUser || 'Unknown')}</span></td>
-                <td class="px-6 py-3"><span class="font-mono font-bold text-purple-700 bg-purple-50 px-3 py-1.5 rounded-lg">${escapeHtml(otp.otp)}</span></td>
-                <td class="px-6 py-3"><span class="text-gray-600">${escapeHtml(otp.service || 'Unknown')}</span></td>
-                <td class="px-6 py-3"><span class="inline-flex items-center gap-1 text-orange-600"><i class="fas fa-tag text-xs"></i> ${escapeHtml(otp.matchedRange || 'Unknown')}</span></td>
-                <td class="px-6 py-3 text-gray-500 text-xs">${formatTime(otp.message_time, otp.time)}</td>
-                <td class="px-6 py-3">${statusBadge}</td>
-                <td class="px-6 py-3 ${earnedClass}">${earnedText}</td>
-            </tr>
-        `;
-    }).join('');
-}
-
 async function loadGlobalStats() {
     try {
         const usersRes = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id&role=eq.user`, { headers: { 'apikey': API_KEY } });
@@ -356,20 +246,151 @@ async function loadGlobalStats() {
     }
 }
 
-async function loadMatchedOtps() {
+async function loadOtps() {
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
     
-    const finalStartDate = startDate || document.getElementById('startDate').value;
-    const finalEndDate = endDate || document.getElementById('endDate').value;
-    
-    document.getElementById('otpTableBody').innerHTML = '<tr><td colspan="10" class="text-center py-12"><div class="loading-spinner mx-auto mb-3"></div><p class="text-gray-500">Matching OTPs with allocated numbers...</p></td></tr>';
+    document.getElementById('otpRecordsList').innerHTML = `
+        <div class="text-center py-12 text-gray-400">
+            <div class="loading-spinner mx-auto mb-3"></div>
+            <p>Loading OTP records...</p>
+        </div>
+    `;
     
     await fetchAllAllocatedNumbers();
-    allOtps = await fetchOtps(finalStartDate, finalEndDate);
-    matchedOtps = matchOtpsWithAllocatedNumbers(allOtps, allAllocatedNumbers);
+    allOtps = await fetchOtps(startDate, endDate);
     await loadGlobalStats();
-    updateUI(matchedOtps, finalStartDate, finalEndDate);
+    
+    // Create map of last3 to allocated number details
+    const last3Map = new Map();
+    for (const allocated of allAllocatedNumbers) {
+        if (allocated.last3 && !last3Map.has(allocated.last3)) {
+            last3Map.set(allocated.last3, {
+                userId: allocated.user_id,
+                username: allocated.users?.username || 'Unknown',
+                range: allocated.range_name || allocated.country || 'Unknown',
+                fullNumber: allocated.number
+            });
+        }
+    }
+    
+    // Filter OTPs that match allocated numbers
+    let matchedOtps = allOtps.filter(otp => last3Map.has(otp.phone_last3));
+    
+    // Apply daily limit (max 2 per number per day)
+    const dailyCountMap = new Map();
+    const validOtps = [];
+    const exceededOtps = [];
+    
+    for (const otp of matchedOtps) {
+        const otpDate = otp.date || otp.message_time?.slice(0, 10);
+        const key = `${otpDate}_${otp.phone_last3}`;
+        const count = dailyCountMap.get(key) || 0;
+        
+        if (count < 2) {
+            dailyCountMap.set(key, count + 1);
+            validOtps.push(otp);
+        } else {
+            exceededOtps.push(otp);
+        }
+    }
+    
+    // Update stats
+    document.getElementById('statOtps').textContent = validOtps.length;
+    document.getElementById('statEarnings').textContent = `$${(validOtps.length * 0.005).toFixed(2)}`;
+    
+    if (startDate && endDate) {
+        document.getElementById('filterStartDate').textContent = startDate;
+        document.getElementById('filterEndDate').textContent = endDate;
+        document.getElementById('filterResult').classList.remove('hidden');
+    }
+    
+    if (matchedOtps.length === 0) {
+        document.getElementById('otpRecordsList').innerHTML = `
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-inbox text-4xl mb-3 opacity-40"></i><br/>
+                📭 No OTPs match any allocated numbers in this date range
+            </div>
+        `;
+        return;
+    }
+    
+    // Display OTPs as cards (same format as user panel)
+    let html = '';
+    
+    // Show valid OTPs first
+    for (const otp of validOtps) {
+        const numberInfo = last3Map.get(otp.phone_last3);
+        const phoneNumber = numberInfo?.fullNumber || otp.phone_last3;
+        const maskedNumber = maskPhoneNumber(phoneNumber);
+        const rangeName = numberInfo?.range || otp.range || 'Unknown';
+        const timeStr = formatTime(otp.message_time);
+        
+        html += `
+            <div class="otp-entry">
+                <div class="flex justify-between items-start flex-wrap gap-2">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2 flex-wrap">
+                            <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country || '-')}</span>
+                            <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
+                            <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✓ Counted</span>
+                        </div>
+                        <div class="text-sm">
+                            <div>📞 ${escapeHtml(maskedNumber)}</div>
+                            <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(otp.sender || otp.service || 'Unknown')} | 📌 ${escapeHtml(rangeName)}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-400">${timeStr}</div>
+                        <div class="text-emerald-600 font-semibold text-sm mt-1">+$0.005</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Show exceeded OTPs
+    for (const otp of exceededOtps) {
+        const numberInfo = last3Map.get(otp.phone_last3);
+        const phoneNumber = numberInfo?.fullNumber || otp.phone_last3;
+        const maskedNumber = maskPhoneNumber(phoneNumber);
+        const rangeName = numberInfo?.range || otp.range || 'Unknown';
+        const timeStr = formatTime(otp.message_time);
+        
+        html += `
+            <div class="otp-entry otp-exceeded">
+                <div class="flex justify-between items-start flex-wrap gap-2">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2 flex-wrap">
+                            <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country || '-')}</span>
+                            <span class="otp-badge text-xs opacity-50">${escapeHtml(otp.otp)}</span>
+                            <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">✗ Limit Exceeded</span>
+                        </div>
+                        <div class="text-sm">
+                            <div>📞 ${escapeHtml(maskedNumber)}</div>
+                            <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(otp.sender || otp.service || 'Unknown')} | 📌 ${escapeHtml(rangeName)}</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-400">${timeStr}</div>
+                        <div class="text-gray-400 font-semibold text-sm mt-1">$0.00 (Exceeded)</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Add summary
+    html += `
+        <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
+            <span class="font-semibold">Valid: ${validOtps.length} OTPs</span>
+            <span class="mx-2">|</span>
+            <span class="font-bold text-purple-700">$${(validOtps.length * 0.005).toFixed(2)}</span>
+            ${exceededOtps.length > 0 ? `<span class="mx-2">|</span><span class="text-gray-500">Exceeded: ${exceededOtps.length} (not counted)</span>` : ''}
+        </div>
+    `;
+    
+    document.getElementById('otpRecordsList').innerHTML = html;
 }
 
 function setDefaultDates() {
@@ -405,8 +426,8 @@ async function init() {
     setupDropdown();
     setDefaultDates();
     document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); logout(); };
-    document.getElementById('filterBtn').onclick = () => loadMatchedOtps();
-    await loadMatchedOtps();
+    document.getElementById('filterBtn').onclick = () => loadOtps();
+    await loadOtps();
 }
 
 document.addEventListener('DOMContentLoaded', init);
