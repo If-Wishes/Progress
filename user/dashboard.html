@@ -2,136 +2,188 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELITE PANEL | User Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>ELITE Panel | User Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); min-height: 100vh; }
-        .page { display: none; }
-        .page.active-page { display: block; }
-        .hidden-dropdown { display: none; }
-        .otp-row:hover { background: #f5f3ff; }
-        .loading-spinner { width: 32px; height: 32px; border: 3px solid #ede9fe; border-radius: 50%; border-top-color: #7c3aed; animation: spin 0.8s linear infinite; margin: 20px auto; }
+        
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        /* Glassmorphism Effect */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Smooth Transitions */
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 10px; }
+        
+        /* Number Card */
+        .number-item {
+            transition: all 0.2s ease;
+            border-left: 3px solid #7c3aed;
+        }
+        .number-item:hover {
+            transform: translateX(5px);
+            background-color: #f5f3ff;
+        }
+        
+        /* OTP Badge */
+        .otp-badge {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 1.1rem;
+        }
+        
+        /* Stat Card */
+        .stat-card {
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.4);
+        }
+        
+        /* Select Dropdown */
+        .custom-select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%237c3aed' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+            background-position: right 12px center;
+            background-repeat: no-repeat;
+            background-size: 20px;
+            appearance: none;
+        }
+        
+        /* Avatar Upload */
+        .avatar-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #7c3aed;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        .avatar-preview:hover {
+            transform: scale(1.05);
+        }
+        
+        /* Loading Spinner */
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e9d5ff;
+            border-top-color: #7c3aed;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 20px auto;
+        }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .stat-card { transition: all 0.3s ease; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
-        .stat-card:hover { transform: translateY(-4px); }
-        .nav-link { transition: all 0.2s; display: block; }
-        .nav-link:hover { background-color: #f5f3ff; color: #7c3aed; }
-        .toast-success { position: fixed; bottom: 24px; right: 24px; background: #7c3aed; color: white; padding: 12px 20px; border-radius: 12px; font-size: 14px; z-index: 1000; animation: slideInRight 0.3s ease; }
-        @keyframes slideInRight { from { right: -100px; opacity: 0; } to { right: 24px; opacity: 1; } }
-        .custom-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%237c3aed' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E"); background-position: right 12px center; background-repeat: no-repeat; background-size: 20px; appearance: none; }
-        .reset-timer { font-size: 12px; color: #6d28d9; margin-top: 12px; text-align: center; padding: 8px 16px; background: #ede9fe; border-radius: 40px; display: inline-block; }
-        .btn-primary { background: #7c3aed; transition: all 0.2s ease; }
-        .btn-primary:hover { background: #6d28d9; transform: translateY(-1px); }
-        .btn-secondary { background: #f3f4f6; color: #374151; }
-        .btn-secondary:hover { background: #e5e7eb; }
-        .data-table th { background: #f5f3ff; font-weight: 600; color: #5b21b6; border-bottom: 2px solid #ddd6fe; }
-        .data-table td { border-bottom: 1px solid #e9d5ff; }
-        .data-table tr:hover td { background-color: #f5f3ff; }
-        .number-card { transition: all 0.2s ease; }
-        .number-card:hover { transform: translateY(-2px); background-color: #f5f3ff !important; }
-        .used-number { background-color: #fee2e2 !important; border-left: 3px solid #dc2626 !important; text-decoration: line-through; opacity: 0.8; }
-        .used-number:hover { background-color: #fecaca !important; }
+        
+        /* Button Hover */
+        .btn-purple {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            transition: all 0.2s;
+        }
+        .btn-purple:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
+        }
+        
+        /* OTP Row */
+        .otp-entry {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border: 1px solid #e9d5ff;
+            transition: all 0.2s;
+        }
+        .otp-entry:hover {
+            border-color: #7c3aed;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+        }
     </style>
 </head>
 <body>
 
-<nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-            <div class="flex items-center space-x-3">
-                <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center shadow-md">
+<!-- LOGIN SECTION -->
+<div id="loginBox" class="min-h-screen flex items-center justify-center p-4">
+    <div class="glass-card max-w-md w-full p-8 fade-in">
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <i class="fas fa-crown text-white text-2xl"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-800">ELITE<span class="text-purple-600">Panel</span></h2>
+            <p class="text-gray-500 text-sm mt-1">Secure User Portal</p>
+        </div>
+        
+        <input id="username" type="text" placeholder="Username" class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
+        <input id="password" type="password" placeholder="Password" class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
+        
+        <button onclick="login()" class="btn-purple w-full text-white py-3 rounded-xl font-semibold shadow-md">
+            <i class="fas fa-sign-in-alt mr-2"></i> Login
+        </button>
+        
+        <p id="msg" class="text-center mt-4 text-red-500 text-sm"></p>
+    </div>
+</div>
+
+<!-- DASHBOARD SECTION -->
+<div id="dashboard" class="hidden min-h-screen">
+    
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-800 rounded-xl flex items-center justify-center shadow-md">
                     <i class="fas fa-crown text-white text-sm"></i>
                 </div>
                 <div>
                     <span class="text-xl font-bold text-gray-800">ELITE<span class="text-purple-600">Panel</span></span>
-                    <span class="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">User Portal</span>
+                    <span class="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">User</span>
                 </div>
             </div>
-            <div class="flex items-center gap-4 relative">
-                <div class="text-right hidden sm:block">
-                    <p class="text-sm font-semibold text-gray-800" id="userName">Loading...</p>
-                    <p class="text-xs text-gray-500" id="userEmail"></p>
-                </div>
-                <div class="relative">
-                    <button id="menuButton" class="flex items-center gap-2 bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition">
-                        <i class="fas fa-user-circle text-purple-600 text-lg"></i>
-                        <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
-                    </button>
-                    <div id="dropdownMenu" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden">
-                        <a href="#" data-page="allocation" class="nav-link flex items-center gap-3 px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-phone-alt w-5 text-purple-500"></i> Allocation</a>
-                        <a href="#" data-page="today" class="nav-link flex items-center gap-3 px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-chart-bar w-5 text-purple-500"></i> Today's Stat</a>
-                        <a href="#" data-page="total" class="nav-link flex items-center gap-3 px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-dollar-sign w-5 text-purple-500"></i> Today's OTP</a>
-                        <a href="#" data-page="past" class="nav-link flex items-center gap-3 px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-history w-5 text-purple-500"></i> Past Records</a>
-                        <div class="border-t border-gray-100 my-1"></div>
-                        <a href="https://wa.me/2348113903584" target="_blank" class="nav-link flex items-center gap-3 px-4 py-2.5 hover:bg-purple-50 text-purple-600"><i class="fab fa-whatsapp w-5"></i> Contact Support</a>
-                        <div class="border-t border-gray-100 my-1"></div>
-                        <a href="../index.html" id="logoutBtn" class="nav-link flex items-center gap-3 px-4 py-2.5 hover:bg-red-50 text-red-600"><i class="fas fa-sign-out-alt w-5"></i> Logout</a>
-                    </div>
-                </div>
-            </div>
+            
+            <select id="menu" class="custom-select border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                <option value="profile">👤 Profile</option>
+                <option value="allocation">📌 Allocation</option>
+                <option value="today">📊 Today's Stat</option>
+                <option value="total">💰 Total OTP</option>
+                <option value="past">📋 Past Records</option>
+                <option value="support">📞 Contact Support</option>
+                <option value="logout">🚪 Logout</option>
+            </select>
         </div>
-    </div>
-</nav>
-
-<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div id="dashboardContent">
-        <!-- Allocation Page -->
-        <div id="allocationPage" class="page">
-            <div class="mb-6"><h1 class="text-2xl font-bold text-gray-900">📌 Number Allocation</h1><p class="text-gray-500 text-sm mt-1">Select a range to view numbers assigned to you</p></div>
-            <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">🌍 Select Range</label>
-                <select id="rangeSelect" class="custom-select w-full md:w-80 border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none transition">
-                    <option value="">-- Select Range --</option>
-                </select>
-            </div>
-            <div id="numbersDisplay" class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 text-center text-gray-400">Select a range to view numbers</div>
-            <div class="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400"><i class="fas fa-info-circle text-purple-500"></i><span>Numbers that have received OTPs are hidden from this list.</span></div>
-        </div>
-
-        <!-- Today's Stat Page -->
-        <div id="todayPage" class="page">
-            <h1 class="text-2xl font-bold text-gray-900">📊 Today's OTP Statistics</h1>
-            <p class="text-gray-500 text-sm mt-1 mb-4">OTP received today on your numbers</p>
-            <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
-                <div class="overflow-x-auto"><table class="data-table w-full text-sm"><thead><tr><th class="px-6 py-4 text-left font-semibold text-gray-600">Country</th><th class="px-6 py-4 text-left font-semibold text-gray-600">Phone Number</th><th class="px-6 py-4 text-left font-semibold text-gray-600">Last3</th><th class="px-6 py-4 text-left font-semibold text-gray-600">Sender</th><th class="px-6 py-4 text-left font-semibold text-gray-600">OTP Code</th><th class="px-6 py-4 text-left font-semibold text-gray-600">Range</th><th class="px-6 py-4 text-left font-semibold text-gray-600">Time</th></tr></thead><tbody id="todayOtpTable" class="divide-y divide-gray-100"></tbody>}</div>
-                <div id="todayEmptyMsg" class="text-center py-12 text-gray-400 hidden"><i class="fas fa-inbox text-4xl mb-3 opacity-50"></i><p>No OTP received today</p></div>
-            </div>
-        </div>
-
-        <!-- Today's OTP Page (Earnings) -->
-        <div id="totalPage" class="page">
-            <h1 class="text-2xl font-bold text-gray-900">📅 Today's OTP Earnings</h1>
-            <p class="text-gray-500 text-sm mt-1 mb-4">Today's OTP summary and earnings <span class="text-purple-600">(resets daily at 1:00 AM)</span></p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="stat-card rounded-2xl shadow-lg p-6 text-white"><div class="flex items-center justify-between"><p class="text-purple-100 text-sm font-medium">Today's OTP Count</p><i class="fas fa-key text-purple-200 text-2xl opacity-50"></i></div><p class="text-white text-4xl font-bold mt-3" id="totalOtpCount">0</p></div>
-                <div class="stat-card rounded-2xl shadow-lg p-6 text-white"><div class="flex items-center justify-between"><p class="text-purple-100 text-sm font-medium">Today's Earnings</p><i class="fas fa-coins text-purple-200 text-2xl opacity-50"></i></div><p class="text-white text-4xl font-bold mt-3" id="totalEarnings">$0.00</p><p class="text-purple-100 text-xs mt-2">($0.005 per OTP)</p></div>
-            </div>
-            <div class="flex justify-center mt-6"><div class="reset-timer" id="resetTimer"><i class="fas fa-clock mr-2"></i> Resets in --h --m --s</div></div>
-        </div>
-
-        <!-- Past Records Page -->
-        <div id="pastPage" class="page">
-            <h1 class="text-2xl font-bold text-gray-900">📋 Past OTP Records</h1>
-            <p class="text-gray-500 text-sm mt-1 mb-4">View OTP history by date range</p>
-            <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 mb-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">📅 Start Date</label><input type="date" id="startDate" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none"></div>
-                    <div><label class="block text-sm font-medium text-gray-700 mb-2">📅 End Date</label><input type="date" id="endDate" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none"></div>
-                    <div class="flex items-end gap-2"><button id="fetchBtn" class="btn-primary flex-1 text-white px-4 py-2.5 rounded-xl transition shadow-sm"><i class="fas fa-search mr-2"></i>Filter</button><button id="resetFilterBtn" class="btn-secondary px-4 py-2.5 rounded-xl transition"><i class="fas fa-undo-alt mr-2"></i>Reset</button></div>
-                </div>
-                <div id="filterInfo" class="mt-3 text-xs text-gray-500 hidden bg-purple-50 p-2 rounded-lg"><i class="fas fa-filter mr-1 text-purple-500"></i> Showing OTPs from <span id="filterStartDisplay" class="font-medium"></span> to <span id="filterEndDisplay" class="font-medium"></span></div>
-            </div>
-            <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center"><h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>OTP Records</h3><div class="text-sm bg-purple-50 px-3 py-1.5 rounded-lg"><span class="font-bold text-purple-600" id="pastTotalEarnings">$0.00</span><span class="text-gray-500 ml-1">total earnings</span></div></div>
-                <div class="overflow-x-auto max-h-[500px] overflow-y-auto"><table class="data-table w-full text-sm"><thead class="sticky top-0 bg-purple-50"><tr><th class="px-6 py-3 text-left font-semibold text-gray-600">📅 Date</th><th class="px-6 py-3 text-left font-semibold text-gray-600">🌍 Country</th><th class="px-6 py-3 text-left font-semibold text-gray-600">📞 Phone Number</th><th class="px-6 py-3 text-left font-semibold text-gray-600">🔐 Last3</th><th class="px-6 py-3 text-left font-semibold text-gray-600">✉️ Sender</th><th class="px-6 py-3 text-left font-semibold text-gray-600">🔢 OTP Code</th><th class="px-6 py-3 text-left font-semibold text-gray-600">📌 Range</th><th class="px-6 py-3 text-left font-semibold text-gray-600">⏰ Time</th><th class="px-6 py-3 text-left font-semibold text-gray-600">💰 Earned</th></tr></thead><tbody id="pastOtpTable" class="divide-y divide-gray-100"></tbody>}</div>
-                <div id="pastEmptyMsg" class="text-center py-12 text-gray-400 hidden"><i class="fas fa-calendar-times text-4xl mb-3 opacity-50"></i><p>No OTP records in this date range</p></div>
-            </div>
-        </div>
-    </div>
-</main>
+    </nav>
+    
+    <!-- Main Content -->
+    <div id="content" class="max-w-4xl mx-auto p-4 fade-in"></div>
+</div>
 
 <script>
 const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
@@ -139,224 +191,370 @@ const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 
 let currentUser = null;
 let userNumbers = [];
-let userPhoneLast3s = [];
-let userOtps = [];
-let userNumberMap = new Map();
-window.rangeNumbersStore = {};
+let allOtps = [];
+let userLast3s = [];
 
-function getTodayStr() { return new Date().toISOString().slice(0, 10); }
+// Helper Functions
+function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
+function getPanelDate(date) { return date ? date.slice(0,10) : new Date().toISOString().slice(0,10); }
+function formatTime(timeStr) { return timeStr ? new Date(timeStr).toLocaleTimeString() : '-'; }
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); }
-function showToast(m) { const t = document.createElement('div'); t.className = 'toast-success'; t.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${m}`; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
-function getLast3Digits(p) { const d = p.toString().replace(/\D/g, ''); return d.length >= 3 ? d.slice(-3) : d; }
-function maskPhoneNumber(p) { if (!p) return '***'; const d = p.toString().replace(/\D/g, ''); if (d.length <= 6) return '***' + d.slice(-3); return d.slice(0,2) + '•'.repeat(Math.min(7, d.length-5)) + d.slice(-3); }
 
-async function fetchUserById(id) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id,username,email&id=eq.${encodeURIComponent(id)}`, { headers: { 'apikey': SUPABASE_API_KEY } });
-    const d = await r.json(); return d?.[0] || null;
-}
-
-async function fetchUserAllocatedNumbers(id) {
+// Login Function
+async function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    const msgBox = document.getElementById('msg');
+    
+    if (!username || !password) {
+        msgBox.innerText = 'Please enter username and password';
+        return;
+    }
+    
     try {
-        const r = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,range_name,last3&user_id=eq.${encodeURIComponent(id)}`, { headers: { 'apikey': SUPABASE_API_KEY } });
-        const data = await r.json();
-        console.log('Allocated numbers:', data);
-        return data || [];
-    } catch (err) {
-        console.error('Error fetching numbers:', err);
-        return [];
-    }
-}
-
-async function fetchUserOtps() {
-    if (!userPhoneLast3s.length) return [];
-    const last3Filter = userPhoneLast3s.map(l3 => `phone_last3=eq.${l3}`).join(',');
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&or=(${last3Filter})&order=date.desc&limit=500`, { headers: { 'apikey': SUPABASE_API_KEY } });
-    const data = await r.json();
-    console.log('Fetched OTPs:', data);
-    return data || [];
-}
-
-function updateUserData() {
-    userPhoneLast3s = [];
-    userNumberMap.clear();
-    userNumbers.forEach(item => { 
-        if (item && item.number && item.last3) { 
-            userPhoneLast3s.push(item.last3);
-            userNumberMap.set(item.last3, { 
-                number: item.number, 
-                range_name: item.range_name 
-            });
-        } 
-    });
-    userPhoneLast3s = [...new Set(userPhoneLast3s)];
-    console.log('User last3 digits:', userPhoneLast3s);
-}
-
-function processAllocatedNumbers(raw) { 
-    const g = {}; 
-    raw.forEach(i => { 
-        const rangeName = i.range_name || 'Uncategorized'; 
-        if (!g[rangeName]) g[rangeName] = { range: rangeName, numbers: [] }; 
-        g[rangeName].numbers.push(i.number); 
-    }); 
-    return Object.values(g); 
-}
-
-function loadUserNumbersUI() {
-    const processed = processAllocatedNumbers(userNumbers);
-    const usedLast3s = new Set(userOtps.map(o => o.phone_last3));
-    const ranges = processed.map(g => {
-        const available = g.numbers.filter(n => !usedLast3s.has(getLast3Digits(n))).length;
-        return { range: g.range, available, total: g.numbers.length };
-    });
-    const sel = document.getElementById('rangeSelect');
-    if (sel) {
-        if (!userNumbers.length || ranges.length === 0) {
-            sel.innerHTML = '<option value="">-- No numbers allocated yet --</option>';
-            document.getElementById('numbersDisplay').innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fas fa-database text-4xl mb-3 opacity-50"></i><p>No numbers have been allocated to you yet.</p><p class="text-sm mt-2">Contact admin to get numbers.</p></div>';
-        } else {
-            sel.innerHTML = '<option value="">-- Select Range --</option>' + ranges.map(c => `<option value="${c.range}">📌 ${c.range} (${c.available}/${c.total} available)</option>`).join('');
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&username=eq.${encodeURIComponent(username)}`, {
+            headers: { 'apikey': SUPABASE_API_KEY }
+        });
+        const users = await res.json();
+        
+        if (!users.length) {
+            msgBox.innerText = 'User not found';
+            return;
         }
+        
+        if (users[0].password !== password) {
+            msgBox.innerText = 'Wrong password';
+            return;
+        }
+        
+        currentUser = users[0];
+        
+        // Load user data
+        await loadUserData();
+        
+        // Show dashboard
+        document.getElementById('loginBox').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        
+        // Setup menu
+        const menu = document.getElementById('menu');
+        menu.onchange = () => handleMenu(menu.value);
+        
+        showPage('profile');
+        
+    } catch (err) {
+        msgBox.innerText = 'Login error: ' + err.message;
     }
+}
+
+// Load User Data
+async function loadUserData() {
+    // Fetch allocated numbers
+    const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}`, {
+        headers: { 'apikey': SUPABASE_API_KEY }
+    });
+    userNumbers = await numRes.json();
+    
+    // Get last3 digits
+    userLast3s = [...new Set(userNumbers.map(n => getLast3Digits(n.number)))];
+    
+    // Fetch all OTPs
+    const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=1000`, {
+        headers: { 'apikey': SUPABASE_API_KEY }
+    });
+    allOtps = await otpRes.json();
+    
+    // Filter OTPs for this user
+    allOtps = allOtps.filter(otp => userLast3s.includes(otp.phone_last3));
+}
+
+// Handle Menu Navigation
+function handleMenu(value) {
+    if (value === 'logout') {
+        location.reload();
+    } else if (value === 'support') {
+        window.open('https://wa.me/2348113903584', '_blank');
+    } else {
+        showPage(value);
+    }
+}
+
+// Profile Page
+function profilePage() {
+    const totalOtps = allOtps.length;
+    const earnings = (totalOtps * 0.005).toFixed(2);
+    const avatar = localStorage.getItem('elite_avatar') || '';
+    
+    return `
+        <div class="glass-card p-6 text-center fade-in">
+            <div class="relative inline-block">
+                <img id="avatarPreview" src="${avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(currentUser.username) + '&background=7c3aed&color=fff&size=100'}" class="avatar-preview cursor-pointer" onclick="document.getElementById('avatarInput').click()">
+                <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="uploadAvatar(event)">
+                <button onclick="document.getElementById('avatarInput').click()" class="absolute bottom-0 right-0 bg-purple-600 text-white p-1 rounded-full w-8 h-8 flex items-center justify-center shadow-md">
+                    <i class="fas fa-camera text-xs"></i>
+                </button>
+            </div>
+            
+            <h2 class="text-xl font-bold mt-4">${escapeHtml(currentUser.username)}</h2>
+            <p class="text-gray-500 text-sm">${escapeHtml(currentUser.email || 'No email')}</p>
+            
+            <div class="mt-6 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4">
+                <p class="text-gray-600 text-sm">Total Earnings</p>
+                <h3 class="text-3xl font-bold text-purple-700">$${earnings}</h3>
+                <p class="text-xs text-gray-500 mt-1">${totalOtps} OTPs received</p>
+            </div>
+            
+            <div class="mt-4 text-sm text-gray-500">
+                <i class="fas fa-calendar-alt mr-1"></i> Member since: ${currentUser.created_at?.slice(0,10) || 'N/A'}
+            </div>
+        </div>
+    `;
+}
+
+// Upload Avatar
+function uploadAvatar(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            localStorage.setItem('elite_avatar', e.target.result);
+            const img = document.getElementById('avatarPreview');
+            if (img) img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+// Allocation Page
+function allocationPage() {
+    const ranges = [...new Set(userNumbers.map(n => n.range_name))];
+    
+    if (ranges.length === 0) {
+        return `<div class="glass-card p-8 text-center text-gray-500">No numbers allocated yet. Contact admin.</div>`;
+    }
+    
+    return `
+        <div class="glass-card p-6 fade-in">
+            <h2 class="text-xl font-bold mb-4">📌 Number Allocation</h2>
+            <select id="rangeSelect" class="custom-select w-full border border-purple-200 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none mb-4">
+                ${ranges.map(r => `<option value="${escapeHtml(r)}">📌 ${escapeHtml(r)}</option>`).join('')}
+            </select>
+            <div id="numbersList"></div>
+        </div>
+    `;
 }
 
 function displayNumbers(range) {
-    const processed = processAllocatedNumbers(userNumbers);
-    const rangeData = processed.find(g => g.range === range);
-    const div = document.getElementById('numbersDisplay');
-    if (!rangeData || !rangeData.numbers.length) { 
-        div.innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fas fa-phone-slash text-4xl mb-3 opacity-50"></i><p>No numbers for this range</p></div>'; 
-        return; 
+    const numbers = userNumbers.filter(n => n.range_name === range);
+    const html = numbers.map(n => `
+        <div class="number-item bg-gray-50 rounded-xl p-3 mb-2 flex justify-between items-center">
+            <span class="font-mono text-sm">📞 ${escapeHtml(n.number)}</span>
+            <span class="text-xs text-gray-400">last3: ${n.last3}</span>
+        </div>
+    `).join('');
+    
+    document.getElementById('numbersList').innerHTML = html || '<p class="text-gray-400 text-center py-4">No numbers in this range</p>';
+}
+
+// Today's Stat Page
+function todayPage() {
+    const today = getPanelDate(new Date().toISOString());
+    const todayOtps = allOtps.filter(o => o.date === today);
+    
+    if (todayOtps.length === 0) {
+        return `<div class="glass-card p-8 text-center text-gray-500">📭 No OTPs received today</div>`;
     }
     
-    const usedLast3s = new Set(userOtps.map(o => o.phone_last3));
-    const availableNumbers = rangeData.numbers.filter(n => !usedLast3s.has(getLast3Digits(n)));
-    const usedNumbers = rangeData.numbers.filter(n => usedLast3s.has(getLast3Digits(n)));
-    
-    const rangeKey = range.replace(/\s/g, '_');
-    window.rangeNumbersStore[rangeKey] = availableNumbers;
-    
-    let numbersHtml = '';
-    availableNumbers.forEach(n => {
-        const escapedNum = escapeHtml(n).replace(/'/g, "\\'");
-        numbersHtml += `<div class="number-card flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-purple-50 transition"><span class="font-mono text-sm text-gray-700">📞 ${escapeHtml(n)}</span><button onclick="copyToClipboard('${escapedNum}')" class="text-purple-600 hover:text-purple-800 text-sm"><i class="far fa-copy"></i> Copy</button></div>`;
-    });
-    
-    usedNumbers.forEach(n => {
-        numbersHtml += `<div class="used-number flex justify-between items-center p-3 bg-red-50 rounded-lg opacity-75"><span class="font-mono text-sm text-gray-500 line-through">📞 ${escapeHtml(n)}</span><span class="text-xs text-red-500"><i class="fas fa-check-circle"></i> Used</span></div>`;
-    });
-    
-    div.innerHTML = `<div class="border border-purple-100 rounded-xl overflow-hidden"><div class="bg-purple-50 px-5 py-3 flex justify-between items-center border-b border-purple-100"><div><span class="font-semibold text-gray-700">📌 ${range}</span><span class="text-xs font-normal text-gray-500 ml-2">(${availableNumbers.length} available / ${usedNumbers.length} used)</span></div><button onclick="copyAllNumbers('${range.replace(/'/g, "\\'")}', '${rangeKey}')" class="copy-all-btn bg-purple-100 hover:bg-purple-600 text-purple-700 hover:text-white px-3 py-1.5 rounded-lg text-sm transition"><i class="fas fa-copy mr-1"></i> Copy Available</button></div><div class="divide-y divide-gray-100 p-2 space-y-2">${numbersHtml}</div></div>`;
+    return `
+        <div class="glass-card p-6 fade-in">
+            <h2 class="text-xl font-bold mb-4">📊 Today's OTP Statistics</h2>
+            <div class="space-y-3">
+                ${todayOtps.map(otp => {
+                    const matchedNum = userNumbers.find(n => getLast3Digits(n.number) === otp.phone_last3);
+                    return `
+                        <div class="otp-entry">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center gap-2 mb-2">
+                                        <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country || 'Unknown')}</span>
+                                        <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
+                                    </div>
+                                    <div class="text-sm">
+                                        <div>📞 ${escapeHtml(matchedNum?.number || '***' + otp.phone_last3)}</div>
+                                        <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(otp.sender || 'Unknown')} | 📌 ${escapeHtml(matchedNum?.range_name || '-')}</div>
+                                    </div>
+                                </div>
+                                <div class="text-xs text-gray-400">${formatTime(otp.message_time)}</div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        </div>
+    `;
 }
 
-function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => showToast(`Copied: ${text.slice(-10)}`)); }
-function copyAllNumbers(range, rangeKey) { const numbers = window.rangeNumbersStore[rangeKey]; if (!numbers || !numbers.length) { showToast(`No available numbers to copy for ${range}`); return; } navigator.clipboard.writeText(numbers.join('\n')).then(() => showToast(`📋 Copied ${numbers.length} available numbers from ${range}`)); }
-
-function renderTodayOtps() {
-    const today = getTodayStr();
-    const todayOtps = userOtps.filter(o => o.date === today);
-    const tbody = document.getElementById('todayOtpTable'), empty = document.getElementById('todayEmptyMsg');
-    if (!tbody) return;
-    if (!todayOtps.length) { tbody.innerHTML = ''; if (empty) empty.classList.remove('hidden'); return; }
-    if (empty) empty.classList.add('hidden');
-    tbody.innerHTML = todayOtps.map(o => {
-        const numberInfo = userNumberMap.get(o.phone_last3);
-        const phoneNumber = numberInfo?.number || o.phone_full || '***' + o.phone_last3;
-        const rangeName = numberInfo?.range_name || o.range || 'Unknown';
-        return `<tr class="otp-row border-b border-gray-100 hover:bg-purple-50">
-            <td class="px-6 py-3 text-sm">${escapeHtml(o.country || 'Unknown')}<\/td>
-            <td class="px-6 py-3 font-mono text-sm">${escapeHtml(maskPhoneNumber(phoneNumber))}<\/td>
-            <td class="px-6 py-3 font-mono text-sm">${escapeHtml(o.phone_last3)}<\/td>
-            <td class="px-6 py-3">${escapeHtml(o.sender || o.service || 'Unknown')}<\/td>
-            <td class="px-6 py-3"><span class="font-mono font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg">${escapeHtml(o.otp)}<\/span><\/td>
-            <td class="px-6 py-3">${escapeHtml(rangeName)}<\/td>
-            <td class="px-6 py-3 text-gray-500 text-xs">${o.time_raw || (o.message_time ? new Date(o.message_time).toLocaleTimeString() : '')}<\/td>
-        <\/tr>`;
-    }).join('');
+// Total OTP Page
+function totalPage() {
+    const today = getPanelDate(new Date().toISOString());
+    const todayCount = allOtps.filter(o => o.date === today).length;
+    const earnings = (todayCount * 0.005).toFixed(2);
+    
+    return `
+        <div class="glass-card p-6 fade-in">
+            <div class="text-center">
+                <div class="stat-card rounded-2xl p-6 text-white mb-4">
+                    <p class="text-purple-100 text-sm">Today's OTP Count</p>
+                    <p class="text-5xl font-bold mt-2">${todayCount}</p>
+                </div>
+                <div class="stat-card rounded-2xl p-6 text-white">
+                    <p class="text-purple-100 text-sm">Today's Earnings</p>
+                    <p class="text-4xl font-bold mt-2">$${earnings}</p>
+                    <p class="text-purple-100 text-xs mt-2">($0.005 per OTP)</p>
+                </div>
+                <div id="countdown" class="mt-4 text-sm text-gray-500"></div>
+            </div>
+        </div>
+    `;
 }
 
-function updateTodayStats() { 
-    const todayCount = userOtps.filter(o => o.date === getTodayStr()).length; 
-    document.getElementById('totalOtpCount').textContent = todayCount; 
-    document.getElementById('totalEarnings').textContent = `$${(todayCount * 0.005).toFixed(2)}`; 
+// Countdown Timer
+function updateCountdown() {
+    const el = document.getElementById('countdown');
+    if (!el) return;
+    
+    const now = new Date();
+    const reset = new Date();
+    reset.setHours(1, 0, 0, 0);
+    if (now >= reset) reset.setDate(reset.getDate() + 1);
+    
+    const diff = reset - now;
+    const hours = Math.floor(diff / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+    
+    el.innerHTML = `<i class="fas fa-clock mr-1"></i> Resets in ${hours}h ${minutes}m ${seconds}s`;
+}
+setInterval(updateCountdown, 1000);
+
+// Past Records Page
+function pastPage() {
+    return `
+        <div class="glass-card p-6 fade-in">
+            <h2 class="text-xl font-bold mb-4">📋 Past OTP Records</h2>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <input type="date" id="startDate" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                <input type="date" id="endDate" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+            </div>
+            <button onclick="filterPast()" class="btn-purple w-full text-white py-2 rounded-xl font-semibold shadow-md mb-4">
+                <i class="fas fa-search mr-2"></i> Filter
+            </button>
+            <div id="pastResults"></div>
+        </div>
+    `;
 }
 
-function fetchPastOtps() {
-    let start = document.getElementById('startDate').value, end = document.getElementById('endDate').value;
-    let filtered = [...userOtps];
-    if (start && end) filtered = userOtps.filter(o => o.date && o.date >= start && o.date <= end);
-    const tbody = document.getElementById('pastOtpTable'), empty = document.getElementById('pastEmptyMsg'), earnSpan = document.getElementById('pastTotalEarnings');
-    if (!tbody) return;
-    if (!filtered.length) { tbody.innerHTML = ''; if (empty) empty.classList.remove('hidden'); if (earnSpan) earnSpan.textContent = '$0.00'; return; }
-    if (empty) empty.classList.add('hidden');
-    if (earnSpan) earnSpan.textContent = `$${(filtered.length * 0.005).toFixed(2)}`;
-    tbody.innerHTML = filtered.map(o => {
-        const numberInfo = userNumberMap.get(o.phone_last3);
-        const phoneNumber = numberInfo?.number || o.phone_full || '***' + o.phone_last3;
-        const rangeName = numberInfo?.range_name || o.range || 'Unknown';
-        return `<tr class="hover:bg-purple-50 border-b border-gray-100">
-            <td class="px-6 py-3 text-gray-600 text-xs whitespace-nowrap">${o.date || 'N/A'}<\/td>
-            <td class="px-6 py-3 text-sm">${escapeHtml(o.country || 'Unknown')}<\/td>
-            <td class="px-6 py-3 font-mono text-sm">${escapeHtml(maskPhoneNumber(phoneNumber))}<\/td>
-            <td class="px-6 py-3 font-mono text-sm">${escapeHtml(o.phone_last3)}<\/td>
-            <td class="px-6 py-3">${escapeHtml(o.sender || o.service || 'Unknown')}<\/td>
-            <td class="px-6 py-3"><span class="font-mono font-bold text-purple-600">${escapeHtml(o.otp)}<\/span><\/td>
-            <td class="px-6 py-3">${escapeHtml(rangeName)}<\/td>
-            <td class="px-6 py-3 text-gray-500 text-xs">${o.time_raw || (o.message_time ? new Date(o.message_time).toLocaleTimeString() : '')}<\/td>
-            <td class="px-6 py-3 text-emerald-600 font-semibold">+$0.005<\/td>
-        <\/tr>`;
-    }).join('');
-}
-
-function resetFilter() { document.getElementById('startDate').value = ''; document.getElementById('endDate').value = ''; document.getElementById('filterInfo').classList.add('hidden'); fetchPastOtps(); }
-async function refreshAll() { if (!currentUser) return; userOtps = await fetchUserOtps(); renderTodayOtps(); updateTodayStats(); fetchPastOtps(); loadUserNumbersUI(); if (document.getElementById('allocationPage').classList.contains('active-page') && document.getElementById('rangeSelect').value) displayNumbers(document.getElementById('rangeSelect').value); }
-function updateResetTimer() { const now = new Date(); const resetTime = new Date(); resetTime.setHours(1, 0, 0, 0); if (now >= resetTime) resetTime.setDate(resetTime.getDate() + 1); const diff = resetTime - now; const hours = Math.floor(diff / (1000 * 60 * 60)); const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)); const seconds = Math.floor((diff % (1000 * 60)) / 1000); const timerElement = document.getElementById('resetTimer'); if (timerElement) timerElement.innerHTML = `<i class="fas fa-clock mr-2"></i> Resets in ${hours}h ${minutes}m ${seconds}s`; }
-let lastDate = getTodayStr();
-function checkDateChange() { const currentDate = getTodayStr(); if (currentDate !== lastDate) { lastDate = currentDate; refreshAll(); const notif = document.createElement('div'); notif.className = 'reset-notification'; notif.innerHTML = `<i class="fas fa-sync-alt mr-2"></i> Today's OTP stats have been reset at 1:00 AM`; document.body.appendChild(notif); setTimeout(() => notif.remove(), 3000); } }
-function getUserIdFromUrl() { return new URLSearchParams(window.location.search).get('id'); }
-function saveCurrentPage(p) { localStorage.setItem('elite_current_page', p); window.location.hash = p; }
-function getSavedPage() { const hash = window.location.hash.replace('#', ''); if (hash && ['allocation','today','total','past'].includes(hash)) return hash; return localStorage.getItem('elite_current_page') || 'allocation'; }
-function loadSavedPage() { const s = getSavedPage(); ['allocation','today','total','past'].forEach(p => document.getElementById(p+'Page').classList.remove('active-page')); document.getElementById(s+'Page').classList.add('active-page'); if (s === 'allocation') loadUserNumbersUI(); if (s === 'today') renderTodayOtps(); if (s === 'total') updateTodayStats(); if (s === 'past') fetchPastOtps(); }
-
-async function initDashboard() {
-    const userId = getUserIdFromUrl();
-    if (!userId) { window.location.href = '../index.html'; return; }
+function filterPast() {
+    const start = document.getElementById('startDate').value;
+    const end = document.getElementById('endDate').value;
+    let filtered = [...allOtps];
     
-    document.getElementById('numbersDisplay').innerHTML = '<div class="loading-spinner"></div><p class="text-center">Loading your numbers...</p>';
+    if (start) filtered = filtered.filter(o => o.date >= start);
+    if (end) filtered = filtered.filter(o => o.date <= end);
     
-    const user = await fetchUserById(userId);
-    if (!user) { window.location.href = '../index.html'; return; }
-    currentUser = user;
-    document.getElementById('userName').innerText = currentUser.username || 'User';
-    document.getElementById('userEmail').innerText = currentUser.email || '';
+    const total = filtered.length;
+    const earnings = (total * 0.005).toFixed(2);
     
-    userNumbers = await fetchUserAllocatedNumbers(currentUser.id);
-    updateUserData();
-    userOtps = await fetchUserOtps();
-    
-    const end = new Date(), start = new Date(); start.setDate(end.getDate() - 6);
-    document.getElementById('startDate').value = start.toISOString().slice(0,10);
-    document.getElementById('endDate').value = end.toISOString().slice(0,10);
-    document.getElementById('rangeSelect').onchange = e => { if (e.target.value) displayNumbers(e.target.value); };
-    document.getElementById('fetchBtn').onclick = fetchPastOtps;
-    document.getElementById('resetFilterBtn').onclick = resetFilter;
-    renderTodayOtps(); updateTodayStats(); fetchPastOtps(); loadUserNumbersUI();
-    loadSavedPage();
-    if (userNumbers.length > 0) {
-        showToast(`Welcome ${currentUser.username}! You have ${userNumbers.length} numbers.`);
-    } else {
-        showToast(`Welcome ${currentUser.username}! No numbers allocated yet.`);
+    if (filtered.length === 0) {
+        document.getElementById('pastResults').innerHTML = '<p class="text-center text-gray-400 py-4">No OTPs in this date range</p>';
+        return;
     }
-    updateResetTimer(); setInterval(updateResetTimer, 1000); setInterval(checkDateChange, 60000);
+    
+    document.getElementById('pastResults').innerHTML = `
+        <div class="space-y-3 mb-4">
+            ${filtered.map(otp => {
+                const matchedNum = userNumbers.find(n => getLast3Digits(n.number) === otp.phone_last3);
+                return `
+                    <div class="otp-entry">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <div class="text-xs text-gray-400 mb-1">📅 ${otp.date}</div>
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country || 'Unknown')}</span>
+                                    <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
+                                </div>
+                                <div class="text-sm">
+                                    <div>📞 ${escapeHtml(matchedNum?.number || '***' + otp.phone_last3)}</div>
+                                    <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(otp.sender || 'Unknown')} | 📌 ${escapeHtml(matchedNum?.range_name || '-')}</div>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-400">${formatTime(otp.message_time)}</div>
+                        </div>
+                        <div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+        <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center">
+            <span class="font-semibold">Total: ${total} OTPs</span>
+            <span class="mx-2">|</span>
+            <span class="font-bold text-purple-700">$${earnings}</span>
+        </div>
+    `;
 }
 
-function setupNavigation() { ['allocation','today','total','past'].forEach(p => { document.querySelectorAll(`[data-page="${p}"]`).forEach(link => { link.onclick = (e) => { e.preventDefault(); ['allocation','today','total','past'].forEach(pg => document.getElementById(pg+'Page').classList.remove('active-page')); document.getElementById(p+'Page').classList.add('active-page'); document.getElementById('dropdownMenu').classList.add('hidden-dropdown'); saveCurrentPage(p); if (p === 'allocation') { loadUserNumbersUI(); if (document.getElementById('rangeSelect').value) displayNumbers(document.getElementById('rangeSelect').value); } if (p === 'today') renderTodayOtps(); if (p === 'total') updateTodayStats(); if (p === 'past') fetchPastOtps(); }; }); }); }
-function setupDropdown() { const btn = document.getElementById('menuButton'), drop = document.getElementById('dropdownMenu'); if (btn) { btn.onclick = (e) => { e.stopPropagation(); drop.classList.toggle('hidden-dropdown'); }; document.addEventListener('click', () => drop.classList.add('hidden-dropdown')); } }
+// Page Router
+function showPage(page) {
+    const content = document.getElementById('content');
+    
+    switch(page) {
+        case 'profile':
+            content.innerHTML = profilePage();
+            break;
+        case 'allocation':
+            content.innerHTML = allocationPage();
+            setTimeout(() => {
+                const rangeSelect = document.getElementById('rangeSelect');
+                if (rangeSelect) {
+                    displayNumbers(rangeSelect.value);
+                    rangeSelect.onchange = () => displayNumbers(rangeSelect.value);
+                }
+            }, 50);
+            break;
+        case 'today':
+            content.innerHTML = todayPage();
+            break;
+        case 'total':
+            content.innerHTML = totalPage();
+            updateCountdown();
+            break;
+        case 'past':
+            content.innerHTML = pastPage();
+            break;
+        default:
+            content.innerHTML = profilePage();
+    }
+}
 
-window.copyToClipboard = copyToClipboard;
-window.copyAllNumbers = copyAllNumbers;
+// Make functions global
+window.login = login;
+window.uploadAvatar = uploadAvatar;
+window.displayNumbers = displayNumbers;
+window.filterPast = filterPast;
+window.showPage = showPage;
+window.handleMenu = handleMenu;
 
-document.addEventListener('DOMContentLoaded', async () => { setupNavigation(); setupDropdown(); await initDashboard(); });
+// Set default dates for past records
+setTimeout(() => {
+    const today = new Date();
+    const weekAgo = new Date();
+    weekAgo.setDate(today.getDate() - 7);
+    
+    const startInput = document.getElementById('startDate');
+    const endInput = document.getElementById('endDate');
+    if (startInput) startInput.value = weekAgo.toISOString().slice(0,10);
+    if (endInput) endInput.value = today.toISOString().slice(0,10);
+}, 100);
 </script>
 </body>
 </html>
