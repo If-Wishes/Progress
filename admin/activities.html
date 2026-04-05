@@ -1,67 +1,497 @@
-// Add to existing admin/activities.html script
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ELITE ADMIN | User Activities</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); min-height: 100vh; }
+        .page { display: none; }
+        .page.active-page { display: block; }
+        .hidden-dropdown { display: none; }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e2e8f0;
+            border-radius: 50%;
+            border-top-color: #7c3aed;
+            animation: spin 0.6s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.25);
+        }
+        .user-select {
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s;
+        }
+        .user-select:focus {
+            border-color: #7c3aed;
+            outline: none;
+            ring: 2px solid #c4b5fd;
+        }
+        .table-container {
+            overflow-x: auto;
+            max-height: 550px;
+            overflow-y: auto;
+        }
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: #a78bfa;
+            border-radius: 10px;
+        }
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #7c3aed;
+        }
+        .nav-link {
+            transition: all 0.2s;
+        }
+        .nav-link:hover {
+            background-color: #f5f3ff;
+            color: #7c3aed;
+        }
+        .btn-primary-purple {
+            background: #7c3aed;
+            transition: all 0.2s ease;
+        }
+        .btn-primary-purple:hover {
+            background: #6d28d9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+        .stat-card-purple-1 { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
+        .stat-card-purple-2 { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+        .stat-card-purple-3 { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+        .stat-card-purple-4 { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+    </style>
+</head>
+<body class="bg-gray-50">
 
-async function loadOtpsForAdmin() {
-    const response = await fetch('../data/otp_logs.json');
-    if (response.ok) {
-        const otps = await response.json();
-        localStorage.setItem('nexus_all_otp_records', JSON.stringify(otps));
-        return otps;
+<!-- Top Navigation Bar - Purple Theme -->
+<nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-16">
+            <div class="flex items-center">
+                <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center shadow-md">
+                    <i class="fas fa-crown text-white text-sm"></i>
+                </div>
+                <span class="ml-2 text-xl font-bold text-gray-800">ELITE<span class="text-purple-600">Admin</span></span>
+                <span class="ml-3 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">Admin Panel</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden sm:block">
+                    <p class="text-sm font-medium text-gray-800" id="adminName">Administrator</p>
+                    <p class="text-xs text-gray-500">Super User</p>
+                </div>
+                <div class="relative">
+                    <button id="menuButton" class="flex items-center gap-2 bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition">
+                        <i class="fas fa-user-circle text-purple-600 text-lg"></i>
+                        <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
+                    </button>
+                    <div id="dropdownMenu" class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden">
+                        <a href="#" data-page="dashboard" class="nav-link block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-tachometer-alt w-5 text-purple-500 mr-2"></i> Dashboard</a>
+                        <a href="#" data-page="users" class="nav-link block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-users w-5 text-purple-500 mr-2"></i> Users</a>
+                        <a href="#" data-page="allocation" class="nav-link block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-phone-alt w-5 text-purple-500 mr-2"></i> Numbers Allocation</a>
+                        <a href="#" data-page="activities" class="nav-link block px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-clipboard-list w-5 text-purple-500 mr-2"></i> User Activities</a>
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <a href="../index.html" id="logoutBtn" class="nav-link block px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Dashboard Content -->
+    <div id="dashboardContent">
+        <!-- User Selection Section -->
+        <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="md:col-span-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">👤 Select User</label>
+                    <select id="userSelect" class="user-select w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none transition">
+                        <option value="">-- Select a User --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">📅 Start Date</label>
+                    <input type="date" id="startDate" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">📅 End Date</label>
+                    <input type="date" id="endDate" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                </div>
+                <div class="flex items-end">
+                    <button id="applyFilterBtn" class="btn-primary-purple w-full text-white px-4 py-2.5 rounded-xl transition shadow-sm">
+                        <i class="fas fa-filter mr-2"></i>Apply Filter
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div class="stat-card stat-card-purple-1 rounded-2xl shadow-lg p-6 text-white">
+                <p class="text-purple-100 text-sm font-medium">Total OTPs</p>
+                <p class="text-3xl font-bold mt-1" id="totalOtps">0</p>
+            </div>
+            <div class="stat-card stat-card-purple-2 rounded-2xl shadow-lg p-6 text-white">
+                <p class="text-amber-100 text-sm font-medium">Total Earnings</p>
+                <p class="text-3xl font-bold mt-1" id="totalEarnings">$0.00</p>
+                <p class="text-amber-100 text-xs mt-1">($0.005 per OTP)</p>
+            </div>
+            <div class="stat-card stat-card-purple-3 rounded-2xl shadow-lg p-6 text-white">
+                <p class="text-blue-100 text-sm font-medium">Unique Numbers</p>
+                <p class="text-3xl font-bold mt-1" id="uniqueNumbers">0</p>
+            </div>
+            <div class="stat-card stat-card-purple-4 rounded-2xl shadow-lg p-6 text-white">
+                <p class="text-purple-100 text-sm font-medium">Active Ranges</p>
+                <p class="text-3xl font-bold mt-1" id="activeRanges">0</p>
+            </div>
+        </div>
+
+        <!-- OTP Records Table -->
+        <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
+            <div class="p-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center">
+                <h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>OTP Records</h3>
+                <div class="text-sm text-gray-500">
+                    <i class="fas fa-info-circle mr-1 text-purple-400"></i> Showing OTPs matched by last 3 digits
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="w-full text-sm">
+                    <thead class="bg-purple-50 sticky top-0">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">#</th>
+                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">Date</th>
+                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">Phone Number</th>
+                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">Service</th>
+                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">OTP Code</th>
+                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">Range</th>
+                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">Time</th>
+                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">Earned</th>
+                        </tr>
+                    </thead>
+                    <tbody id="otpTableBody" class="divide-y divide-gray-100">
+                        <tr><td colspan="8" class="text-center py-12 text-gray-400"><i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>Select a user to view OTPs</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+// ================= SUPABASE CONFIGURATION =================
+const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
+const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
+
+// ================= GLOBAL STATE =================
+let allUsers = [];
+let selectedUserId = null;
+let startDate = '';
+let endDate = '';
+let userNumbers = [];
+let userOtps = [];
+let userPhoneLast3s = [];
+
+// ================= HELPER FUNCTIONS =================
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m));
+}
+
+function maskPhoneNumber(phoneNumber) {
+    if (!phoneNumber) return '***';
+    const digits = phoneNumber.toString().replace(/\D/g, '');
+    if (digits.length <= 6) return '***' + digits.slice(-3);
+    const start = digits.slice(0, 2);
+    const end = digits.slice(-3);
+    const middleLength = Math.min(7, digits.length - 5);
+    const middle = '•'.repeat(middleLength);
+    return start + middle + end;
+}
+
+function getLast3Digits(phoneNumber) {
+    const digits = phoneNumber.toString().replace(/\D/g, '');
+    if (digits.length >= 3) return digits.slice(-3);
+    return digits;
+}
+
+function formatDateTime(messageTime, date, time) {
+    if (messageTime) {
+        const d = new Date(messageTime);
+        if (!isNaN(d.getTime())) {
+            return d.toLocaleTimeString();
+        }
     }
-    return JSON.parse(localStorage.getItem('nexus_all_otp_records') || '[]');
+    return time || '';
 }
 
-// Replace your existing renderActivitiesTable function with this
-async function renderActivitiesTable() {
-    const filterDate = document.getElementById('filterDate').value || getTodayStr();
-    const allOtps = await loadOtpsForAdmin();
-    const todayOtps = allOtps.filter(o => o.date === filterDate);
-    
-    const tbody = document.getElementById('activitiesTable');
-    const users = getUsers();
-    const userNumbers = JSON.parse(localStorage.getItem('nexus_analytics_numbers') || '[]');
-    
-    tbody.innerHTML = users.map(user => {
-        const numbersCount = userNumbers.filter(n => n.userId === user.id).reduce((s, n) => s + (n.numbers?.length || 0), 0);
-        
-        // Get user's phone last 4 digits from allocated numbers
-        const userPhoneLast4s = [];
-        userNumbers.filter(n => n.userId === user.id).forEach(entry => {
-            if (entry.numbers) {
-                entry.numbers.forEach(num => {
-                    const clean = num.replace(/\D/g, '');
-                    if (clean.length >= 4) userPhoneLast4s.push(clean.slice(-4));
-                });
-            }
+// ================= SUPABASE FETCH FUNCTIONS =================
+async function fetchAllUsers() {
+    try {
+        const url = `${SUPABASE_URL}/rest/v1/users?select=id,username,email,role&role=eq.user&order=username.asc`;
+        const response = await fetch(url, {
+            headers: { 'apikey': SUPABASE_API_KEY }
         });
-        
-        const userOtps = todayOtps.filter(otp => userPhoneLast4s.includes(otp.phone_last4));
-        const otpCount = userOtps.length;
-        const earnings = otpCount * 0.005;
-        const lastOtp = userOtps.sort((a, b) => b.timestamp - a.timestamp)[0];
-        
-        return `<tr class="border-b hover:bg-gray-50">
-            <td class="px-4 py-3 font-medium">${escapeHtml(user.username)}</td>
-            <td class="px-4 py-3 text-gray-600">${escapeHtml(user.email)}</td>
-            <td class="px-4 py-3 text-center font-bold">${numbersCount}</td>
-            <td class="px-4 py-3 text-center font-bold text-emerald-600">${otpCount}</td>
-            <td class="px-4 py-3 text-center font-bold">$${earnings.toFixed(2)}</td>
-            <td class="px-4 py-3 text-center text-xs">${lastOtp ? lastOtp.time : '—'}</td>
-        </tr>`;
-    }).join('');
-    
-    if (users.length === 0) tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8">No users</td></tr>';
-    
-    // Update global stats
-    const totalOtps = todayOtps.length;
-    document.getElementById('totalOtps').textContent = totalOtps;
-    document.getElementById('totalEarnings').textContent = `$${(totalOtps * 0.005).toFixed(2)}`;
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return data || [];
+    } catch (err) {
+        console.error("Fetch users error:", err);
+        return [];
+    }
 }
 
-// Update your DOMContentLoaded to use the new function
-document.addEventListener('DOMContentLoaded', () => {
-    initData();
-    document.getElementById('filterDate').value = getTodayStr();
-    renderActivitiesTable();
-    document.getElementById('applyFilter').onclick = renderActivitiesTable;
-    // ... rest of your existing code
+async function fetchUserAllocatedNumbers(userId) {
+    try {
+        const url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,country&user_id=eq.${encodeURIComponent(userId)}`;
+        const response = await fetch(url, {
+            headers: { 'apikey': SUPABASE_API_KEY }
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return data || [];
+    } catch (err) {
+        console.error("Fetch numbers error:", err);
+        return [];
+    }
+}
+
+async function fetchAllOtps() {
+    try {
+        const url = `${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=2000`;
+        const response = await fetch(url, {
+            headers: { 'apikey': SUPABASE_API_KEY }
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        return data || [];
+    } catch (err) {
+        console.error("Fetch OTPs error:", err);
+        return [];
+    }
+}
+
+// ================= FILTER OTPs BY USER AND DATE RANGE =================
+function filterOtpsByUserAndDate(otps, phoneLast3s, start, end) {
+    let filtered = otps.filter(otp => phoneLast3s.includes(otp.phone_last3));
+    
+    if (start && end) {
+        filtered = filtered.filter(otp => {
+            const otpDate = otp.date || otp.message_time?.slice(0, 10);
+            return otpDate >= start && otpDate <= end;
+        });
+    }
+    
+    return filtered;
+}
+
+function updateUserPhoneArrays(numbers) {
+    userPhoneLast3s = [];
+    numbers.forEach(item => {
+        if (item.number) {
+            const last3 = getLast3Digits(item.number);
+            if (last3) userPhoneLast3s.push(last3);
+        }
+    });
+    userPhoneLast3s = [...new Set(userPhoneLast3s)];
+}
+
+// ================= UPDATE UI =================
+function updateUserDropdown() {
+    const select = document.getElementById('userSelect');
+    select.innerHTML = '<option value="">-- Select a User --</option>';
+    
+    allUsers.forEach(user => {
+        select.innerHTML += `<option value="${user.id}">${escapeHtml(user.username)} (${escapeHtml(user.email || 'No email')})</option>`;
+    });
+}
+
+async function loadUserData() {
+    if (!selectedUserId) {
+        document.getElementById('otpTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-400"><i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>Select a user to view OTPs</td></tr>';
+        document.getElementById('totalOtps').textContent = '0';
+        document.getElementById('totalEarnings').textContent = '$0.00';
+        document.getElementById('uniqueNumbers').textContent = '0';
+        document.getElementById('activeRanges').textContent = '0';
+        return;
+    }
+    
+    // Show loading
+    document.getElementById('otpTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12"><div class="loading-spinner mx-auto"></div><p class="mt-3 text-gray-500">Loading user activities...</p></td></tr>';
+    
+    // Fetch user's allocated numbers
+    const numbers = await fetchUserAllocatedNumbers(selectedUserId);
+    userNumbers = numbers;
+    updateUserPhoneArrays(userNumbers);
+    
+    // Fetch all OTPs and filter
+    const allOtps = await fetchAllOtps();
+    userOtps = filterOtpsByUserAndDate(allOtps, userPhoneLast3s, startDate, endDate);
+    
+    // Calculate statistics
+    const totalOtps = userOtps.length;
+    const totalEarnings = totalOtps * 0.005;
+    const uniqueNumbers = [...new Set(userOtps.map(otp => otp.phone_last3))].length;
+    const activeRanges = [...new Set(userOtps.map(otp => otp.country).filter(c => c))].length;
+    
+    // Update stats cards
+    document.getElementById('totalOtps').textContent = totalOtps;
+    document.getElementById('totalEarnings').textContent = `$${totalEarnings.toFixed(2)}`;
+    document.getElementById('uniqueNumbers').textContent = uniqueNumbers;
+    document.getElementById('activeRanges').textContent = activeRanges;
+    
+    // Render table
+    if (userOtps.length === 0) {
+        document.getElementById('otpTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-400"><i class="fas fa-inbox text-4xl mb-3 opacity-40"></i><br/>📭 No OTPs found for this user in selected date range</td></tr>';
+        return;
+    }
+    
+    // Build number mapping for display
+    const numberMap = {};
+    userNumbers.forEach(item => {
+        const last3 = getLast3Digits(item.number);
+        numberMap[last3] = item.number;
+    });
+    
+    document.getElementById('otpTableBody').innerHTML = userOtps.map((otp, index) => {
+        const fullNumber = numberMap[otp.phone_last3] || otp.phone_last3;
+        const maskedNumber = maskPhoneNumber(fullNumber);
+        const timeStr = formatDateTime(otp.message_time, otp.date, otp.time);
+        const rangeName = otp.country || 'Unknown';
+        
+        return `
+            <tr class="hover:bg-purple-50 transition border-b border-gray-100">
+                <td class="px-6 py-3 text-gray-500 text-xs">${index + 1}</td>
+                <td class="px-6 py-3 text-gray-600 text-xs whitespace-nowrap">${otp.date || 'N/A'}</td>
+                <td class="px-6 py-3 font-mono text-sm font-medium text-gray-800">${escapeHtml(maskedNumber)}</td>
+                <td class="px-6 py-3"><span class="bg-gray-100 px-2 py-1 rounded-lg text-xs">${escapeHtml(otp.service || 'Unknown')}</span></td>
+                <td class="px-6 py-3"><span class="font-mono font-bold text-purple-700 bg-purple-50 px-3 py-1.5 rounded-lg">${escapeHtml(otp.otp)}</span></td>
+                <td class="px-6 py-3"><span class="flex items-center gap-1"><i class="fas fa-globe text-purple-400 text-xs"></i> ${escapeHtml(rangeName)}</span></td>
+                <td class="px-6 py-3 text-gray-500 text-xs">${timeStr}</td>
+                <td class="px-6 py-3 text-emerald-600 font-semibold">+$0.005</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ================= PAGE STATE MANAGEMENT =================
+function saveSelectedUser() {
+    localStorage.setItem('elite_admin_selected_user', selectedUserId);
+    localStorage.setItem('elite_admin_start_date', startDate);
+    localStorage.setItem('elite_admin_end_date', endDate);
+}
+
+function loadSavedState() {
+    selectedUserId = localStorage.getItem('elite_admin_selected_user') || '';
+    startDate = localStorage.getItem('elite_admin_start_date') || '';
+    endDate = localStorage.getItem('elite_admin_end_date') || '';
+    
+    if (startDate) document.getElementById('startDate').value = startDate;
+    if (endDate) document.getElementById('endDate').value = endDate;
+    if (selectedUserId) document.getElementById('userSelect').value = selectedUserId;
+}
+
+// ================= DROPDOWN MENU =================
+function setupDropdown() {
+    const menuBtn = document.getElementById('menuButton');
+    const dropdown = document.getElementById('dropdownMenu');
+    if (menuBtn) {
+        menuBtn.onclick = (e) => { e.stopPropagation(); dropdown.classList.toggle('hidden-dropdown'); };
+        document.addEventListener('click', () => dropdown.classList.add('hidden-dropdown'));
+    }
+}
+
+// ================= NAVIGATION HANDLING (MOCK FOR DEMO) =================
+function setupNavigation() {
+    const navLinks = document.querySelectorAll('[data-page]');
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const page = link.getAttribute('data-page');
+            // For demo purposes, just show alert since we only have activities page fully implemented
+            if (page !== 'activities') {
+                alert(`Navigation to "${page}" page would work in full application. Currently showing User Activities.`);
+            } else {
+                // Already on activities page
+                console.log('Already on activities page');
+            }
+            dropdown.classList.add('hidden-dropdown');
+        });
+    });
+}
+
+// ================= MAIN INITIALIZATION =================
+async function initAdminDashboard() {
+    // Set default date range (last 30 days)
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 30);
+    
+    if (!document.getElementById('startDate').value) {
+        const defaultStart = start.toISOString().slice(0, 10);
+        document.getElementById('startDate').value = defaultStart;
+        startDate = defaultStart;
+    }
+    if (!document.getElementById('endDate').value) {
+        const defaultEnd = end.toISOString().slice(0, 10);
+        document.getElementById('endDate').value = defaultEnd;
+        endDate = defaultEnd;
+    }
+    
+    // Load saved state (overrides defaults if any)
+    loadSavedState();
+    
+    // Fetch all users
+    allUsers = await fetchAllUsers();
+    updateUserDropdown();
+    
+    // Set selected user in dropdown if exists
+    if (selectedUserId) {
+        document.getElementById('userSelect').value = selectedUserId;
+        await loadUserData();
+    }
+    
+    setupDropdown();
+    setupNavigation();
+}
+
+// ================= EVENT LISTENERS =================
+document.getElementById('userSelect').addEventListener('change', async (e) => {
+    selectedUserId = e.target.value;
+    saveSelectedUser();
+    await loadUserData();
 });
+
+document.getElementById('applyFilterBtn').addEventListener('click', async () => {
+    startDate = document.getElementById('startDate').value;
+    endDate = document.getElementById('endDate').value;
+    saveSelectedUser();
+    await loadUserData();
+});
+
+// ================= START APP =================
+document.addEventListener('DOMContentLoaded', async () => {
+    await initAdminDashboard();
+});
+</script>
+</body>
+    </html>
