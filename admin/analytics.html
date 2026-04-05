@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        .hidden-dropdown { display: none; }
+        .hidden-dropdown { display: none !important; }
         .success { background-color: #d1fae5; color: #065f46; }
         .error { background-color: #fee2e2; color: #991b1b; }
         .used-number {
@@ -51,6 +51,47 @@
             from { transform: translateY(30px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
+        
+        .dropdown-enter {
+            animation: dropdownFade 0.2s ease;
+        }
+        @keyframes dropdownFade {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* OTP Entry Card */
+        .otp-entry {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border: 1px solid #e9d5ff;
+            transition: all 0.2s;
+        }
+        .otp-entry:hover {
+            border-color: #7c3aed;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+        }
+        .otp-badge {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        .nav-link {
+            transition: all 0.2s;
+            display: block;
+            width: 100%;
+            text-align: left;
+        }
+        .nav-link:hover {
+            background-color: #f5f3ff;
+            color: #7c3aed;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-purple-50 to-gray-100 min-h-screen">
@@ -72,14 +113,17 @@
                     <p class="text-xs text-gray-500">Number Allocation</p>
                 </div>
                 <div class="relative">
-                    <button id="menuBtn" class="bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition"><i class="fas fa-user-shield text-purple-600"></i><i class="fas fa-chevron-down text-xs"></i></button>
-                    <div id="dropdown" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden">
-                        <a href="dashboard.html" class="block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-tachometer-alt mr-2 text-purple-500"></i>Dashboard</a>
-                        <a href="users.html" class="block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-users mr-2 text-purple-500"></i>Users</a>
-                        <a href="analytics.html" class="block px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-phone-alt mr-2 text-purple-500"></i>Range Allocation</a>
-                        <a href="activities.html" class="block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-history mr-2 text-purple-500"></i>Activities</a>
+                    <button id="menuBtn" class="bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition cursor-pointer">
+                        <i class="fas fa-user-shield text-purple-600"></i>
+                        <i class="fas fa-chevron-down text-xs"></i>
+                    </button>
+                    <div id="dropdown" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden dropdown-enter">
+                        <a href="dashboard.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-tachometer-alt w-5 text-purple-500 mr-2"></i> Dashboard</a>
+                        <a href="users.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-users w-5 text-purple-500 mr-2"></i> Users</a>
+                        <a href="analytics.html" class="nav-link px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-phone-alt w-5 text-purple-500 mr-2"></i> Range Allocation</a>
+                        <a href="activities.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-history w-5 text-purple-500 mr-2"></i> Activities</a>
                         <div class="border-t border-gray-100 my-1"></div>
-                        <a href="#" id="logoutBtn" class="block px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a>
+                        <a href="#" id="logoutBtn" class="nav-link px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
                     </div>
                 </div>
             </div>
@@ -139,7 +183,6 @@ Example:
         <div class="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
             <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-list-ul text-purple-500"></i> Allocated Numbers</h2>
             
-            <!-- Show/Hide Deleted Toggle -->
             <div class="flex items-center justify-between mb-4">
                 <select id="filterSelect" class="w-2/3 border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
                     <option value="">-- All Users --</option>
@@ -151,6 +194,24 @@ Example:
             
             <div id="allocationsList" class="max-h-96 overflow-y-auto space-y-3">
                 <div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- OTP Records Section - Similar to User Panel -->
+    <div class="mt-8">
+        <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
+            <div class="p-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center">
+                <h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>OTP Records</h3>
+                <div class="text-sm text-gray-500">
+                    <i class="fas fa-info-circle mr-1 text-purple-400"></i> Showing OTPs matched by last 3 digits
+                </div>
+            </div>
+            <div id="otpRecordsList" class="p-4 space-y-3 max-h-[500px] overflow-y-auto">
+                <div class="text-center py-12 text-gray-400">
+                    <i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>
+                    Select a user to view OTPs
+                </div>
             </div>
         </div>
     </div>
@@ -188,6 +249,11 @@ let usedNumbersSet = new Set();
 let customRanges = [];
 let showDeleted = false;
 
+// Store for OTP records
+let allAllocatedNumbers = [];
+let allOtps = [];
+let matchedOtps = [];
+
 function getLast3Digits(number) {
     let cleaned = number.replace(/[^0-9]/g, '');
     return cleaned.slice(-3);
@@ -201,6 +267,14 @@ function escapeHtml(str) {
 function getRangeFlag(range) {
     const flags = { 'Carmine': '❤️', 'Carrot': '🥕' };
     return flags[range] || '📌';
+}
+
+function formatTime(messageTime) {
+    if (messageTime) {
+        const d = new Date(messageTime);
+        if (!isNaN(d.getTime())) return d.toLocaleTimeString();
+    }
+    return '-';
 }
 
 async function fetchUsedNumbers() {
@@ -281,7 +355,10 @@ async function loadUsers() {
     const filterSelect = document.getElementById('filterSelect');
     filterSelect.innerHTML = '<option value="">-- All Users --</option>' + 
         usersList.map(u => `<option value="${u.id}">${escapeHtml(u.username)}</option>`).join('');
-    filterSelect.onchange = loadAllocatedNumbers;
+    filterSelect.onchange = () => {
+        loadAllocatedNumbers();
+        loadUserOtps();
+    };
 }
 
 async function loadAllocatedNumbers() {
@@ -293,8 +370,8 @@ async function loadAllocatedNumbers() {
     
     const res = await fetch(url, { headers: { 'apikey': API_KEY } });
     let allocations = await res.json();
+    allAllocatedNumbers = allocations;
     
-    // Filter out deleted numbers if showDeleted is false
     if (!showDeleted) {
         allocations = allocations.filter(item => !item.is_deleted);
     }
@@ -350,32 +427,26 @@ async function loadAllocatedNumbers() {
                         const isDeleted = num.is_deleted;
                         let usedClass = '';
                         let statusIcon = '';
-                        let statusText = '';
                         
                         if (isDeleted) {
                             usedClass = 'deleted-number';
                             statusIcon = '<i class="fas fa-trash-alt text-gray-500 mr-1 text-xs"></i>';
-                            statusText = 'Deleted';
                         } else if (isUsed) {
                             usedClass = 'used-number';
                             statusIcon = '<i class="fas fa-check-circle text-red-500 mr-1 text-xs"></i>';
-                            statusText = 'Used';
                         } else {
                             statusIcon = '<i class="fas fa-circle text-green-500 mr-1 text-xs"></i>';
-                            statusText = 'Active';
                         }
                         
-                        const title = isDeleted ? 'This number has been deleted (earnings preserved)' : (isUsed ? 'This number has received an OTP' : 'Active number - no OTP received yet');
-                        
                         return `
-                            <div class="bg-gray-100 rounded-lg px-3 py-1.5 flex items-center gap-2 ${usedClass} transition" title="${title}">
+                            <div class="bg-gray-100 rounded-lg px-3 py-1.5 flex items-center gap-2 ${usedClass} transition">
                                 ${statusIcon}
                                 <span class="font-mono text-sm ${isDeleted ? 'line-through' : ''}">${escapeHtml(num.number)}</span>
                                 <span class="text-xs text-gray-400">(last3: ${num.last3})</span>
-                                ${!isDeleted ? `<button onclick="softDeleteNumber('${num.id}')" class="text-gray-400 hover:text-red-600 ml-1" title="Soft delete (preserve earnings)">
+                                ${!isDeleted ? `<button onclick="softDeleteNumber('${num.id}')" class="text-gray-400 hover:text-red-600 ml-1" title="Soft delete">
                                     <i class="fas fa-trash-alt"></i>
                                 </button>` : ''}
-                                <button onclick="restoreNumber('${num.id}')" class="text-green-500 hover:text-green-700 ml-1 text-xs" title="Restore number">
+                                <button onclick="restoreNumber('${num.id}')" class="text-green-500 hover:text-green-700 ml-1 text-xs" title="Restore">
                                     <i class="fas fa-undo-alt"></i>
                                 </button>
                             </div>
@@ -383,7 +454,7 @@ async function loadAllocatedNumbers() {
                     }).join('')}
                 </div>
                 <div class="bg-gray-50 px-4 py-2 text-xs text-gray-500 border-t border-purple-100">
-                    📊 Total: ${totalCount} numbers | Used: ${usedCount} | Active: ${totalCount - usedCount - deletedCount} | Deleted: ${deletedCount}
+                    📊 Total: ${totalCount} | Used: ${usedCount} | Active: ${totalCount - usedCount - deletedCount} | Deleted: ${deletedCount}
                 </div>
             </div>
         `;
@@ -391,23 +462,137 @@ async function loadAllocatedNumbers() {
     container.innerHTML = html;
 }
 
-// Soft delete - mark as deleted but keep in database for earnings
+// Load OTP records for selected user
+async function loadUserOtps() {
+    const filterUserId = document.getElementById('filterSelect').value;
+    
+    if (!filterUserId) {
+        document.getElementById('otpRecordsList').innerHTML = `
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>
+                Select a user to view OTPs
+            </div>
+        `;
+        return;
+    }
+    
+    document.getElementById('otpRecordsList').innerHTML = `
+        <div class="text-center py-12">
+            <div class="loading-spinner inline-block w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+            <p class="mt-3 text-gray-500">Loading OTP records...</p>
+        </div>
+    `;
+    
+    // Get user's allocated numbers
+    const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,last3,range_name&user_id=eq.${filterUserId}`, {
+        headers: { 'apikey': API_KEY }
+    });
+    const userNumbers = await numRes.json();
+    const userLast3s = userNumbers.map(n => n.last3);
+    
+    // Get OTPs for those numbers
+    if (userLast3s.length > 0) {
+        const last3Filter = userLast3s.map(l3 => `phone_last3=eq.${l3}`).join(',');
+        const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&or=(${last3Filter})&order=date.desc&limit=500`, {
+            headers: { 'apikey': API_KEY }
+        });
+        const userOtps = await otpRes.json();
+        
+        if (userOtps.length === 0) {
+            document.getElementById('otpRecordsList').innerHTML = `
+                <div class="text-center py-12 text-gray-400">
+                    <i class="fas fa-inbox text-4xl mb-3 opacity-40"></i><br/>
+                    📭 No OTPs found for this user
+                </div>
+            `;
+            return;
+        }
+        
+        // Create number map for display
+        const numberMap = new Map();
+        userNumbers.forEach(item => {
+            numberMap.set(item.last3, { number: item.number, range_name: item.range_name });
+        });
+        
+        let html = '';
+        for (const otp of userOtps) {
+            const numberInfo = numberMap.get(otp.phone_last3);
+            const phoneNumber = numberInfo?.number || otp.phone_last3;
+            const maskedNumber = phoneNumber.toString().replace(/\d(?=\d{4})/g, '*');
+            const rangeName = numberInfo?.range_name || otp.range || 'Unknown';
+            const timeStr = formatTime(otp.message_time);
+            
+            html += `
+                <div class="otp-entry">
+                    <div class="flex justify-between items-start flex-wrap gap-2">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                                <span class="text-xs text-gray-400">#${otp.id || ''}</span>
+                                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">📅 ${otp.date || 'N/A'}</span>
+                                <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                                <div>
+                                    <span class="text-gray-500 text-xs">📞 Phone</span>
+                                    <p class="font-mono font-medium">${escapeHtml(maskedNumber)}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500 text-xs">🔐 Last3</span>
+                                    <p class="font-mono">${escapeHtml(otp.phone_last3)}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500 text-xs">✉️ Sender</span>
+                                    <p>${escapeHtml(otp.sender || otp.service || 'Unknown')}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500 text-xs">📌 Range</span>
+                                    <p>${escapeHtml(rangeName)}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-gray-400">${timeStr}</div>
+                            <div class="text-emerald-600 font-semibold text-sm mt-1">+$0.005</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        html += `
+            <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
+                <span class="font-semibold">Total: ${userOtps.length} OTPs</span>
+                <span class="mx-2">|</span>
+                <span class="font-bold text-purple-700">$${(userOtps.length * 0.005).toFixed(2)}</span>
+            </div>
+        `;
+        
+        document.getElementById('otpRecordsList').innerHTML = html;
+    } else {
+        document.getElementById('otpRecordsList').innerHTML = `
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-database text-4xl mb-3 opacity-40"></i><br/>
+                📭 No numbers allocated to this user
+            </div>
+        `;
+    }
+}
+
+// Soft delete
 async function softDeleteNumber(numberId) {
-    if (!confirm('Delete this number? Earnings will be preserved and the number will be hidden from users. You can restore it later.')) return;
+    if (!confirm('Delete this number? Earnings will be preserved.')) return;
     
     try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?id=eq.${numberId}`, {
             method: 'PATCH',
-            headers: { 
-                'apikey': API_KEY, 
-                'Content-Type': 'application/json'
-            },
+            headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({ is_deleted: true, deleted_at: new Date().toISOString() })
         });
         
         if (res.ok) {
             await loadAllocatedNumbers();
             await fetchUsedNumbers();
+            loadUserOtps();
             showMessage('✅ Number soft deleted (earnings preserved)', 'success');
         } else {
             showMessage('❌ Error deleting number', 'error');
@@ -417,23 +602,20 @@ async function softDeleteNumber(numberId) {
     }
 }
 
-// Restore a soft-deleted number
 async function restoreNumber(numberId) {
-    if (!confirm('Restore this number? It will become visible to users again.')) return;
+    if (!confirm('Restore this number?')) return;
     
     try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?id=eq.${numberId}`, {
             method: 'PATCH',
-            headers: { 
-                'apikey': API_KEY, 
-                'Content-Type': 'application/json'
-            },
+            headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({ is_deleted: false, deleted_at: null })
         });
         
         if (res.ok) {
             await loadAllocatedNumbers();
             await fetchUsedNumbers();
+            loadUserOtps();
             showMessage('✅ Number restored successfully', 'success');
         } else {
             showMessage('❌ Error restoring number', 'error');
@@ -460,23 +642,18 @@ async function addNumbers() {
     
     let successCount = 0;
     let errorCount = 0;
-    let errors = [];
     
     for (const number of numbers) {
         const last3 = getLast3Digits(number);
         if (last3.length < 3) {
             errorCount++;
-            errors.push(`${number} (invalid digits)`);
             continue;
         }
         
         try {
             const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
                 method: 'POST',
-                headers: { 
-                    'apikey': API_KEY, 
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     user_id: userId,
                     number: number,
@@ -486,60 +663,44 @@ async function addNumbers() {
                 })
             });
             
-            if (res.ok) {
-                successCount++;
-            } else {
-                const errorText = await res.text();
-                errorCount++;
-                errors.push(`${number}: ${errorText}`);
-            }
+            if (res.ok) successCount++;
+            else errorCount++;
         } catch (err) {
             errorCount++;
-            errors.push(`${number}: ${err.message}`);
         }
     }
     
     if (successCount > 0) {
-        showMessage(`✅ Successfully added ${successCount} numbers to range "${escapeHtml(rangeName)}"!`, 'success');
+        showMessage(`✅ Successfully added ${successCount} numbers!`, 'success');
         document.getElementById('numbersInput').value = '';
         await loadAllocatedNumbers();
         await fetchUsedNumbers();
+        loadUserOtps();
     } else {
-        showMessage(`❌ Failed to add ${errorCount} numbers. Check console for details.`, 'error');
-        console.error('Errors:', errors);
+        showMessage(`❌ Failed to add numbers.`, 'error');
     }
     
     setTimeout(() => { messageBox.classList.add('hidden'); }, 3000);
 }
 
-// Delete all numbers for a user in a range (soft delete)
 async function deleteRangeNumbers(userId, range) {
     if (!confirm(`Delete ALL numbers for this user in ${range}? Earnings will be preserved.`)) return;
     
     try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&range_name=eq.${encodeURIComponent(range)}`, {
             method: 'PATCH',
-            headers: { 
-                'apikey': API_KEY, 
-                'Content-Type': 'application/json'
-            },
+            headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({ is_deleted: true, deleted_at: new Date().toISOString() })
         });
         
         if (res.ok) {
             await loadAllocatedNumbers();
-            showMessage('Numbers soft deleted successfully (earnings preserved)', 'success');
-        } else {
-            showMessage('Error deleting numbers', 'error');
+            loadUserOtps();
+            showMessage('Numbers soft deleted successfully', 'success');
         }
     } catch (err) {
-        showMessage('Error: ' + err.message, 'error');
+        showMessage('Error deleting numbers', 'error');
     }
-}
-
-async function deleteSingleNumber(numberId) {
-    if (!confirm('Delete this number? Earnings will be preserved.')) return;
-    await softDeleteNumber(numberId);
 }
 
 function showMessage(msg, type) {
@@ -581,16 +742,14 @@ function setupModal() {
             showMessage(`✅ Range "${escapeHtml(newName)}" created!`, 'success');
             closeModal();
         } else {
-            showMessage('❌ Range already exists or error occurred', 'error');
+            showMessage('❌ Range already exists', 'error');
         }
-        setTimeout(() => document.getElementById('messageBox').classList.add('hidden'), 2000);
     };
     
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
 }
 
 window.deleteRangeNumbers = deleteRangeNumbers;
-window.deleteSingleNumber = deleteSingleNumber;
 window.softDeleteNumber = softDeleteNumber;
 window.restoreNumber = restoreNumber;
 
@@ -598,18 +757,22 @@ function setupDropdown() {
     const menuBtn = document.getElementById('menuBtn');
     const dropdown = document.getElementById('dropdown');
     if (menuBtn) {
-        menuBtn.onclick = (e) => {
+        menuBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             dropdown.classList.toggle('hidden-dropdown');
-        };
-        document.addEventListener('click', () => dropdown.classList.add('hidden-dropdown'));
+        });
     }
+    
+    document.addEventListener('click', function(e) {
+        if (!menuBtn.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden-dropdown');
+        }
+    });
 }
 
 document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); logout(); };
 document.getElementById('addBtn').onclick = addNumbers;
 
-// Toggle deleted numbers visibility
 const toggleBtn = document.getElementById('toggleDeletedBtn');
 if (toggleBtn) {
     toggleBtn.onclick = () => {
@@ -619,10 +782,6 @@ if (toggleBtn) {
     };
 }
 
-// First, add is_deleted column to the table (run this SQL in Supabase)
-// ALTER TABLE allocated_numbers ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false;
-// ALTER TABLE allocated_numbers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
-
 async function init() {
     setupDropdown();
     await loadRanges();
@@ -630,6 +789,11 @@ async function init() {
     await loadUsers();
     await loadAllocatedNumbers();
     setupModal();
+    
+    // Load OTPs when user is selected
+    document.getElementById('filterSelect').addEventListener('change', () => {
+        loadUserOtps();
+    });
 }
 
 init();
