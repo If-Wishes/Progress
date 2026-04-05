@@ -60,10 +60,10 @@
                 <div class="relative">
                     <button id="menuBtn" class="bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition"><i class="fas fa-user-shield text-purple-600"></i><i class="fas fa-chevron-down text-xs"></i></button>
                     <div id="dropdown" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden">
-                        <a href="#" data-page="dashboard.html" class="nav-link block px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-tachometer-alt mr-2 text-purple-500"></i>Dashboard</a>
-                        <a href="#" data-page="users.html" class="nav-link block px-4 py-2.5 text-gray-700"><i class="fas fa-users mr-2 text-purple-500"></i>Users</a>
-                        <a href="#" data-page="allocation.html" class="nav-link block px-4 py-2.5 text-gray-700"><i class="fas fa-phone-alt mr-2 text-purple-500"></i>Range Allocation</a>
-                        <a href="#" data-page="activities.html" class="nav-link block px-4 py-2.5 text-gray-700"><i class="fas fa-history mr-2 text-purple-500"></i>Activities</a>
+                        <a href="dashboard.html" class="nav-link block px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-tachometer-alt mr-2 text-purple-500"></i>Dashboard</a>
+                        <a href="users.html" class="nav-link block px-4 py-2.5 text-gray-700"><i class="fas fa-users mr-2 text-purple-500"></i>Users</a>
+                        <a href="analytics.html" class="nav-link block px-4 py-2.5 text-gray-700"><i class="fas fa-phone-alt mr-2 text-purple-500"></i>Range Allocation</a>
+                        <a href="activities.html" class="nav-link block px-4 py-2.5 text-gray-700"><i class="fas fa-history mr-2 text-purple-500"></i>Activities</a>
                         <div class="border-t border-gray-100 my-1"></div>
                         <a href="#" id="logoutBtn" class="nav-link block px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a>
                     </div>
@@ -177,12 +177,11 @@ if (!session || session.role !== 'admin') window.location.href = '../index.html'
 document.getElementById('adminName').innerText = session.username || 'Administrator';
 
 // Global data stores
-let allAllocatedNumbers = []; // { id, user_id, number, last3, country, users: { username } }
+let allAllocatedNumbers = [];
 let allOtps = [];
 let matchedOtps = [];
-let usersMap = new Map(); // user_id -> username
+let usersMap = new Map();
 
-// Helper functions
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m));
@@ -201,15 +200,12 @@ function formatTime(messageTime, time) {
     return time || '';
 }
 
-// Fetch all allocated numbers with user info
 async function fetchAllAllocatedNumbers() {
     try {
         const url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)`;
         const res = await fetch(url, { headers: { 'apikey': API_KEY } });
         const data = await res.json();
         allAllocatedNumbers = data || [];
-        
-        // Build users map
         usersMap.clear();
         for (const item of allAllocatedNumbers) {
             if (item.user_id && item.users?.username) {
@@ -223,7 +219,6 @@ async function fetchAllAllocatedNumbers() {
     }
 }
 
-// Fetch OTPs with date filter
 async function fetchOtps(startDate, endDate) {
     try {
         let url = `${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=3000`;
@@ -239,24 +234,18 @@ async function fetchOtps(startDate, endDate) {
     }
 }
 
-// Match OTPs with allocated numbers based on phone_last3
 function matchOtpsWithAllocatedNumbers(otps, allocatedNumbers) {
-    // Create a map of last3 -> allocated number details
     const last3Map = new Map();
     for (const allocated of allocatedNumbers) {
-        if (allocated.last3) {
-            if (!last3Map.has(allocated.last3)) {
-                last3Map.set(allocated.last3, {
-                    userId: allocated.user_id,
-                    username: allocated.users?.username || 'Unknown',
-                    country: allocated.country || 'Unknown',
-                    fullNumber: allocated.number
-                });
-            }
+        if (allocated.last3 && !last3Map.has(allocated.last3)) {
+            last3Map.set(allocated.last3, {
+                userId: allocated.user_id,
+                username: allocated.users?.username || 'Unknown',
+                country: allocated.country || 'Unknown',
+                fullNumber: allocated.number
+            });
         }
     }
-    
-    // Filter OTPs that have matching last3
     const matched = [];
     for (const otp of otps) {
         if (otp.phone_last3 && last3Map.has(otp.phone_last3)) {
@@ -273,7 +262,6 @@ function matchOtpsWithAllocatedNumbers(otps, allocatedNumbers) {
     return matched;
 }
 
-// Update stats and table
 function updateUI(matchedList, startDate, endDate) {
     const totalOtps = matchedList.length;
     const totalEarnings = totalOtps * 0.005;
@@ -281,7 +269,6 @@ function updateUI(matchedList, startDate, endDate) {
     document.getElementById('statOtps').textContent = totalOtps;
     document.getElementById('statEarnings').textContent = `$${totalEarnings.toFixed(2)}`;
     
-    // Update filter result display
     if (startDate && endDate) {
         document.getElementById('filterStartDate').textContent = startDate;
         document.getElementById('filterEndDate').textContent = endDate;
@@ -300,113 +287,62 @@ function updateUI(matchedList, startDate, endDate) {
         <tr class="hover:bg-purple-50 transition border-b border-gray-100">
             <td class="px-6 py-3 text-gray-500 text-xs">${idx + 1}</td>
             <td class="px-6 py-3 text-gray-600 text-xs whitespace-nowrap">${otp.date || 'N/A'}</td>
-            <td class="px-6 py-3 font-mono text-sm">
-                <span class="bg-gray-100 px-2 py-1 rounded-lg">${escapeHtml(maskPhoneByLast3(otp.phone_last3))}</span>
-            </td>
-            <td class="px-6 py-3">
-                <span class="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium">
-                    <i class="fas fa-user-circle text-xs"></i> ${escapeHtml(otp.matchedUser || 'Unknown')}
-                </span>
-            </td>
-            <td class="px-6 py-3">
-                <span class="font-mono font-bold text-purple-700 bg-purple-50 px-3 py-1.5 rounded-lg">${escapeHtml(otp.otp)}</span>
-            </td>
+            <td class="px-6 py-3 font-mono text-sm"><span class="bg-gray-100 px-2 py-1 rounded-lg">${escapeHtml(maskPhoneByLast3(otp.phone_last3))}</span></td>
+            <td class="px-6 py-3"><span class="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium"><i class="fas fa-user-circle text-xs"></i> ${escapeHtml(otp.matchedUser || 'Unknown')}</span></td>
+            <td class="px-6 py-3"><span class="font-mono font-bold text-purple-700 bg-purple-50 px-3 py-1.5 rounded-lg">${escapeHtml(otp.otp)}</span></td>
             <td class="px-6 py-3"><span class="text-gray-600">${escapeHtml(otp.service || 'Unknown')}</span></td>
-            <td class="px-6 py-3">
-                <span class="inline-flex items-center gap-1 text-orange-600">
-                    <i class="fas fa-tag text-xs"></i> ${escapeHtml(otp.matchedRange || 'Unknown')}
-                </span>
-            </td>
+            <td class="px-6 py-3"><span class="inline-flex items-center gap-1 text-orange-600"><i class="fas fa-tag text-xs"></i> ${escapeHtml(otp.matchedRange || 'Unknown')}</span></td>
             <td class="px-6 py-3 text-gray-500 text-xs">${formatTime(otp.message_time, otp.time)}</td>
             <td class="px-6 py-3 text-emerald-600 font-semibold">+$0.005</td>
         </tr>
     `).join('');
 }
 
-// Load global stats (users count and total allocated numbers)
 async function loadGlobalStats() {
     try {
-        // Fetch users count
         const usersRes = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id&role=eq.user`, { headers: { 'apikey': API_KEY } });
         const users = await usersRes.json();
         document.getElementById('statUsers').textContent = users.length;
-        
-        // Total allocated numbers already in allAllocatedNumbers
         document.getElementById('statNumbers').textContent = allAllocatedNumbers.length;
     } catch (err) {
         console.error("Stats error:", err);
     }
 }
 
-// Main function: load all data, match, and display
 async function loadMatchedOtps() {
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
     
-    if (!startDate || !endDate) {
-        // Set default dates if not set
-        const end = new Date();
-        const start = new Date();
-        start.setDate(end.getDate() - 7);
-        if (!document.getElementById('startDate').value) {
-            document.getElementById('startDate').value = start.toISOString().slice(0, 10);
-        }
-        if (!document.getElementById('endDate').value) {
-            document.getElementById('endDate').value = end.toISOString().slice(0, 10);
-        }
-    }
+    const finalStartDate = startDate || document.getElementById('startDate').value;
+    const finalEndDate = endDate || document.getElementById('endDate').value;
     
-    const finalStartDate = document.getElementById('startDate').value;
-    const finalEndDate = document.getElementById('endDate').value;
-    
-    // Show loading state
     document.getElementById('otpTableBody').innerHTML = '<tr><td colspan="9" class="text-center py-12"><div class="loading-spinner mx-auto mb-3"></div><p class="text-gray-500">Matching OTPs with allocated numbers...</p></td></tr>';
     
-    // Fetch fresh data
     await fetchAllAllocatedNumbers();
     allOtps = await fetchOtps(finalStartDate, finalEndDate);
-    
-    // Match OTPs with allocated numbers
     matchedOtps = matchOtpsWithAllocatedNumbers(allOtps, allAllocatedNumbers);
-    
-    // Update global stats
     await loadGlobalStats();
-    
-    // Update UI
     updateUI(matchedOtps, finalStartDate, finalEndDate);
 }
 
-// Set default dates
 function setDefaultDates() {
     const end = new Date();
     const start = new Date();
     start.setDate(end.getDate() - 7);
-    document.getElementById('startDate').value = start.toISOString().slice(0, 10);
-    document.getElementById('endDate').value = end.toISOString().slice(0, 10);
+    if (!document.getElementById('startDate').value) {
+        document.getElementById('startDate').value = start.toISOString().slice(0, 10);
+    }
+    if (!document.getElementById('endDate').value) {
+        document.getElementById('endDate').value = end.toISOString().slice(0, 10);
+    }
 }
 
-// Logout function
 function logout() {
     localStorage.removeItem('elite_session');
     window.location.href = '../index.html';
 }
 
-// Navigation handlers (mock for other pages)
-function setupNavigation() {
-    const navLinks = document.querySelectorAll('[data-page]');
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const page = link.getAttribute('data-page');
-            if (page !== 'dashboard') {
-                alert(`Navigation to "${page}" page would work in full application. Currently showing Smart OTP Tracker Dashboard.`);
-            }
-            document.getElementById('dropdown').classList.add('hidden-dropdown');
-        });
-    });
-}
-
-// Dropdown menu
+// ================= DROPDOWN MENU (WORKS LIKE MIMA) =================
 function setupDropdown() {
     const menuBtn = document.getElementById('menuBtn');
     const dropdown = document.getElementById('dropdown');
@@ -419,19 +355,15 @@ function setupDropdown() {
     }
 }
 
-// Initialize dashboard
+// ================= INITIALIZE =================
 async function init() {
     setupDropdown();
-    setupNavigation();
     setDefaultDates();
     document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); logout(); };
     document.getElementById('filterBtn').onclick = () => loadMatchedOtps();
-    
-    // Initial load
     await loadMatchedOtps();
 }
 
-// Start the app
 document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
