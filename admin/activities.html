@@ -38,7 +38,29 @@
         .stat-card-purple-3 { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
         .stat-card-purple-4 { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
         
-        /* Dropdown animation */
+        /* OTP Entry Card */
+        .otp-entry {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border: 1px solid #e9d5ff;
+            transition: all 0.2s;
+        }
+        .otp-entry:hover {
+            border-color: #7c3aed;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+        }
+        .otp-badge {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
         .dropdown-enter {
             animation: dropdownFade 0.2s ease;
         }
@@ -64,7 +86,7 @@
             <div class="flex items-center gap-4">
                 <div class="text-right hidden sm:block">
                     <p class="text-sm font-medium text-gray-800" id="adminName">Administrator</p>
-                    <p class="text-xs text-gray-500">Super User</p>
+                    <p class="text-xs text-gray-500">User Activities</p>
                 </div>
                 <div class="relative">
                     <button id="menuButton" class="flex items-center gap-2 bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition cursor-pointer">
@@ -72,10 +94,10 @@
                         <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
                     </button>
                     <div id="dropdownMenu" class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden dropdown-enter">
-                        <a href="#" data-page="dashboard" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-tachometer-alt w-5 text-purple-500 mr-2"></i> Dashboard</a>
-                        <a href="#" data-page="users" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-users w-5 text-purple-500 mr-2"></i> Users</a>
-                        <a href="#" data-page="allocation" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-phone-alt w-5 text-purple-500 mr-2"></i> Numbers Allocation</a>
-                        <a href="#" data-page="activities" class="nav-link px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-clipboard-list w-5 text-purple-500 mr-2"></i> User Activities</a>
+                        <a href="dashboard.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-tachometer-alt w-5 text-purple-500 mr-2"></i> Dashboard</a>
+                        <a href="users.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-users w-5 text-purple-500 mr-2"></i> Users</a>
+                        <a href="analytics.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-phone-alt w-5 text-purple-500 mr-2"></i> Numbers Allocation</a>
+                        <a href="activities.html" class="nav-link px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-clipboard-list w-5 text-purple-500 mr-2"></i> User Activities</a>
                         <div class="border-t border-gray-100 my-1"></div>
                         <a href="#" id="logoutBtn" class="nav-link px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
                     </div>
@@ -133,7 +155,7 @@
             </div>
         </div>
 
-        <!-- OTP Records Table -->
+        <!-- OTP Records - Card View -->
         <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
             <div class="p-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center">
                 <h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>OTP Records</h3>
@@ -141,24 +163,11 @@
                     <i class="fas fa-info-circle mr-1 text-purple-400"></i> Showing OTPs matched by last 3 digits
                 </div>
             </div>
-            <div class="table-container">
-                <table class="w-full text-sm">
-                    <thead class="bg-purple-50 sticky top-0">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">#</th>
-                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">Date</th>
-                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">Phone Number</th>
-                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">Service</th>
-                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">OTP Code</th>
-                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">Range</th>
-                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">Time</th>
-                            <th class="px-6 py-3 text-left text-gray-700 font-semibold">Earned</th>
-                        </tr>
-                    </thead>
-                    <tbody id="otpTableBody" class="divide-y divide-gray-100">
-                        <tr><td colspan="8" class="text-center py-12 text-gray-400"><i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>Select a user to view OTPs</td></tr>
-                    </tbody>
-                </table>
+            <div id="otpRecordsList" class="p-4 space-y-3 max-h-[600px] overflow-y-auto">
+                <div class="text-center py-12 text-gray-400">
+                    <i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>
+                    Select a user to view OTPs
+                </div>
             </div>
         </div>
     </div>
@@ -177,6 +186,7 @@ let endDate = '';
 let userNumbers = [];
 let userOtps = [];
 let userPhoneLast3s = [];
+let userNumberMap = new Map();
 
 // ================= HELPER FUNCTIONS =================
 function escapeHtml(str) {
@@ -201,14 +211,14 @@ function getLast3Digits(phoneNumber) {
     return digits;
 }
 
-function formatDateTime(messageTime, date, time) {
+function formatTime(messageTime) {
     if (messageTime) {
         const d = new Date(messageTime);
         if (!isNaN(d.getTime())) {
             return d.toLocaleTimeString();
         }
     }
-    return time || '';
+    return '-';
 }
 
 // ================= SUPABASE FETCH FUNCTIONS =================
@@ -229,7 +239,7 @@ async function fetchAllUsers() {
 
 async function fetchUserAllocatedNumbers(userId) {
     try {
-        const url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,country&user_id=eq.${encodeURIComponent(userId)}`;
+        const url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,range_name,last3&user_id=eq.${encodeURIComponent(userId)}`;
         const response = await fetch(url, {
             headers: { 'apikey': SUPABASE_API_KEY }
         });
@@ -268,12 +278,16 @@ function filterOtpsByUserAndDate(otps, phoneLast3s, start, end) {
     return filtered;
 }
 
-function updateUserPhoneArrays(numbers) {
+function updateUserData() {
     userPhoneLast3s = [];
-    numbers.forEach(item => {
-        if (item.number) {
-            const last3 = getLast3Digits(item.number);
-            if (last3) userPhoneLast3s.push(last3);
+    userNumberMap.clear();
+    userNumbers.forEach(item => {
+        if (item.number && item.last3) {
+            userPhoneLast3s.push(item.last3);
+            userNumberMap.set(item.last3, {
+                number: item.number,
+                range_name: item.range_name
+            });
         }
     });
     userPhoneLast3s = [...new Set(userPhoneLast3s)];
@@ -289,7 +303,12 @@ function updateUserDropdown() {
 
 async function loadUserData() {
     if (!selectedUserId) {
-        document.getElementById('otpTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-400"><i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>Select a user to view OTPs</td></tr>';
+        document.getElementById('otpRecordsList').innerHTML = `
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>
+                Select a user to view OTPs
+            </div>
+        `;
         document.getElementById('totalOtps').textContent = '0';
         document.getElementById('totalEarnings').textContent = '$0.00';
         document.getElementById('uniqueNumbers').textContent = '0';
@@ -297,11 +316,16 @@ async function loadUserData() {
         return;
     }
     
-    document.getElementById('otpTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12"><div class="loading-spinner mx-auto"></div><p class="mt-3 text-gray-500">Loading user activities...</p></td></tr>';
+    document.getElementById('otpRecordsList').innerHTML = `
+        <div class="text-center py-12">
+            <div class="loading-spinner mx-auto"></div>
+            <p class="mt-3 text-gray-500">Loading user activities...</p>
+        </div>
+    `;
     
     const numbers = await fetchUserAllocatedNumbers(selectedUserId);
     userNumbers = numbers;
-    updateUserPhoneArrays(userNumbers);
+    updateUserData();
     
     const allOtps = await fetchAllOtps();
     userOtps = filterOtpsByUserAndDate(allOtps, userPhoneLast3s, startDate, endDate);
@@ -317,34 +341,71 @@ async function loadUserData() {
     document.getElementById('activeRanges').textContent = activeRanges;
     
     if (userOtps.length === 0) {
-        document.getElementById('otpTableBody').innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-400"><i class="fas fa-inbox text-4xl mb-3 opacity-40"></i><br/>📭 No OTPs found for this user in selected date range</td></tr>';
+        document.getElementById('otpRecordsList').innerHTML = `
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-inbox text-4xl mb-3 opacity-40"></i><br/>
+                📭 No OTPs found for this user in selected date range
+            </div>
+        `;
         return;
     }
     
-    const numberMap = {};
-    userNumbers.forEach(item => {
-        const last3 = getLast3Digits(item.number);
-        numberMap[last3] = item.number;
-    });
-    
-    document.getElementById('otpTableBody').innerHTML = userOtps.map((otp, index) => {
-        const fullNumber = numberMap[otp.phone_last3] || otp.phone_last3;
-        const maskedNumber = maskPhoneNumber(fullNumber);
-        const timeStr = formatDateTime(otp.message_time, otp.date, otp.time);
-        const rangeName = otp.country || 'Unknown';
-        return `
-            <tr class="hover:bg-purple-50 transition border-b border-gray-100">
-                <td class="px-6 py-3 text-gray-500 text-xs">${index + 1}</td>
-                <td class="px-6 py-3 text-gray-600 text-xs whitespace-nowrap">${otp.date || 'N/A'}</td>
-                <td class="px-6 py-3 font-mono text-sm font-medium text-gray-800">${escapeHtml(maskedNumber)}</td>
-                <td class="px-6 py-3"><span class="bg-gray-100 px-2 py-1 rounded-lg text-xs">${escapeHtml(otp.service || 'Unknown')}</span></td>
-                <td class="px-6 py-3"><span class="font-mono font-bold text-purple-700 bg-purple-50 px-3 py-1.5 rounded-lg">${escapeHtml(otp.otp)}</span></td>
-                <td class="px-6 py-3"><span class="flex items-center gap-1"><i class="fas fa-globe text-purple-400 text-xs"></i> ${escapeHtml(rangeName)}</span></td>
-                <td class="px-6 py-3 text-gray-500 text-xs">${timeStr}</td>
-                <td class="px-6 py-3 text-emerald-600 font-semibold">+$0.005</td>
-            </tr>
+    // Display OTPs as cards
+    let html = '';
+    for (const otp of userOtps) {
+        const numberInfo = userNumberMap.get(otp.phone_last3);
+        const phoneNumber = numberInfo?.number || otp.phone_last3;
+        const maskedNumber = maskPhoneNumber(phoneNumber);
+        const rangeName = numberInfo?.range_name || otp.country || 'Unknown';
+        const timeStr = formatTime(otp.message_time);
+        
+        html += `
+            <div class="otp-entry">
+                <div class="flex justify-between items-start flex-wrap gap-2">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2 flex-wrap">
+                            <span class="text-xs text-gray-400">#${otp.id || ''}</span>
+                            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">📅 ${otp.date || 'N/A'}</span>
+                            <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                            <div>
+                                <span class="text-gray-500 text-xs">📞 Phone</span>
+                                <p class="font-mono font-medium">${escapeHtml(maskedNumber)}</p>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 text-xs">🔐 Last3</span>
+                                <p class="font-mono">${escapeHtml(otp.phone_last3)}</p>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 text-xs">✉️ Sender</span>
+                                <p>${escapeHtml(otp.sender || otp.service || 'Unknown')}</p>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 text-xs">📌 Range</span>
+                                <p><span class="inline-flex items-center gap-1"><i class="fas fa-tag text-purple-400 text-xs"></i> ${escapeHtml(rangeName)}</span></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-gray-400">${timeStr}</div>
+                        <div class="text-emerald-600 font-semibold text-sm mt-1">+$0.005</div>
+                    </div>
+                </div>
+            </div>
         `;
-    }).join('');
+    }
+    
+    // Add summary footer
+    html += `
+        <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
+            <span class="font-semibold">Total: ${totalOtps} OTPs</span>
+            <span class="mx-2">|</span>
+            <span class="font-bold text-purple-700">$${totalEarnings.toFixed(2)}</span>
+        </div>
+    `;
+    
+    document.getElementById('otpRecordsList').innerHTML = html;
 }
 
 function saveSelectedUser() {
@@ -362,51 +423,22 @@ function loadSavedState() {
     if (selectedUserId) document.getElementById('userSelect').value = selectedUserId;
 }
 
-// ================= DROPDOWN MENU - FIXED =================
+// ================= DROPDOWN MENU =================
 function setupDropdown() {
     const menuBtn = document.getElementById('menuButton');
     const dropdown = document.getElementById('dropdownMenu');
     
     if (menuBtn) {
-        // Toggle dropdown on button click
         menuBtn.addEventListener('click', function(e) {
             e.stopPropagation();
             dropdown.classList.toggle('hidden-dropdown');
         });
     }
     
-    // Close dropdown when clicking outside
     document.addEventListener('click', function(e) {
         if (!menuBtn.contains(e.target) && !dropdown.contains(e.target)) {
             dropdown.classList.add('hidden-dropdown');
         }
-    });
-}
-
-// ================= NAVIGATION =================
-function setupNavigation() {
-    const navLinks = document.querySelectorAll('[data-page]');
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const page = link.getAttribute('data-page');
-            
-            // Save current state
-            saveSelectedUser();
-            
-            // Map page to HTML file
-            const pageMap = {
-                'dashboard': 'dashboard.html',
-                'users': 'users.html',
-                'allocation': 'analytics.html',
-                'activities': 'activities.html'
-            };
-            
-            const targetPage = pageMap[page];
-            if (targetPage) {
-                window.location.href = targetPage;
-            }
-        });
     });
 }
 
@@ -452,7 +484,6 @@ async function initAdminDashboard() {
     }
     
     setupDropdown();
-    setupNavigation();
     
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
