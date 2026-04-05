@@ -13,7 +13,7 @@
         .page.active-page { display: block; }
         .hidden-dropdown { display: none; }
         .otp-row:hover { background: #f5f3ff; }
-        .loading-spinner { width: 32px; height: 32px; border: 3px solid #ede9fe; border-radius: 50%; border-top-color: #7c3aed; animation: spin 0.8s linear infinite; }
+        .loading-spinner { width: 32px; height: 32px; border: 3px solid #ede9fe; border-radius: 50%; border-top-color: #7c3aed; animation: spin 0.8s linear infinite; margin: 20px auto; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .stat-card { transition: all 0.3s ease; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
         .stat-card:hover { transform: translateY(-4px); }
@@ -30,6 +30,8 @@
         .data-table th { background: #f5f3ff; font-weight: 600; color: #5b21b6; border-bottom: 2px solid #ddd6fe; }
         .data-table td { border-bottom: 1px solid #e9d5ff; }
         .data-table tr:hover td { background-color: #f5f3ff; }
+        .number-card { transition: all 0.2s ease; }
+        .number-card:hover { transform: translateY(-2px); background-color: #f5f3ff !important; }
     </style>
 </head>
 <body>
@@ -42,7 +44,7 @@
                     <i class="fas fa-crown text-white text-sm"></i>
                 </div>
                 <div>
-                    <span class="text-xl font-bold text-gray-800">ELITE<span class="text-purple-600">Panel</span></span>
+                    <span class="text-xl font-bold text-gray-800">ELIT<span class="text-purple-600">Panel</span></span>
                     <span class="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">User Portal</span>
                 </div>
             </div>
@@ -74,7 +76,6 @@
 
 <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <div id="dashboardContent">
-        <!-- Allocation Page -->
         <div id="allocationPage" class="page">
             <div class="mb-6"><h1 class="text-2xl font-bold text-gray-900">📌 Number Allocation</h1><p class="text-gray-500 text-sm mt-1">Select a range to view numbers assigned to you</p></div>
             <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 mb-4">
@@ -84,10 +85,9 @@
                 </select>
             </div>
             <div id="numbersDisplay" class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 text-center text-gray-400">Select a range to view numbers</div>
-            <div class="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400"><i class="fas fa-info-circle text-purple-500"></i><span>Numbers that have received OTPs are hidden from this list, but continue to receive OTPs normally.</span></div>
+            <div class="mt-4 flex items-center justify-center gap-2 text-xs text-gray-400"><i class="fas fa-info-circle text-purple-500"></i><span>Numbers that have received OTPs are hidden from this list.</span></div>
         </div>
 
-        <!-- Today's Stat Page -->
         <div id="todayPage" class="page">
             <h1 class="text-2xl font-bold text-gray-900">📊 Today's OTP Statistics</h1>
             <p class="text-gray-500 text-sm mt-1 mb-4">OTP received today on your numbers</p>
@@ -97,7 +97,6 @@
             </div>
         </div>
 
-        <!-- Today's OTP Page -->
         <div id="totalPage" class="page">
             <h1 class="text-2xl font-bold text-gray-900">📅 Today's OTP Earnings</h1>
             <p class="text-gray-500 text-sm mt-1 mb-4">Today's OTP summary and earnings <span class="text-purple-600">(resets daily at 1:00 AM)</span></p>
@@ -108,7 +107,6 @@
             <div class="flex justify-center mt-6"><div class="reset-timer" id="resetTimer"><i class="fas fa-clock mr-2"></i> Resets in --h --m --s</div></div>
         </div>
 
-        <!-- Past Records Page -->
         <div id="pastPage" class="page">
             <h1 class="text-2xl font-bold text-gray-900">📋 Past OTP Records</h1>
             <p class="text-gray-500 text-sm mt-1 mb-4">View OTP history by date range</p>
@@ -151,12 +149,16 @@ async function fetchUserById(id) {
     const d = await r.json(); return d?.[0] || null;
 }
 
-// FIXED: Use 'range_name' instead of 'country'
 async function fetchUserAllocatedNumbers(id) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,range_name&user_id=eq.${encodeURIComponent(id)}`, { headers: { 'apikey': SUPABASE_API_KEY } });
-    const data = await r.json();
-    console.log('Fetched numbers:', data);
-    return data || [];
+    try {
+        const r = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,range_name&user_id=eq.${encodeURIComponent(id)}`, { headers: { 'apikey': SUPABASE_API_KEY } });
+        const data = await r.json();
+        console.log('Allocated numbers response:', data);
+        return data || [];
+    } catch (err) {
+        console.error('Error fetching numbers:', err);
+        return [];
+    }
 }
 
 async function fetchUserOtps() {
@@ -168,17 +170,21 @@ async function fetchUserOtps() {
 
 function updateUserPhoneArrays() {
     userPhoneNumbers = []; userPhoneLast3s = [];
-    userNumbers.forEach(i => { if (i.number) { userPhoneNumbers.push(i.number); const l3 = getLast3Digits(i.number); if (l3 && l3.length === 3) userPhoneLast3s.push(l3); } });
+    userNumbers.forEach(i => { 
+        if (i && i.number) { 
+            userPhoneNumbers.push(i.number); 
+            const l3 = getLast3Digits(i.number); 
+            if (l3 && l3.length === 3) userPhoneLast3s.push(l3); 
+        } 
+    });
     userPhoneLast3s = [...new Set(userPhoneLast3s)];
-    console.log('User numbers:', userPhoneNumbers);
-    console.log('Last3 for matching:', userPhoneLast3s);
+    console.log('User has', userPhoneNumbers.length, 'numbers');
 }
 
-// FIXED: Use 'range_name' instead of 'country'
 function processAllocatedNumbers(raw) { 
     const g = {}; 
     raw.forEach(i => { 
-        const rangeName = i.range_name || 'Other'; 
+        const rangeName = i.range_name || 'Uncategorized'; 
         if (!g[rangeName]) g[rangeName] = { range: rangeName, numbers: [] }; 
         g[rangeName].numbers.push(i.number); 
     }); 
@@ -194,8 +200,9 @@ function loadUserNumbersUI() {
     });
     const sel = document.getElementById('rangeSelect');
     if (sel) {
-        if (ranges.length === 0) {
-            sel.innerHTML = '<option value="">-- No numbers allocated --</option>';
+        if (!userNumbers.length || ranges.length === 0) {
+            sel.innerHTML = '<option value="">-- No numbers allocated yet --</option>';
+            document.getElementById('numbersDisplay').innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fas fa-database text-4xl mb-3 opacity-50"></i><p>No numbers have been allocated to you yet.</p><p class="text-sm mt-2">Contact admin to get numbers.</p></div>';
         } else {
             sel.innerHTML = '<option value="">-- Select Range --</option>' + ranges.map(c => `<option value="${c.range}">📌 ${c.range} (${c.available}/${c.total} available)</option>`).join('');
         }
@@ -271,14 +278,19 @@ function loadSavedPage() { const s = getSavedPage(); ['allocation','today','tota
 async function initDashboard() {
     const userId = getUserIdFromUrl();
     if (!userId) { window.location.href = '../index.html'; return; }
+    
+    document.getElementById('numbersDisplay').innerHTML = '<div class="loading-spinner"></div><p class="text-center">Loading your numbers...</p>';
+    
     const user = await fetchUserById(userId);
     if (!user) { window.location.href = '../index.html'; return; }
     currentUser = user;
     document.getElementById('userName').innerText = currentUser.username || 'User';
     document.getElementById('userEmail').innerText = currentUser.email || '';
+    
     userNumbers = await fetchUserAllocatedNumbers(currentUser.id);
     updateUserPhoneArrays();
     userOtps = await fetchUserOtps();
+    
     const end = new Date(), start = new Date(); start.setDate(end.getDate() - 6);
     document.getElementById('startDate').value = start.toISOString().slice(0,10);
     document.getElementById('endDate').value = end.toISOString().slice(0,10);
@@ -287,7 +299,11 @@ async function initDashboard() {
     document.getElementById('resetFilterBtn').onclick = resetFilter;
     renderTodayOtps(); updateTodayStats(); fetchPastOtps(); loadUserNumbersUI();
     loadSavedPage();
-    showToast(`Welcome ${currentUser.username}!`);
+    if (userNumbers.length > 0) {
+        showToast(`Welcome ${currentUser.username}! You have ${userNumbers.length} numbers.`);
+    } else {
+        showToast(`Welcome ${currentUser.username}! No numbers allocated yet.`);
+    }
     updateResetTimer(); setInterval(updateResetTimer, 1000); setInterval(checkDateChange, 60000);
 }
 
