@@ -3,174 +3,255 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusPanel | Login</title>
+    <title>ELITE Panel | Secure Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="css/style.css">
     <style>
-        .login-container {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        .login-container { 
+            background: linear-gradient(135deg, #6d28d9 0%, #4c1d95 100%);
+            position: relative;
+            overflow: hidden;
         }
-        .role-card {
-            transition: all 0.3s ease;
-            cursor: pointer;
+        .login-container::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 1px, transparent 1px);
+            background-size: 40px 40px;
+            animation: drift 20s linear infinite;
+            opacity: 0.5;
         }
-        .role-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -12px rgba(0, 0, 0, 0.2);
+        @keyframes drift {
+            from { transform: translate(0, 0); }
+            to { transform: translate(40px, 40px); }
         }
-        .role-card.active {
-            border-color: #4f46e5;
-            background: #eef2ff;
+        .role-card { 
+            transition: all 0.3s ease; 
+            cursor: pointer; 
+            border: 2px solid #e5e7eb;
+            background: white;
         }
-        .hidden-panel {
-            display: none;
+        .role-card:hover { 
+            transform: translateY(-5px); 
+            box-shadow: 0 20px 25px -12px rgba(0,0,0,0.2);
+            border-color: #a78bfa;
+        }
+        .role-card.active { 
+            border-color: #7c3aed; 
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.2);
+        }
+        .role-card.active i { color: #7c3aed; }
+        .role-card.active p { color: #5b21b6; }
+        .hidden-panel { display: none; }
+        .loading { display: none; text-align: center; padding: 10px; }
+        .loading.active { display: block; }
+        .input-focus:focus {
+            ring: 2px solid #a78bfa;
+            border-color: #7c3aed;
+            outline: none;
+        }
+        .btn-gradient {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            transition: all 0.2s ease;
+        }
+        .btn-gradient:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
+        }
+        .btn-gradient-user {
+            background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+        }
+        .btn-gradient-user:hover {
+            box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
         }
     </style>
 </head>
-<body class="login-container min-h-screen flex items-center justify-center p-4">
+<body class="login-container min-h-screen flex items-center justify-center p-4 relative">
 
-<div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+<div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative z-10 backdrop-blur-sm">
     <div class="text-center mb-8">
-        <div class="h-14 w-14 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
-            <i class="fas fa-chart-line text-white text-2xl"></i>
+        <div class="h-16 w-16 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center mx-auto mb-4 shadow-lg">
+            <i class="fas fa-crown text-white text-2xl"></i>
         </div>
-        <h1 class="text-2xl font-bold text-gray-800">MIMA<span class="text-indigo-600">Panel</span></h1>
-        <p class="text-gray-500 text-sm mt-1">Access your dashboard</p>
+        <h1 class="text-2xl font-bold text-gray-800">ELITE<span class="text-purple-600">Panel</span></h1>
+        <p class="text-gray-500 text-sm mt-1">Secure access to your dashboard</p>
     </div>
 
-    <!-- Role Selection -->
     <div class="grid grid-cols-2 gap-4 mb-6">
-        <div id="adminRoleCard" class="role-card border-2 border-gray-200 rounded-xl p-4 text-center hover:border-indigo-400 transition">
-            <i class="fas fa-shield-alt text-3xl text-gray-400"></i>
-            <p class="font-semibold mt-2 text-gray-700">Admin</p>
-            <p class="text-xs text-gray-400">System management</p>
+        <div id="adminRoleCard" class="role-card rounded-xl p-4 text-center">
+            <i class="fas fa-shield-alt text-3xl text-gray-400 mb-2"></i>
+            <p class="font-semibold text-gray-700">Administrator</p>
+            <p class="text-xs text-gray-400">Full system access</p>
         </div>
-        <div id="userRoleCard" class="role-card border-2 border-gray-200 rounded-xl p-4 text-center hover:border-emerald-400 transition">
-            <i class="fas fa-user-circle text-3xl text-gray-400"></i>
-            <p class="font-semibold mt-2 text-gray-700">User</p>
+        <div id="userRoleCard" class="role-card rounded-xl p-4 text-center active">
+            <i class="fas fa-user-astronaut text-3xl text-gray-400 mb-2"></i>
+            <p class="font-semibold text-gray-700">User</p>
             <p class="text-xs text-gray-400">Personal dashboard</p>
         </div>
     </div>
 
-    <!-- Admin Login Form -->
-    <div id="adminLoginForm" class="login-panel">
+    <div id="adminLoginForm" class="login-panel hidden-panel">
+        <div class="loading" id="adminLoading"><i class="fas fa-spinner fa-spin mr-2"></i> Authenticating...</div>
         <form id="adminLogin">
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    <i class="fas fa-user mr-2 text-gray-400"></i>Username or Email
-                </label>
-                <input type="text" id="adminUsername" required 
-                    class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-300">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input type="text" id="adminUsername" placeholder="Enter admin username" class="w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
             </div>
             <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    <i class="fas fa-key mr-2 text-gray-400"></i>Password
-                </label>
-                <input type="password" id="adminPassword" required 
-                    class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-indigo-300">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input type="password" id="adminPassword" placeholder="Enter password" class="w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
             </div>
-            <button type="submit" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-medium py-3 rounded-xl transition">
+            <button type="submit" class="btn-gradient w-full text-white py-3 rounded-xl font-semibold transition shadow-md">
                 <i class="fas fa-sign-in-alt mr-2"></i>Login as Admin
             </button>
         </form>
     </div>
 
-    <!-- User Login Form -->
-    <div id="userLoginForm" class="login-panel hidden-panel">
+    <div id="userLoginForm" class="login-panel">
+        <div class="loading" id="userLoading"><i class="fas fa-spinner fa-spin mr-2"></i> Authenticating...</div>
         <form id="userLogin">
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    <i class="fas fa-user mr-2 text-gray-400"></i>Username or Email
-                </label>
-                <input type="text" id="userUsername" required 
-                    class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-300">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input type="text" id="userUsername" placeholder="Enter your username" class="w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition">
             </div>
             <div class="mb-6">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                    <i class="fas fa-key mr-2 text-gray-400"></i>Password
-                </label>
-                <input type="password" id="userPassword" required 
-                    class="w-full border border-gray-200 rounded-xl px-4 py-3 focus:ring-2 focus:ring-emerald-300">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input type="password" id="userPassword" placeholder="Enter your password" class="w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition">
             </div>
-            <button type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-medium py-3 rounded-xl transition">
-                <i class="fas fa-sign-in-alt mr-2"></i>Login as User
+            <button type="submit" class="btn-gradient-user w-full text-white py-3 rounded-xl font-semibold transition shadow-md">
+                <i class="fas fa-key mr-2"></i>Login as User
             </button>
         </form>
     </div>
 
-    <div class="mt-6 pt-4 border-t border-gray-100 text-center">
-        <p class="text-xs text-gray-400">
-            <i class="fas fa-info-circle mr-1"></i> 
-            Admin: <span class="font-mono bg-gray-100 px-2 py-1 rounded">admin</span> / <span class="font-mono bg-gray-100 px-2 py-1 rounded">admin123</span>
-        </p>
-        <p class="text-xs text-gray-400 mt-1">
-            User: <span class="font-mono bg-gray-100 px-2 py-1 rounded">emily_chen</span> / <span class="font-mono bg-gray-100 px-2 py-1 rounded">password123</span>
-        </p>
+    <div class="mt-6 pt-4 border-t border-gray-100 text-center text-xs text-gray-400">
+        <i class="fas fa-shield-alt text-purple-400 mr-1"></i> Secure platform • Encrypted access
+    </div>
+    
+    <div class="mt-4 text-center text-xs text-gray-400">
+        Powered by <span class="font-semibold text-purple-600">ELITE</span> | Code by <span class="font-semibold text-purple-600">GENESYS</span>
     </div>
 </div>
 
-<script src="js/data.js"></script>
-<script src="js/auth.js"></script>
 <script>
-    // Role selection toggle
-    const adminCard = document.getElementById('adminRoleCard');
-    const userCard = document.getElementById('userRoleCard');
-    const adminPanel = document.getElementById('adminLoginForm');
-    const userPanel = document.getElementById('userLoginForm');
-    
-    let selectedRole = 'admin';
-    
-    adminCard.addEventListener('click', () => {
-        selectedRole = 'admin';
-        adminCard.classList.add('active');
-        userCard.classList.remove('active');
-        adminPanel.classList.remove('hidden-panel');
-        userPanel.classList.add('hidden-panel');
-    });
-    
-    userCard.addEventListener('click', () => {
-        selectedRole = 'user';
-        userCard.classList.add('active');
-        adminCard.classList.remove('active');
-        userPanel.classList.remove('hidden-panel');
-        adminPanel.classList.add('hidden-panel');
-    });
-    
-    // Admin login
-    document.getElementById('adminLogin').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const username = document.getElementById('adminUsername').value;
-        const password = document.getElementById('adminPassword').value;
-        
-        const result = adminLogin(username, password);
-        if (result.success) {
-            window.location.href = 'admin/dashboard.html';
-        } else {
-            alert('Invalid admin credentials');
+// Supabase Configuration
+const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
+const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
+
+// User login - fetches full user data including ID
+async function userLogin(username, password) {
+    try {
+        const url = `${SUPABASE_URL}/rest/v1/users?select=id,username,email,role&username=eq.${encodeURIComponent(username)}&password=eq.${encodeURIComponent(password)}&role=eq.user`;
+        const res = await fetch(url, { headers: { 'apikey': API_KEY } });
+        const data = await res.json();
+        if (data && data.length > 0) {
+            const user = data[0];
+            // Store full user session with ID
+            localStorage.setItem('elite_session', JSON.stringify({ 
+                userId: user.id, 
+                username: user.username, 
+                email: user.email,
+                role: 'user' 
+            }));
+            return { success: true, userId: user.id };
         }
-    });
-    
-    // User login
-    document.getElementById('userLogin').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const username = document.getElementById('userUsername').value;
-        const password = document.getElementById('userPassword').value;
-        
-        const result = userLogin(username, password);
-        if (result.success) {
-            window.location.href = 'user/dashboard.html';
-        } else {
-            alert('Invalid user credentials');
-        }
-    });
-    
-    // Check if already logged in
-    if (isAdminLoggedIn()) {
-        window.location.href = 'admin/dashboard.html';
-    } else if (isUserLoggedIn()) {
-        window.location.href = 'user/dashboard.html';
+        return { success: false };
+    } catch(e) { 
+        console.error(e);
+        return { success: false }; 
     }
+}
+
+// Admin login
+async function adminLogin(username, password) {
+    try {
+        const url = `${SUPABASE_URL}/rest/v1/users?select=id,username,role&username=eq.${encodeURIComponent(username)}&password=eq.${encodeURIComponent(password)}&role=eq.admin`;
+        const res = await fetch(url, { headers: { 'apikey': API_KEY } });
+        const data = await res.json();
+        if (data && data.length > 0) {
+            localStorage.setItem('elite_session', JSON.stringify({ 
+                userId: data[0].id,
+                username: data[0].username, 
+                role: 'admin' 
+            }));
+            return { success: true };
+        }
+        return { success: false };
+    } catch(e) { 
+        console.error(e);
+        return { success: false }; 
+    }
+}
+
+// Role selection - default to user
+document.getElementById('userRoleCard').classList.add('active');
+document.getElementById('adminRoleCard').classList.remove('active');
+
+document.getElementById('adminRoleCard').onclick = () => {
+    document.getElementById('adminRoleCard').classList.add('active');
+    document.getElementById('userRoleCard').classList.remove('active');
+    document.getElementById('adminLoginForm').classList.remove('hidden-panel');
+    document.getElementById('userLoginForm').classList.add('hidden-panel');
+};
+document.getElementById('userRoleCard').onclick = () => {
+    document.getElementById('userRoleCard').classList.add('active');
+    document.getElementById('adminRoleCard').classList.remove('active');
+    document.getElementById('userLoginForm').classList.remove('hidden-panel');
+    document.getElementById('adminLoginForm').classList.add('hidden-panel');
+};
+
+// Admin login handler
+document.getElementById('adminLogin').onsubmit = async (e) => {
+    e.preventDefault();
+    const loading = document.getElementById('adminLoading');
+    const form = document.getElementById('adminLogin');
+    loading.classList.add('active');
+    form.style.opacity = '0.5';
+    const result = await adminLogin(
+        document.getElementById('adminUsername').value, 
+        document.getElementById('adminPassword').value
+    );
+    loading.classList.remove('active');
+    form.style.opacity = '1';
+    if (result.success) window.location.href = 'admin/dashboard.html';
+    else alert('❌ Invalid admin credentials');
+};
+
+// User login handler - redirects to dashboard in /user/ folder with user ID in URL
+document.getElementById('userLogin').onsubmit = async (e) => {
+    e.preventDefault();
+    const loading = document.getElementById('userLoading');
+    const form = document.getElementById('userLogin');
+    loading.classList.add('active');
+    form.style.opacity = '0.5';
+    const result = await userLogin(
+        document.getElementById('userUsername').value, 
+        document.getElementById('userPassword').value
+    );
+    loading.classList.remove('active');
+    form.style.opacity = '1';
+    if (result.success) {
+        // Redirect to dashboard in /user/ folder with user ID in URL
+        window.location.href = `user/dashboard.html?id=${result.userId}`;
+    } else {
+        alert('❌ Invalid user credentials');
+    }
+};
+
+// Check existing session
+const session = localStorage.getItem('elite_session');
+if (session) {
+    try {
+        const s = JSON.parse(session);
+        if (s.role === 'admin') window.location.href = 'admin/dashboard.html';
+        else if (s.role === 'user' && s.userId) {
+            window.location.href = `user/dashboard.html?id=${s.userId}`;
+        }
+    } catch(e) {}
+}
 </script>
 </body>
 </html>
