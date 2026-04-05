@@ -15,7 +15,6 @@
             min-height: 100vh;
         }
         
-        /* Glassmorphism Effect */
         .glass-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -23,7 +22,6 @@
             box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1);
         }
         
-        /* Smooth Transitions */
         .fade-in {
             animation: fadeIn 0.4s ease-in-out;
         }
@@ -33,12 +31,10 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 10px; }
         
-        /* Number Card */
         .number-item {
             transition: all 0.2s ease;
             border-left: 3px solid #7c3aed;
@@ -48,7 +44,6 @@
             background-color: #f5f3ff;
         }
         
-        /* OTP Badge */
         .otp-badge {
             background: linear-gradient(135deg, #7c3aed, #6d28d9);
             color: white;
@@ -59,7 +54,6 @@
             font-size: 0.9rem;
         }
         
-        /* Stat Card */
         .stat-card {
             transition: all 0.3s ease;
             background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
@@ -69,7 +63,6 @@
             box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.4);
         }
         
-        /* Select Dropdown */
         .custom-select {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%237c3aed' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
             background-position: right 12px center;
@@ -78,7 +71,6 @@
             appearance: none;
         }
         
-        /* Avatar Upload */
         .avatar-preview {
             width: 100px;
             height: 100px;
@@ -92,19 +84,6 @@
             transform: scale(1.05);
         }
         
-        /* Loading Spinner */
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #e9d5ff;
-            border-top-color: #7c3aed;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            margin: 20px auto;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        
-        /* Button Hover */
         .btn-purple {
             background: linear-gradient(135deg, #7c3aed, #6d28d9);
             transition: all 0.2s;
@@ -114,7 +93,6 @@
             box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
         }
         
-        /* OTP Entry */
         .otp-entry {
             background: white;
             border-radius: 12px;
@@ -133,7 +111,7 @@
 </head>
 <body>
 
-<!-- DASHBOARD SECTION (shown immediately after login) -->
+<!-- DASHBOARD SECTION -->
 <div id="dashboard" class="min-h-screen">
     
     <!-- Navigation Bar -->
@@ -149,22 +127,15 @@
                 </div>
             </div>
             
-            <div class="relative">
-                <button id="menuButton" class="flex items-center gap-2 bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition">
-                    <i class="fas fa-user-circle text-purple-600 text-lg"></i>
-                    <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
-                </button>
-                <div id="dropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden">
-                    <a href="#" data-page="profile" class="nav-link block px-4 py-2 hover:bg-purple-50">👤 Profile</a>
-                    <a href="#" data-page="allocation" class="nav-link block px-4 py-2 hover:bg-purple-50">📌 Allocation</a>
-                    <a href="#" data-page="today" class="nav-link block px-4 py-2 hover:bg-purple-50">📊 Today's Stat</a>
-                    <a href="#" data-page="total" class="nav-link block px-4 py-2 hover:bg-purple-50">💰 Total OTP</a>
-                    <a href="#" data-page="past" class="nav-link block px-4 py-2 hover:bg-purple-50">📋 Past Records</a>
-                    <div class="border-t border-gray-100"></div>
-                    <a href="#" data-page="support" class="nav-link block px-4 py-2 hover:bg-purple-50 text-purple-600">📞 Support</a>
-                    <a href="#" id="logoutBtn" class="nav-link block px-4 py-2 text-red-600 hover:bg-red-50">🚪 Logout</a>
-                </div>
-            </div>
+            <select id="menu" class="custom-select border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                <option value="profile">👤 Profile</option>
+                <option value="allocation">📌 Allocation</option>
+                <option value="today">📊 Today's Stat</option>
+                <option value="total">💰 Total OTP</option>
+                <option value="past">📋 Past Records</option>
+                <option value="support">📞 Contact Support</option>
+                <option value="logout">🚪 Logout</option>
+            </select>
         </div>
     </nav>
     
@@ -183,8 +154,16 @@ let userLast3s = [];
 
 // Helper Functions
 function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
-function getPanelDate(date) { return date ? date.slice(0,10) : new Date().toISOString().slice(0,10); }
-function formatTime(timeStr) { return timeStr ? new Date(timeStr).toLocaleTimeString() : '-'; }
+function getPanelDate(o) {
+    let t = new Date(o.message_time || o.created_at || new Date());
+    t.setHours(t.getHours() - 1); // 1AM reset
+    return t.toISOString().slice(0, 10);
+}
+function formatTime(o) {
+    if (o.message_time) return new Date(o.message_time).toLocaleTimeString();
+    if (o.created_at) return new Date(o.created_at).toLocaleTimeString();
+    return '-';
+}
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); }
 
 // Get user from URL and load data
@@ -213,19 +192,12 @@ async function initFromUrl() {
         // Load user data
         await loadUserData();
         
-        // Setup dropdown
-        setupDropdown();
-        setupNavigation();
+        // Setup menu
+        const menu = document.getElementById('menu');
+        menu.onchange = () => handleMenu(menu.value);
         
         // Show profile page by default
         showPage('profile');
-        
-        // Setup logout
-        document.getElementById('logoutBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            localStorage.removeItem('elite_session');
-            window.location.href = '../index.html';
-        });
         
     } catch (err) {
         console.error('Init error:', err);
@@ -254,311 +226,281 @@ async function loadUserData() {
     allOtps = allOtps.filter(otp => userLast3s.includes(otp.phone_last3));
 }
 
-// Profile Page
-function profilePage() {
-    const totalOtps = allOtps.length;
-    const earnings = (totalOtps * 0.005).toFixed(2);
-    const avatar = localStorage.getItem('elite_avatar') || '';
-    
-    return `
-        <div class="glass-card p-6 text-center fade-in">
-            <div class="relative inline-block">
-                <img id="avatarPreview" src="${avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(currentUser.username) + '&background=7c3aed&color=fff&size=100'}" class="avatar-preview cursor-pointer" onclick="document.getElementById('avatarInput').click()">
-                <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="uploadAvatar(event)">
-                <button onclick="document.getElementById('avatarInput').click()" class="absolute bottom-0 right-0 bg-purple-600 text-white p-1 rounded-full w-8 h-8 flex items-center justify-center shadow-md">
-                    <i class="fas fa-camera text-xs"></i>
-                </button>
-            </div>
-            
-            <h2 class="text-xl font-bold mt-4">${escapeHtml(currentUser.username)}</h2>
-            <p class="text-gray-500 text-sm">${escapeHtml(currentUser.email || 'No email')}</p>
-            
-            <div class="mt-6 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4">
-                <p class="text-gray-600 text-sm">Total Earnings</p>
-                <h3 class="text-3xl font-bold text-purple-700">$${earnings}</h3>
-                <p class="text-xs text-gray-500 mt-1">${totalOtps} OTPs received</p>
-            </div>
-            
-            <div class="mt-4 text-sm text-gray-500">
-                <i class="fas fa-calendar-alt mr-1"></i> Member since: ${currentUser.created_at?.slice(0,10) || 'N/A'}
-            </div>
-        </div>
-    `;
-}
-
-// Upload Avatar
-function uploadAvatar(event) {
-    const file = event.target.files[0];
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            localStorage.setItem('elite_avatar', e.target.result);
-            const img = document.getElementById('avatarPreview');
-            if (img) img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+// Handle Menu Navigation
+function handleMenu(value) {
+    if (value === 'logout') {
+        window.location.href = '../index.html';
+    } else if (value === 'support') {
+        window.open('https://wa.me/2348113903584', '_blank');
+        showPage('profile');
+        document.getElementById('menu').value = 'profile';
+    } else {
+        showPage(value);
     }
 }
 
-// Allocation Page
+// PROFILE PAGE
+function profilePage() {
+    let total = 0;
+    allOtps.forEach(o => {
+        let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
+        if (match) total++;
+    });
+    let earned = (total * 0.005).toFixed(2);
+    let avatar = localStorage.getItem("avatar") || "";
+
+    return `
+    <div class="glass-card p-6 text-center fade-in">
+        <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="uploadPic(event)">
+        <div class="relative inline-block cursor-pointer" onclick="document.getElementById('avatarInput').click()">
+            <img src="${avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(currentUser.username) + '&background=7c3aed&color=fff&size=100'}" class="avatar-preview">
+            <div class="absolute bottom-0 right-0 bg-purple-600 text-white p-1 rounded-full w-8 h-8 flex items-center justify-center shadow-md">
+                <i class="fas fa-camera text-xs"></i>
+            </div>
+        </div>
+
+        <h2 class="text-xl font-bold mt-4">${escapeHtml(currentUser.username)}</h2>
+        <p class="text-gray-500 text-sm">${escapeHtml(currentUser.email || 'No email')}</p>
+
+        <div class="mt-6 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4">
+            <p class="text-gray-600 text-sm">Total Earnings</p>
+            <h3 class="text-3xl font-bold text-purple-700">$${earned}</h3>
+            <p class="text-xs text-gray-500 mt-1">${total} OTPs received</p>
+        </div>
+        
+        <div class="mt-4 text-sm text-gray-500">
+            <i class="fas fa-calendar-alt mr-1"></i> Member since: ${currentUser.created_at?.slice(0,10) || 'N/A'}
+        </div>
+    </div>`;
+}
+
+// UPLOAD PROFILE PIC
+function uploadPic(e) {
+    let file = e.target.files[0];
+    let reader = new FileReader();
+    reader.onload = () => {
+        localStorage.setItem("avatar", reader.result);
+        showPage("profile");
+    };
+    reader.readAsDataURL(file);
+}
+
+// ALLOCATION PAGE
 function allocationPage() {
-    const ranges = [...new Set(userNumbers.map(n => n.range_name))];
+    let ranges = [...new Set(userNumbers.map(n => n.range_name))];
     
     if (ranges.length === 0) {
         return `<div class="glass-card p-8 text-center text-gray-500">No numbers allocated yet. Contact admin.</div>`;
     }
     
-    return `
-        <div class="glass-card p-6 fade-in">
-            <h2 class="text-xl font-bold mb-4">📌 Number Allocation</h2>
-            <select id="rangeSelect" class="custom-select w-full border border-purple-200 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none mb-4">
-                ${ranges.map(r => `<option value="${escapeHtml(r)}">📌 ${escapeHtml(r)}</option>`).join('')}
-            </select>
-            <div id="numbersList"></div>
-        </div>
-    `;
+    let html = `
+    <div class="glass-card p-6 fade-in">
+        <h2 class="text-xl font-bold mb-4">📌 Number Allocation</h2>
+        <select id="rangeSelect" class="custom-select w-full border border-purple-200 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none mb-4">
+            ${ranges.map(r => `<option value="${escapeHtml(r)}">📌 ${escapeHtml(r)}</option>`).join('')}
+        </select>
+        <div id="numBox" class="space-y-2"></div>
+    </div>`;
+    
+    setTimeout(() => {
+        const rangeSelect = document.getElementById('rangeSelect');
+        if (rangeSelect && ranges.length > 0) {
+            displayNumbers(rangeSelect.value);
+            rangeSelect.onchange = () => displayNumbers(rangeSelect.value);
+        }
+    }, 50);
+    
+    return html;
 }
 
-function displayNumbers(range) {
-    const numbers = userNumbers.filter(n => n.range_name === range);
-    const html = numbers.map(n => `
-        <div class="number-item bg-gray-50 rounded-xl p-3 mb-2 flex justify-between items-center">
+function displayNumbers(r) {
+    let numbers = userNumbers.filter(n => n.range_name === r);
+    let html = numbers.map(n => `
+        <div class="number-item bg-gray-50 rounded-xl p-3 flex justify-between items-center">
             <span class="font-mono text-sm">📞 ${escapeHtml(n.number)}</span>
             <span class="text-xs text-gray-400">last3: ${n.last3}</span>
         </div>
     `).join('');
     
-    document.getElementById('numbersList').innerHTML = html || '<p class="text-gray-400 text-center py-4">No numbers in this range</p>';
+    document.getElementById('numBox').innerHTML = html || '<p class="text-gray-400 text-center py-4">No numbers in this range</p>';
 }
 
-// Today's Stat Page
+// TODAY PAGE
 function todayPage() {
-    const today = getPanelDate(new Date().toISOString());
-    const todayOtps = allOtps.filter(o => o.date === today);
+    let today = getPanelDate({message_time: new Date()});
+    let html = "";
     
-    if (todayOtps.length === 0) {
+    allOtps.forEach(o => {
+        if (getPanelDate(o) === today) {
+            let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
+            if (match) {
+                html += `
+                <div class="otp-entry">
+                    <div class="flex justify-between items-start flex-wrap gap-2">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                                <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
+                                <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
+                            </div>
+                            <div class="text-sm">
+                                <div>📞 ${escapeHtml(match.number)}</div>
+                                <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(match.range_name)}</div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-400">${formatTime(o)}</div>
+                    </div>
+                </div>`;
+            }
+        }
+    });
+    
+    if (!html) {
         return `<div class="glass-card p-8 text-center text-gray-500">📭 No OTPs received today</div>`;
     }
     
     return `
-        <div class="glass-card p-6 fade-in">
-            <h2 class="text-xl font-bold mb-4">📊 Today's OTP Statistics</h2>
-            <div class="space-y-3">
-                ${todayOtps.map(otp => {
-                    const matchedNum = userNumbers.find(n => getLast3Digits(n.number) === otp.phone_last3);
-                    return `
-                        <div class="otp-entry">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <div class="flex items-center gap-2 mb-2">
-                                        <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country || 'Unknown')}</span>
-                                        <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
-                                    </div>
-                                    <div class="text-sm">
-                                        <div>📞 ${escapeHtml(matchedNum?.number || '***' + otp.phone_last3)}</div>
-                                        <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(otp.sender || 'Unknown')} | 📌 ${escapeHtml(matchedNum?.range_name || '-')}</div>
-                                    </div>
-                                </div>
-                                <div class="text-xs text-gray-400">${formatTime(otp.message_time)}</div>
-                            </div>
-                        </div>
-                    `;
-                }).join('')}
-            </div>
-        </div>
-    `;
+    <div class="glass-card p-6 fade-in">
+        <h2 class="text-xl font-bold mb-4">📊 Today's OTP Statistics</h2>
+        <div class="space-y-3">${html}</div>
+    </div>`;
 }
 
-// Total OTP Page (Earnings)
+// TOTAL OTP PAGE (with countdown)
 function totalPage() {
-    const today = getPanelDate(new Date().toISOString());
-    const todayCount = allOtps.filter(o => o.date === today).length;
-    const earnings = (todayCount * 0.005).toFixed(2);
+    let today = getPanelDate({message_time: new Date()});
+    let count = 0;
+    
+    allOtps.forEach(o => {
+        if (getPanelDate(o) === today) {
+            let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
+            if (match) count++;
+        }
+    });
+    
+    let earn = (count * 0.005).toFixed(2);
     
     return `
-        <div class="glass-card p-6 fade-in">
-            <div class="text-center">
-                <div class="stat-card rounded-2xl p-6 text-white mb-4">
-                    <p class="text-purple-100 text-sm">Today's OTP Count</p>
-                    <p class="text-5xl font-bold mt-2">${todayCount}</p>
-                </div>
-                <div class="stat-card rounded-2xl p-6 text-white">
-                    <p class="text-purple-100 text-sm">Today's Earnings</p>
-                    <p class="text-4xl font-bold mt-2">$${earnings}</p>
-                    <p class="text-purple-100 text-xs mt-2">($0.005 per OTP)</p>
-                </div>
-                <div id="countdown" class="mt-4 text-sm text-gray-500"></div>
+    <div class="glass-card p-6 fade-in">
+        <div class="text-center">
+            <div class="stat-card rounded-2xl p-6 text-white mb-4">
+                <p class="text-purple-100 text-sm">Total OTP Today</p>
+                <p class="text-5xl font-bold mt-2">${count}</p>
             </div>
+            <div class="stat-card rounded-2xl p-6 text-white">
+                <p class="text-purple-100 text-sm">Today's Earnings</p>
+                <p class="text-4xl font-bold mt-2">$${earn}</p>
+                <p class="text-purple-100 text-xs mt-2">($0.005 per OTP)</p>
+            </div>
+            <p id="countdown" class="mt-4 text-sm text-gray-500"></p>
         </div>
-    `;
+    </div>`;
 }
 
-// Countdown Timer
-function updateCountdown() {
-    const el = document.getElementById('countdown');
-    if (!el) return;
+// COUNTDOWN TO 1AM
+setInterval(() => {
+    let now = new Date();
+    let next = new Date();
+    next.setHours(1, 0, 0, 0);
+    if (now >= next) next.setDate(next.getDate() + 1);
     
-    const now = new Date();
-    const reset = new Date();
-    reset.setHours(1, 0, 0, 0);
-    if (now >= reset) reset.setDate(reset.getDate() + 1);
+    let diff = next - now;
+    let h = Math.floor(diff / 3600000);
+    let m = Math.floor((diff % 3600000) / 60000);
+    let s = Math.floor((diff % 60000) / 1000);
     
-    const diff = reset - now;
-    const hours = Math.floor(diff / 3600000);
-    const minutes = Math.floor((diff % 3600000) / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
-    
-    el.innerHTML = `<i class="fas fa-clock mr-1"></i> Resets in ${hours}h ${minutes}m ${seconds}s`;
-}
+    let el = document.getElementById("countdown");
+    if (el) el.innerHTML = `<i class="fas fa-clock mr-1"></i> Resets in ${h}h ${m}m ${s}s`;
+}, 1000);
 
-// Past Records Page
+// PAST RECORDS PAGE
 function pastPage() {
     return `
-        <div class="glass-card p-6 fade-in">
-            <h2 class="text-xl font-bold mb-4">📋 Past OTP Records</h2>
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <input type="date" id="startDate" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
-                <input type="date" id="endDate" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
-            </div>
-            <button onclick="filterPast()" class="btn-purple w-full text-white py-2 rounded-xl font-semibold shadow-md mb-4">
-                <i class="fas fa-search mr-2"></i> Filter
-            </button>
-            <div id="pastResults"></div>
+    <div class="glass-card p-6 fade-in">
+        <h2 class="text-xl font-bold mb-4">📋 Past OTP Records</h2>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <input type="date" id="start" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+            <input type="date" id="end" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
         </div>
-    `;
+        <button onclick="filterPast()" class="btn-purple w-full text-white py-2 rounded-xl font-semibold shadow-md mb-4">
+            <i class="fas fa-search mr-2"></i> Filter
+        </button>
+        <div id="pastBox" class="space-y-3"></div>
+    </div>`;
 }
 
 function filterPast() {
-    const start = document.getElementById('startDate').value;
-    const end = document.getElementById('endDate').value;
-    let filtered = [...allOtps];
+    let s = document.getElementById('start').value;
+    let e = document.getElementById('end').value;
+    let html = "";
+    let total = 0;
     
-    if (start) filtered = filtered.filter(o => o.date >= start);
-    if (end) filtered = filtered.filter(o => o.date <= end);
+    allOtps.forEach(o => {
+        let d = getPanelDate(o);
+        if (d >= s && d <= e) {
+            let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
+            if (match) {
+                total++;
+                html += `
+                <div class="otp-entry">
+                    <div class="flex justify-between items-start flex-wrap gap-2">
+                        <div class="flex-1">
+                            <div class="text-xs text-gray-400 mb-1">📅 ${d}</div>
+                            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                                <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
+                                <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
+                            </div>
+                            <div class="text-sm">
+                                <div>📞 ${escapeHtml(match.number)}</div>
+                                <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(match.range_name)}</div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-400">${formatTime(o)}</div>
+                    </div>
+                    <div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>
+                </div>`;
+            }
+        }
+    });
     
-    const total = filtered.length;
-    const earnings = (total * 0.005).toFixed(2);
+    let earn = (total * 0.005).toFixed(2);
     
-    if (filtered.length === 0) {
-        document.getElementById('pastResults').innerHTML = '<p class="text-center text-gray-400 py-4">No OTPs in this date range</p>';
+    if (!html) {
+        document.getElementById('pastBox').innerHTML = '<p class="text-center text-gray-400 py-4">No OTPs in this date range</p>';
         return;
     }
     
-    document.getElementById('pastResults').innerHTML = `
-        <div class="space-y-3 mb-4">
-            ${filtered.map(otp => {
-                const matchedNum = userNumbers.find(n => getLast3Digits(n.number) === otp.phone_last3);
-                return `
-                    <div class="otp-entry">
-                        <div class="flex justify-between items-start">
-                            <div>
-                                <div class="text-xs text-gray-400 mb-1">📅 ${otp.date}</div>
-                                <div class="flex items-center gap-2 mb-2">
-                                    <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country || 'Unknown')}</span>
-                                    <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
-                                </div>
-                                <div class="text-sm">
-                                    <div>📞 ${escapeHtml(matchedNum?.number || '***' + otp.phone_last3)}</div>
-                                    <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(otp.sender || 'Unknown')} | 📌 ${escapeHtml(matchedNum?.range_name || '-')}</div>
-                                </div>
-                            </div>
-                            <div class="text-xs text-gray-400">${formatTime(otp.message_time)}</div>
-                        </div>
-                        <div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>
-                    </div>
-                `;
-            }).join('')}
-        </div>
-        <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center">
-            <span class="font-semibold">Total: ${total} OTPs</span>
-            <span class="mx-2">|</span>
-            <span class="font-bold text-purple-700">$${earnings}</span>
-        </div>
-    `;
+    document.getElementById('pastBox').innerHTML = html + `
+    <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
+        <span class="font-semibold">Total: ${total} OTPs</span>
+        <span class="mx-2">|</span>
+        <span class="font-bold text-purple-700">$${earn}</span>
+    </div>`;
 }
 
-// Page Router
-function showPage(page) {
+// PAGE ROUTER
+function showPage(p) {
     const content = document.getElementById('content');
-    
-    switch(page) {
-        case 'profile':
-            content.innerHTML = profilePage();
-            break;
-        case 'allocation':
-            content.innerHTML = allocationPage();
-            setTimeout(() => {
-                const rangeSelect = document.getElementById('rangeSelect');
-                if (rangeSelect) {
-                    displayNumbers(rangeSelect.value);
-                    rangeSelect.onchange = () => displayNumbers(rangeSelect.value);
-                }
-            }, 50);
-            break;
-        case 'today':
-            content.innerHTML = todayPage();
-            break;
-        case 'total':
-            content.innerHTML = totalPage();
-            updateCountdown();
-            setInterval(updateCountdown, 1000);
-            break;
-        case 'past':
-            // Set default dates
-            const today = new Date();
-            const weekAgo = new Date();
-            weekAgo.setDate(today.getDate() - 7);
-            setTimeout(() => {
-                const startInput = document.getElementById('startDate');
-                const endInput = document.getElementById('endDate');
-                if (startInput) startInput.value = weekAgo.toISOString().slice(0,10);
-                if (endInput) endInput.value = today.toISOString().slice(0,10);
-            }, 100);
-            content.innerHTML = pastPage();
-            break;
-        case 'support':
-            window.open('https://wa.me/2348113903584', '_blank');
-            showPage('profile');
-            break;
-        default:
-            content.innerHTML = profilePage();
+    if (p === "profile") content.innerHTML = profilePage();
+    if (p === "allocation") content.innerHTML = allocationPage();
+    if (p === "today") content.innerHTML = todayPage();
+    if (p === "total") content.innerHTML = totalPage();
+    if (p === "past") {
+        // Set default dates (last 7 days)
+        const today = new Date();
+        const weekAgo = new Date();
+        weekAgo.setDate(today.getDate() - 7);
+        setTimeout(() => {
+            const startInput = document.getElementById('start');
+            const endInput = document.getElementById('end');
+            if (startInput) startInput.value = weekAgo.toISOString().slice(0, 10);
+            if (endInput) endInput.value = today.toISOString().slice(0, 10);
+        }, 50);
+        content.innerHTML = pastPage();
     }
-}
-
-// Dropdown Setup
-function setupDropdown() {
-    const menuBtn = document.getElementById('menuButton');
-    const dropdown = document.getElementById('dropdownMenu');
-    
-    if (menuBtn) {
-        menuBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            dropdown.classList.toggle('hidden-dropdown');
-        });
-    }
-    
-    document.addEventListener('click', (e) => {
-        if (!menuBtn.contains(e.target) && !dropdown.contains(e.target)) {
-            dropdown.classList.add('hidden-dropdown');
-        }
-    });
-}
-
-// Navigation Setup
-function setupNavigation() {
-    const navLinks = document.querySelectorAll('[data-page]');
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const page = link.getAttribute('data-page');
-            showPage(page);
-            document.getElementById('dropdownMenu').classList.add('hidden-dropdown');
-        });
-    });
 }
 
 // Make functions global
-window.uploadAvatar = uploadAvatar;
+window.uploadPic = uploadPic;
 window.displayNumbers = displayNumbers;
 window.filterPast = filterPast;
 window.showPage = showPage;
