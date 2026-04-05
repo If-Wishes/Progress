@@ -3,85 +3,235 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MIMA Panel | Users</title>
+    <title>ELITE Admin | Users</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <style>.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);align-items:center;justify-content:center;z-index:50;}.modal.active{display:flex;}.hidden-dropdown{display:none;}</style>
+    <style>
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 50; }
+        .modal.active { display: flex; }
+        .hidden-dropdown { display: none; }
+    </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gradient-to-br from-purple-50 to-gray-100 min-h-screen">
 
-<nav class="bg-white shadow-sm border-b sticky top-0 z-50">
+<nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex items-center gap-4">
-                <a href="dashboard.html" class="text-gray-600"><i class="fas fa-arrow-left"></i></a>
-                <div class="h-8 w-8 rounded-lg bg-indigo-600"><i class="fas fa-chart-line text-white"></i></div>
-                <span class="text-xl font-bold">MIMA<span class="text-indigo-600">Panel</span></span>
-                <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">Admin</span>
+                <a href="dashboard.html" class="text-gray-600 hover:text-purple-600"><i class="fas fa-arrow-left"></i></a>
+                <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center shadow-md">
+                    <i class="fas fa-crown text-white text-sm"></i>
+                </div>
+                <span class="text-xl font-bold text-gray-800">ELITE<span class="text-purple-600">Admin</span></span>
+                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">Users</span>
             </div>
             <div class="flex items-center gap-4 relative">
-                <div class="text-right"><p class="text-sm font-medium" id="adminName">Admin</p><p class="text-xs text-gray-500">Users</p></div>
-                <div class="relative"><button id="menuBtn" class="bg-gray-100 rounded-full px-3 py-2"><i class="fas fa-user-shield"></i><i class="fas fa-chevron-down text-xs"></i></button>
-                <div id="dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border hidden-dropdown z-50">
-                    <a href="dashboard.html" class="block px-4 py-2">Dashboard</a><a href="users.html" class="block px-4 py-2 bg-indigo-50 text-indigo-600">Users</a>
-                    <a href="analytics.html" class="block px-4 py-2">Number Allocation</a><a href="activities.html" class="block px-4 py-2">User Activities</a>
-                    <div class="border-t"></div><a href="#" id="logoutBtn" class="block px-4 py-2 text-red-600">Logout</a>
-                </div></div>
+                <div class="text-right hidden sm:block">
+                    <p class="text-sm font-medium text-gray-800" id="adminName">Admin</p>
+                    <p class="text-xs text-gray-500">User Management</p>
+                </div>
+                <div class="relative">
+                    <button id="menuBtn" class="bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition"><i class="fas fa-user-shield text-purple-600"></i><i class="fas fa-chevron-down text-xs"></i></button>
+                    <div id="dropdown" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden">
+                        <a href="dashboard.html" class="block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-tachometer-alt mr-2 text-purple-500"></i>Dashboard</a>
+                        <a href="users.html" class="block px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-users mr-2 text-purple-500"></i>Users</a>
+                        <a href="analytics.html" class="block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-phone-alt mr-2 text-purple-500"></i>Range Allocation</a>
+                        <a href="activities.html" class="block px-4 py-2.5 hover:bg-purple-50 text-gray-700"><i class="fas fa-history mr-2 text-purple-500"></i>Activities</a>
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <a href="#" id="logoutBtn" class="block px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </nav>
 
 <main class="max-w-7xl mx-auto px-4 py-8">
-    <div class="flex justify-between mb-6"><h1 class="text-2xl font-bold">User Management</h1><button id="createBtn" class="bg-indigo-600 text-white px-5 py-2 rounded-xl"><i class="fas fa-plus mr-2"></i>New User</button></div>
-    <div class="bg-white rounded-2xl border overflow-hidden">
-        <table class="w-full"><thead class="bg-gray-50"> …
-            <th class="px-6 py-3 text-left">Username</th><th class="px-6 py-3 text-left">Email</th><th class="px-6 py-3 text-left">Role</th><th class="px-6 py-3 text-left">Created</th><th class="px-6 py-3 text-center">Actions</th>
-        </thead><tbody id="usersList"></tbody>追赶
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900">👥 User Management</h1>
+            <p class="text-gray-500 text-sm mt-1">Create and manage system users</p>
+        </div>
+        <button id="createBtn" class="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-5 py-2.5 rounded-xl transition shadow-md">
+            <i class="fas fa-plus mr-2"></i>New User
+        </button>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-purple-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Username</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Email</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Role</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Created</th>
+                        <th class="px-6 py-3 text-center text-gray-700 font-semibold">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersList" class="divide-y divide-gray-100"></tbody>
+            </table>
+        </div>
     </div>
 </main>
 
-<div id="modal" class="modal"><div class="bg-white rounded-2xl p-6 w-96"><h3 class="text-xl font-bold mb-4">Create User</h3><input type="text" id="username" placeholder="Username" class="w-full border rounded-xl px-4 py-2 mb-3"><input type="email" id="email" placeholder="Email" class="w-full border rounded-xl px-4 py-2 mb-3"><input type="password" id="password" placeholder="Password" class="w-full border rounded-xl px-4 py-2 mb-3"><select id="role" class="w-full border rounded-xl px-4 py-2 mb-3"><option value="user">User</option><option value="admin">Admin</option></select><div class="flex gap-3"><button id="closeModal" class="px-4 py-2 border rounded-xl">Cancel</button><button id="saveUser" class="px-4 py-2 bg-indigo-600 text-white rounded-xl">Save</button></div></div></div>
+<!-- Modal -->
+<div id="modal" class="modal">
+    <div class="bg-white rounded-2xl p-6 w-96 shadow-2xl">
+        <h3 class="text-xl font-bold text-gray-800 mb-4"><i class="fas fa-user-plus mr-2 text-purple-500"></i>Create New User</h3>
+        <input type="text" id="username" placeholder="Username" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 mb-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+        <input type="email" id="email" placeholder="Email" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 mb-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+        <input type="password" id="password" placeholder="Password" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 mb-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+        <select id="role" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 mb-4 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+            <option value="user">👤 User</option>
+            <option value="admin">👑 Admin</option>
+        </select>
+        <div class="flex gap-3">
+            <button id="closeModal" class="flex-1 px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition">Cancel</button>
+            <button id="saveUser" class="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-xl hover:from-purple-700 hover:to-purple-800 transition shadow-md">Save</button>
+        </div>
+    </div>
+</div>
 
 <script>
 const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
 const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
 
-const session = JSON.parse(localStorage.getItem('mima_session') || 'null');
-if (!session || session.role !== 'admin') window.location.href = '../index.html';
-document.getElementById('adminName').innerText = session.username;
+// ================= SESSION CHECK - FIXED FOR ELITE =================
+const session = JSON.parse(localStorage.getItem('elite_session') || 'null');
+if (!session || session.role !== 'admin') {
+    window.location.href = '../index.html';
+}
+document.getElementById('adminName').innerText = session.username || 'Administrator';
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m));
+}
 
 async function loadUsers() {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&order=created_at.desc`, { headers: { 'apikey': API_KEY } });
-    const users = await res.json();
-    document.getElementById('usersList').innerHTML = users.map(u => `
-        <tr class="border-b"><td class="px-6 py-3">${escapeHtml(u.username)}Js<td class="px-6 py-3">${escapeHtml(u.email)}Js<td class="px-6 py-3"><span class="px-2 py-1 rounded-full text-xs ${u.role==='admin'?'bg-red-100 text-red-700':'bg-blue-100 text-blue-700'}">${u.role}</span>Js<td class="text-xs">${u.created_at?.slice(0,10)||'—'}Js<td class="text-center"><button onclick="deleteUser('${u.id}')" class="text-red-500"><i class="fas fa-trash"></i></button>Js</td>`).join('');
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&order=created_at.desc`, { 
+            headers: { 'apikey': API_KEY } 
+        });
+        const users = await res.json();
+        
+        if (users.length === 0) {
+            document.getElementById('usersList').innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-400">No users found</td></tr>';
+            return;
+        }
+        
+        document.getElementById('usersList').innerHTML = users.map(u => `
+            <tr class="hover:bg-purple-50 transition">
+                <td class="px-6 py-3 font-medium text-gray-800">${escapeHtml(u.username)}</td>
+                <td class="px-6 py-3 text-gray-600">${escapeHtml(u.email)}</td>
+                <td class="px-6 py-3">
+                    <span class="px-2 py-1 rounded-full text-xs font-medium ${u.role === 'admin' ? 'bg-purple-100 text-purple-700' : 'bg-emerald-100 text-emerald-700'}">
+                        ${u.role === 'admin' ? '👑 Admin' : '👤 User'}
+                    </span>
+                </td>
+                <td class="px-6 py-3 text-gray-500 text-xs">${u.created_at ? u.created_at.slice(0, 10) : '—'}</td>
+                <td class="px-6 py-3 text-center">
+                    <button onclick="deleteUser('${u.id}')" class="text-red-500 hover:text-red-700 transition" title="Delete user">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    } catch (err) {
+        console.error("Load users error:", err);
+        document.getElementById('usersList').innerHTML = '<tr><td colspan="5" class="text-center py-8 text-red-400">Error loading users</td></tr>';
+    }
 }
 
-async function deleteUser(id) { if(confirm('Delete this user?')) { await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${id}`, { method: 'DELETE', headers: { 'apikey': API_KEY } }); loadUsers(); } }
+async function deleteUser(id) {
+    if (confirm('⚠️ Delete this user? This action cannot be undone.')) {
+        try {
+            await fetch(`${SUPABASE_URL}/rest/v1/users?id=eq.${id}`, { 
+                method: 'DELETE', 
+                headers: { 'apikey': API_KEY } 
+            });
+            loadUsers();
+        } catch (err) {
+            alert('Error deleting user');
+        }
+    }
+}
 
 async function createUser(username, email, password, role) {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
-        method: 'POST', headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, email, password, role })
-    });
-    return res.ok;
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/users`, {
+            method: 'POST',
+            headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, email, password, role, is_active: true })
+        });
+        return res.ok;
+    } catch (err) {
+        return false;
+    }
 }
 
-function openModal() { document.getElementById('modal').classList.add('active'); document.getElementById('username').value=''; document.getElementById('email').value=''; document.getElementById('password').value=''; document.getElementById('role').value='user'; }
-function closeModal() { document.getElementById('modal').classList.remove('active'); }
-async function saveUser() { const u=document.getElementById('username').value.trim(), e=document.getElementById('email').value.trim(), p=document.getElementById('password').value, r=document.getElementById('role').value; if(!u||!e||!p){alert('All fields required');return;} const ok=await createUser(u,e,p,r); if(ok){closeModal();loadUsers();alert(`User "${u}" created! Password: ${p}`);} else alert('Error creating user'); }
+function openModal() { 
+    document.getElementById('modal').classList.add('active'); 
+    document.getElementById('username').value = ''; 
+    document.getElementById('email').value = ''; 
+    document.getElementById('password').value = ''; 
+    document.getElementById('role').value = 'user'; 
+}
 
-function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]||m)); }
-function logout() { localStorage.removeItem('mima_session'); window.location.href='../index.html'; }
+function closeModal() { 
+    document.getElementById('modal').classList.remove('active'); 
+}
 
-document.getElementById('menuBtn').onclick=e=>{e.stopPropagation();document.getElementById('dropdown').classList.toggle('hidden-dropdown');};
-document.addEventListener('click',()=>document.getElementById('dropdown').classList.add('hidden-dropdown'));
-document.getElementById('logoutBtn').onclick=e=>{e.preventDefault();logout();};
-document.getElementById('createBtn').onclick=openModal;
-document.getElementById('closeModal').onclick=closeModal;
-document.getElementById('saveUser').onclick=saveUser;
+async function saveUser() {
+    const username = document.getElementById('username').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const role = document.getElementById('role').value;
+    
+    if (!username || !email || !password) {
+        alert('❌ All fields are required');
+        return;
+    }
+    
+    const ok = await createUser(username, email, password, role);
+    if (ok) {
+        closeModal();
+        loadUsers();
+        alert(`✅ User "${username}" created!\nPassword: ${password}`);
+    } else {
+        alert('❌ Error creating user. Username or email may already exist.');
+    }
+}
 
+function logout() { 
+    localStorage.removeItem('elite_session'); 
+    window.location.href = '../index.html'; 
+}
+
+// ================= DROPDOWN SETUP =================
+function setupDropdown() {
+    const menuBtn = document.getElementById('menuBtn');
+    const dropdown = document.getElementById('dropdown');
+    if (menuBtn) {
+        menuBtn.onclick = (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('hidden-dropdown');
+        };
+        document.addEventListener('click', () => dropdown.classList.add('hidden-dropdown'));
+    }
+}
+
+// ================= EVENT LISTENERS =================
+document.getElementById('menuBtn').onclick = (e) => { e.stopPropagation(); document.getElementById('dropdown').classList.toggle('hidden-dropdown'); };
+document.addEventListener('click', () => document.getElementById('dropdown').classList.add('hidden-dropdown'));
+document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); logout(); };
+document.getElementById('createBtn').onclick = openModal;
+document.getElementById('closeModal').onclick = closeModal;
+document.getElementById('saveUser').onclick = saveUser;
+
+// Initialize
+setupDropdown();
 loadUsers();
 </script>
 </body>
