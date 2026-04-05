@@ -170,7 +170,6 @@ let usersList = [];
 let usedNumbersSet = new Set();
 let customRanges = [];
 
-// Helper function to extract last 3 digits
 function getLast3Digits(number) {
     let cleaned = number.replace(/[^0-9]/g, '');
     return cleaned.slice(-3);
@@ -182,13 +181,10 @@ function escapeHtml(str) {
 }
 
 function getRangeFlag(range) {
-    const flags = {
-        'Carmine': '❤️', 'Carrot': '🥕'
-    };
+    const flags = { 'Carmine': '❤️', 'Carrot': '🥕' };
     return flags[range] || '📌';
 }
 
-// Fetch all OTPs to know which numbers are used
 async function fetchUsedNumbers() {
     try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=phone_last3`, {
@@ -199,13 +195,11 @@ async function fetchUsedNumbers() {
         otps.forEach(otp => {
             if (otp.phone_last3) usedNumbersSet.add(otp.phone_last3);
         });
-        console.log(`Found ${usedNumbersSet.size} used numbers`);
     } catch (err) {
         console.error("Error fetching OTPs:", err);
     }
 }
 
-// Load ranges
 async function loadRanges() {
     try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/ranges?select=name`, {
@@ -215,11 +209,11 @@ async function loadRanges() {
         if (data.length > 0) {
             customRanges = data.map(r => r.name);
         } else {
-            customRanges = ['Carmine', 'Carrot', 'Nigeria', 'Uzbekistan', 'Jordan', 'Tajikistan', 'Myanmar'];
+            customRanges = ['Carmine', 'Carrot'];
         }
         updateRangeDropdown();
     } catch (err) {
-        customRanges = ['Carmine', 'Carrot', 'Nigeria', 'Uzbekistan', 'Jordan', 'Tajikistan', 'Myanmar'];
+        customRanges = ['Carmine', 'Carrot'];
         updateRangeDropdown();
     }
 }
@@ -230,7 +224,6 @@ function updateRangeDropdown() {
         customRanges.map(r => `<option value="${escapeHtml(r)}">${getRangeFlag(r)} ${escapeHtml(r)}</option>`).join('');
 }
 
-// Add new range
 async function addNewRange(rangeName) {
     if (!rangeName.trim()) return false;
     if (customRanges.some(r => r.toLowerCase() === rangeName.trim().toLowerCase())) return false;
@@ -251,14 +244,12 @@ async function addNewRange(rangeName) {
     }
 }
 
-// Load users for dropdowns (EXCLUDE ADMIN)
 async function loadUsers() {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id,username,role`, {
         headers: { 'apikey': API_KEY }
     });
     const allUsers = await res.json();
     
-    // Filter out admin users - only show users with role = 'user'
     usersList = allUsers.filter(u => u.role === 'user');
     
     const userSelect = document.getElementById('userSelect');
@@ -275,7 +266,6 @@ async function loadUsers() {
     filterSelect.onchange = loadAllocatedNumbers;
 }
 
-// Load and display allocated numbers
 async function loadAllocatedNumbers() {
     const filterUserId = document.getElementById('filterSelect').value;
     let url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&order=allocated_at.desc`;
@@ -287,20 +277,20 @@ async function loadAllocatedNumbers() {
     const allocations = await res.json();
     const container = document.getElementById('allocationsList');
     
-    if (allocations.length === 0) {
-        container.innerHTML = '<div class="text-center py-8 text-gray-400">No numbers allocated yet</div>';
+    if (!allocations || allocations.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-gray-400">📭 No numbers allocated yet</div>';
         return;
     }
     
-    // Group by user and range
     const grouped = {};
     for (const item of allocations) {
-        const key = `${item.user_id}_${item.country}`;
+        const rangeName = item.range_name || item.country || 'Unknown';
+        const key = `${item.user_id}_${rangeName}`;
         if (!grouped[key]) {
             grouped[key] = {
                 userId: item.user_id,
                 userName: item.users?.username || 'Unknown',
-                range: item.country,
+                range: rangeName,
                 numbers: []
             };
         }
@@ -355,42 +345,30 @@ async function loadAllocatedNumbers() {
     container.innerHTML = html;
 }
 
-// Add numbers to user
 async function addNumbers() {
     const userId = document.getElementById('userSelect').value;
     const rangeName = document.getElementById('rangeSelect').value;
     const numbersInput = document.getElementById('numbersInput').value;
     const messageBox = document.getElementById('messageBox');
     
-    if (!userId) {
-        showMessage('Please select a user', 'error');
-        return;
-    }
-    if (!rangeName) {
-        showMessage('Please select a range', 'error');
-        return;
-    }
-    if (!numbersInput.trim()) {
-        showMessage('Please enter phone numbers', 'error');
-        return;
-    }
+    if (!userId) { showMessage('Please select a user', 'error'); return; }
+    if (!rangeName) { showMessage('Please select a range', 'error'); return; }
+    if (!numbersInput.trim()) { showMessage('Please enter phone numbers', 'error'); return; }
     
     let numbers = numbersInput.split(/[,\n]/).map(n => n.trim()).filter(n => n.length > 0);
-    if (numbers.length === 0) {
-        showMessage('No valid numbers found', 'error');
-        return;
-    }
+    if (numbers.length === 0) { showMessage('No valid numbers found', 'error'); return; }
     
     showMessage('Adding numbers...', 'info');
     
     let successCount = 0;
     let errorCount = 0;
+    let errors = [];
     
     for (const number of numbers) {
         const last3 = getLast3Digits(number);
         if (last3.length < 3) {
             errorCount++;
-            console.log(`Number ${number} has last3: "${last3}" (needs 3 digits)`);
+            errors.push(`${number} (invalid digits)`);
             continue;
         }
         
@@ -399,28 +377,26 @@ async function addNumbers() {
                 method: 'POST',
                 headers: { 
                     'apikey': API_KEY, 
-                    'Content-Type': 'application/json',
-                    'Prefer': 'return=minimal'
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     user_id: userId,
                     number: number,
                     last3: last3,
-                    country: rangeName
+                    range_name: rangeName
                 })
             });
             
             if (res.ok) {
                 successCount++;
-                console.log(`Added: ${number} -> last3: ${last3}`);
             } else {
                 const errorText = await res.text();
-                console.error(`Failed to add ${number}:`, errorText);
                 errorCount++;
+                errors.push(`${number}: ${errorText}`);
             }
         } catch (err) {
-            console.error(`Error adding ${number}:`, err);
             errorCount++;
+            errors.push(`${number}: ${err.message}`);
         }
     }
     
@@ -430,19 +406,17 @@ async function addNumbers() {
         await loadAllocatedNumbers();
         await fetchUsedNumbers();
     } else {
-        showMessage(`❌ Failed to add numbers. Error: ${errorCount} numbers failed. Check console for details.`, 'error');
+        showMessage(`❌ Failed to add ${errorCount} numbers. Check console for details.`, 'error');
+        console.error('Errors:', errors);
     }
     
-    setTimeout(() => {
-        messageBox.classList.add('hidden');
-    }, 3000);
+    setTimeout(() => { messageBox.classList.add('hidden'); }, 3000);
 }
 
-// Delete all numbers for a user in a range
 async function deleteRangeNumbers(userId, range) {
     if (!confirm(`Delete all numbers for this user in ${range}?`)) return;
     
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&country=eq.${encodeURIComponent(range)}`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&range_name=eq.${encodeURIComponent(range)}`, {
         method: 'DELETE',
         headers: { 'apikey': API_KEY }
     });
@@ -450,13 +424,10 @@ async function deleteRangeNumbers(userId, range) {
     if (res.ok) {
         await loadAllocatedNumbers();
         showMessage('Numbers deleted successfully', 'success');
-        setTimeout(() => {
-            document.getElementById('messageBox').classList.add('hidden');
-        }, 2000);
+        setTimeout(() => document.getElementById('messageBox').classList.add('hidden'), 2000);
     }
 }
 
-// Delete a single number
 async function deleteSingleNumber(numberId) {
     if (!confirm('Delete this number?')) return;
     
@@ -484,7 +455,6 @@ function logout() {
     window.location.href = '../index.html';
 }
 
-// Modal handling
 function setupModal() {
     const modal = document.getElementById('rangeModal');
     const addRangeBtn = document.getElementById('addRangeBtn');
@@ -520,11 +490,9 @@ function setupModal() {
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
 }
 
-// Make functions global
 window.deleteRangeNumbers = deleteRangeNumbers;
 window.deleteSingleNumber = deleteSingleNumber;
 
-// Dropdown setup
 function setupDropdown() {
     const menuBtn = document.getElementById('menuBtn');
     const dropdown = document.getElementById('dropdown');
@@ -537,11 +505,9 @@ function setupDropdown() {
     }
 }
 
-// Event listeners
 document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); logout(); };
 document.getElementById('addBtn').onclick = addNumbers;
 
-// Initialize
 async function init() {
     setupDropdown();
     await loadRanges();
