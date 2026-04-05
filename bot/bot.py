@@ -34,7 +34,6 @@ def poll():
                         
                         if text:
                             try:
-                                # Extract fields
                                 country = (re.search(r'Country:\s*(.+)', text) or [None, None])[1]
                                 country = country.strip() if country else None
                                 
@@ -100,12 +99,14 @@ def health():
     return jsonify({"status": "ok"})
 
 if __name__ == "__main__":
-    # Suppress Flask startup messages
     import logging
     logging.getLogger('werkzeug').setLevel(logging.ERROR)
     
     # Start bot thread
     threading.Thread(target=poll, daemon=True).start()
     
+    # Get port from environment or use 8080
+    port = int(os.environ.get("PORT", 8080))
+    
     # Run Flask
-    app.run(host='0.0.0.0', port=8080, debug=False, use_reloader=False)
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
