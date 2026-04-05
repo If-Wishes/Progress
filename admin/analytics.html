@@ -130,6 +130,7 @@ Example:
         <div class="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
             <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-list-ul text-purple-500"></i> Allocated Numbers</h2>
             <select id="filterSelect" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 mb-4 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                <option value="">-- All Users --</option>
             </select>
             <div id="allocationsList" class="max-h-96 overflow-y-auto space-y-3">
                 <div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
@@ -182,7 +183,7 @@ function escapeHtml(str) {
 
 function getRangeFlag(range) {
     const flags = {
-        'Carmine': '❤️', 'Carrot': '🥕',
+        'Carmine': '❤️', 'Carrot': '🥕'
     };
     return flags[range] || '📌';
 }
@@ -214,11 +215,11 @@ async function loadRanges() {
         if (data.length > 0) {
             customRanges = data.map(r => r.name);
         } else {
-            customRanges = ['Carmine', 'Carrot', 'Nigeria', 'Uzbekistan', 'Jordan'];
+            customRanges = ['Carmine', 'Carrot', 'Nigeria', 'Uzbekistan', 'Jordan', 'Tajikistan', 'Myanmar'];
         }
         updateRangeDropdown();
     } catch (err) {
-        customRanges = ['Carmine', 'Carrot', 'Nigeria', 'Uzbekistan', 'Jordan'];
+        customRanges = ['Carmine', 'Carrot', 'Nigeria', 'Uzbekistan', 'Jordan', 'Tajikistan', 'Myanmar'];
         updateRangeDropdown();
     }
 }
@@ -250,16 +251,23 @@ async function addNewRange(rangeName) {
     }
 }
 
-// Load users for dropdowns
+// Load users for dropdowns (EXCLUDE ADMIN)
 async function loadUsers() {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id,username`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id,username,role`, {
         headers: { 'apikey': API_KEY }
     });
-    usersList = await res.json();
+    const allUsers = await res.json();
+    
+    // Filter out admin users - only show users with role = 'user'
+    usersList = allUsers.filter(u => u.role === 'user');
     
     const userSelect = document.getElementById('userSelect');
-    userSelect.innerHTML = '<option value="">-- Select User --</option>' + 
-        usersList.map(u => `<option value="${u.id}">${escapeHtml(u.username)}</option>`).join('');
+    if (usersList.length === 0) {
+        userSelect.innerHTML = '<option value="">-- No users found --</option>';
+    } else {
+        userSelect.innerHTML = '<option value="">-- Select User --</option>' + 
+            usersList.map(u => `<option value="${u.id}">${escapeHtml(u.username)}</option>`).join('');
+    }
     
     const filterSelect = document.getElementById('filterSelect');
     filterSelect.innerHTML = '<option value="">-- All Users --</option>' + 
@@ -382,27 +390,36 @@ async function addNumbers() {
         const last3 = getLast3Digits(number);
         if (last3.length < 3) {
             errorCount++;
+            console.log(`Number ${number} has last3: "${last3}" (needs 3 digits)`);
             continue;
         }
         
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
-            method: 'POST',
-            headers: { 
-                'apikey': API_KEY, 
-                'Content-Type': 'application/json',
-                'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({
-                user_id: userId,
-                number: number,
-                last3: last3,
-                country: rangeName
-            })
-        });
-        
-        if (res.ok) {
-            successCount++;
-        } else {
+        try {
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
+                method: 'POST',
+                headers: { 
+                    'apikey': API_KEY, 
+                    'Content-Type': 'application/json',
+                    'Prefer': 'return=minimal'
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    number: number,
+                    last3: last3,
+                    country: rangeName
+                })
+            });
+            
+            if (res.ok) {
+                successCount++;
+                console.log(`Added: ${number} -> last3: ${last3}`);
+            } else {
+                const errorText = await res.text();
+                console.error(`Failed to add ${number}:`, errorText);
+                errorCount++;
+            }
+        } catch (err) {
+            console.error(`Error adding ${number}:`, err);
             errorCount++;
         }
     }
@@ -413,7 +430,7 @@ async function addNumbers() {
         await loadAllocatedNumbers();
         await fetchUsedNumbers();
     } else {
-        showMessage(`❌ Failed to add numbers. Check that numbers have at least 3 digits.`, 'error');
+        showMessage(`❌ Failed to add numbers. Error: ${errorCount} numbers failed. Check console for details.`, 'error');
     }
     
     setTimeout(() => {
