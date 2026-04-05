@@ -3,125 +3,436 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusPanel | Admin Dashboard</title>
+    <title>ELITE Admin | Smart OTP Tracker</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="../css/style.css">
+    <style>
+        .hidden-dropdown { display: none; }
+        .loading-spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e9d5ff;
+            border-radius: 50%;
+            border-top-color: #7c3aed;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .stat-card {
+            transition: all 0.3s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.3);
+        }
+        .table-container::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .table-container::-webkit-scrollbar-track {
+            background: #f3e8ff;
+            border-radius: 10px;
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: #a78bfa;
+            border-radius: 10px;
+        }
+        .nav-link:hover {
+            background-color: #f5f3ff;
+            color: #7c3aed;
+        }
+    </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gradient-to-br from-purple-50 to-gray-100 min-h-screen">
 
-<nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+<nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
-            <div class="flex items-center">
-                <div class="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-                    <i class="fas fa-chart-line text-white text-sm"></i>
-                </div>
-                <span class="ml-2 text-xl font-bold text-gray-800">MIMA<span class="text-indigo-600">Panel</span></span>
-                <span class="ml-3 text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">Admin</span>
-            </div>
             <div class="flex items-center gap-4">
-                <div class="text-right hidden sm:block">
-                    <p class="text-sm font-medium text-gray-800" id="adminName">Admin</p>
-                    <p class="text-xs text-gray-500">Super Administrator</p>
+                <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center shadow-md">
+                    <i class="fas fa-crown text-white text-sm"></i>
                 </div>
-                <button onclick="adminLogout()" class="text-gray-500 hover:text-red-600 transition">
-                    <i class="fas fa-sign-out-alt text-lg"></i>
-                </button>
+                <span class="text-xl font-bold text-gray-800">ELITE<span class="text-purple-600">Admin</span></span>
+                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">Smart Tracker</span>
+            </div>
+            <div class="flex items-center gap-4 relative">
+                <div class="text-right"><p class="text-sm font-medium text-gray-800" id="adminName">Admin</p><p class="text-xs text-gray-500">Dashboard</p></div>
+                <div class="relative">
+                    <button id="menuBtn" class="bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition"><i class="fas fa-user-shield text-purple-600"></i><i class="fas fa-chevron-down text-xs"></i></button>
+                    <div id="dropdown" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden">
+                        <a href="#" data-page="dashboard" class="nav-link block px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-tachometer-alt mr-2 text-purple-500"></i>Dashboard</a>
+                        <a href="#" data-page="users" class="nav-link block px-4 py-2.5 text-gray-700"><i class="fas fa-users mr-2 text-purple-500"></i>Users</a>
+                        <a href="#" data-page="allocation" class="nav-link block px-4 py-2.5 text-gray-700"><i class="fas fa-phone-alt mr-2 text-purple-500"></i>Range Allocation</a>
+                        <a href="#" data-page="activities" class="nav-link block px-4 py-2.5 text-gray-700"><i class="fas fa-history mr-2 text-purple-500"></i>Activities</a>
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <a href="#" id="logoutBtn" class="nav-link block px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </nav>
 
-<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="mb-8">
-        <h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p class="text-gray-500 mt-1">Manage users, track requests, and monitor activity</p>
+<main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">📊 Smart OTP Tracker</h1>
+        <p class="text-gray-500 text-sm mt-1">Tracking only OTPs that match allocated numbers across all users</p>
     </div>
 
+    <!-- Date Range Filter Section -->
+    <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 mb-8">
+        <h3 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-calendar-alt text-purple-500"></i>Filter by Date Range</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">📅 Start Date</label>
+                <input type="date" id="startDate" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">📅 End Date</label>
+                <input type="date" id="endDate" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+            </div>
+            <div class="flex items-end">
+                <button id="filterBtn" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2.5 rounded-xl transition shadow-md">
+                    <i class="fas fa-filter mr-2"></i>Apply Filter
+                </button>
+            </div>
+        </div>
+        <div id="filterResult" class="mt-4 text-sm text-gray-600 hidden bg-purple-50 p-3 rounded-lg">
+            <i class="fas fa-chart-line mr-1 text-purple-500"></i>Showing OTPs from <span id="filterStartDate" class="font-medium text-purple-700"></span> to <span id="filterEndDate" class="font-medium text-purple-700"></span>
+            <span id="filterInfo" class="ml-2 text-gray-500">(Only OTPs matching allocated numbers)</span>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl shadow-lg p-6">
+        <div class="stat-card bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl shadow-lg p-6 text-white">
             <div class="flex items-center justify-between">
-                <div><p class="text-indigo-100 text-sm">Total Users</p><p class="text-white text-3xl font-bold mt-1" id="statUsers">0</p></div>
-                <i class="fas fa-users text-indigo-200 text-4xl opacity-75"></i>
+                <p class="text-purple-100 text-sm font-medium">Total Users</p>
+                <i class="fas fa-users text-purple-300 text-xl opacity-70"></i>
             </div>
+            <p class="text-white text-3xl font-bold mt-2" id="statUsers">0</p>
         </div>
-        <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl shadow-lg p-6">
+        <div class="stat-card bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl shadow-lg p-6 text-white">
             <div class="flex items-center justify-between">
-                <div><p class="text-emerald-100 text-sm">Today's Requests</p><p class="text-white text-3xl font-bold mt-1" id="statToday">0</p></div>
-                <i class="fas fa-phone-alt text-emerald-200 text-4xl opacity-75"></i>
+                <p class="text-emerald-100 text-sm font-medium">Total Allocated Numbers</p>
+                <i class="fas fa-database text-emerald-300 text-xl opacity-70"></i>
             </div>
+            <p class="text-white text-3xl font-bold mt-2" id="statNumbers">0</p>
         </div>
-        <div class="bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl shadow-lg p-6">
+        <div class="stat-card bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl shadow-lg p-6 text-white">
             <div class="flex items-center justify-between">
-                <div><p class="text-amber-100 text-sm">Total Requests</p><p class="text-white text-3xl font-bold mt-1" id="statTotal">0</p></div>
-                <i class="fas fa-chart-line text-amber-200 text-4xl opacity-75"></i>
+                <p class="text-amber-100 text-sm font-medium">Matched OTPs</p>
+                <i class="fas fa-key text-amber-300 text-xl opacity-70"></i>
             </div>
+            <p class="text-white text-3xl font-bold mt-2" id="statOtps">0</p>
         </div>
-        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6">
+        <div class="stat-card bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl shadow-lg p-6 text-white">
             <div class="flex items-center justify-between">
-                <div><p class="text-purple-100 text-sm">Active Countries</p><p class="text-white text-3xl font-bold mt-1" id="statCountries">0</p></div>
-                <i class="fas fa-globe text-purple-200 text-4xl opacity-75"></i>
+                <p class="text-rose-100 text-sm font-medium">Total Earnings</p>
+                <i class="fas fa-coins text-rose-300 text-xl opacity-70"></i>
             </div>
+            <p class="text-white text-3xl font-bold mt-2" id="statEarnings">$0.00</p>
+            <p class="text-rose-100 text-xs mt-1">($0.005 per OTP)</p>
         </div>
     </div>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-lg font-semibold text-gray-800">👥 Recent Users</h2>
-                <a href="users.html" class="text-indigo-600 text-sm hover:underline">Manage →</a>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-sm">
-                    <thead class="bg-gray-50 text-gray-600 text-xs">……
-                        <th class="px-4 py-2 text-left">Username</th><th class="px-4 py-2 text-left">Email</th><th class="px-4 py-2 text-left">Created</th>
-                    </thead>
-                    <tbody id="recentUsers" class="divide-y divide-gray-100"></tbody>
-                 </table>
+    <!-- Recent OTPs Table -->
+    <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
+        <div class="p-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center">
+            <h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>Matched OTP Records</h3>
+            <div class="text-xs text-gray-500 bg-purple-100 px-3 py-1.5 rounded-full">
+                <i class="fas fa-info-circle mr-1 text-purple-500"></i> Showing OTPs that match allocated numbers
             </div>
         </div>
-        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-            <h2 class="text-lg font-semibold text-gray-800 mb-4">📊 Quick Actions</h2>
-            <div class="space-y-3">
-                <a href="users.html" class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
-                    <i class="fas fa-user-plus text-indigo-600"></i><span>Create New User</span>
-                </a>
-                <a href="analytics.html" class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition">
-                    <i class="fas fa-chart-bar text-emerald-600"></i><span>View Analytics</span>
-                </a>
-            </div>
+        <div class="overflow-x-auto table-container max-h-[500px] overflow-y-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-purple-50 sticky top-0">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">#</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Date</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Phone (Last 3)</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Matched User</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">OTP Code</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Service</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Range</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Time</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Earned</th>
+                    </tr>
+                </thead>
+                <tbody id="otpTableBody" class="divide-y divide-gray-100">
+                    <tr><td colspan="9" class="text-center py-12 text-gray-400"><div class="loading-spinner mx-auto mb-3"></div>Loading matched OTPs...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </main>
 
-<script src="../js/data.js"></script>
-<script src="../js/auth.js"></script>
 <script>
-    if (!requireAdminAuth()) { /* redirect */ }
-    
-    function updateStats() {
-        initData();
-        const users = getUsers();
-        const requests = getAllRequests();
-        const today = getTodayStr();
+const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
+const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
+
+// Session check
+const session = JSON.parse(localStorage.getItem('elite_session') || 'null');
+if (!session || session.role !== 'admin') window.location.href = '../index.html';
+document.getElementById('adminName').innerText = session.username || 'Administrator';
+
+// Global data stores
+let allAllocatedNumbers = []; // { id, user_id, number, last3, country, users: { username } }
+let allOtps = [];
+let matchedOtps = [];
+let usersMap = new Map(); // user_id -> username
+
+// Helper functions
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m));
+}
+
+function maskPhoneByLast3(last3) {
+    if (!last3) return '***';
+    return `***${last3}`;
+}
+
+function formatTime(messageTime, time) {
+    if (messageTime) {
+        const d = new Date(messageTime);
+        if (!isNaN(d.getTime())) return d.toLocaleTimeString();
+    }
+    return time || '';
+}
+
+// Fetch all allocated numbers with user info
+async function fetchAllAllocatedNumbers() {
+    try {
+        const url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)`;
+        const res = await fetch(url, { headers: { 'apikey': API_KEY } });
+        const data = await res.json();
+        allAllocatedNumbers = data || [];
         
-        document.getElementById('statUsers').textContent = users.length;
-        document.getElementById('statToday').textContent = requests.filter(r => r.date === today).reduce((s,r)=>s+r.count,0);
-        document.getElementById('statTotal').textContent = requests.reduce((s,r)=>s+r.count,0);
-        
-        const analyticsData = JSON.parse(localStorage.getItem('nexus_analytics_numbers') || '[]');
-        document.getElementById('statCountries').textContent = new Set(analyticsData.map(i=>i.country)).size;
-        
-        const recent = [...users].reverse().slice(0,5);
-        document.getElementById('recentUsers').innerHTML = recent.map(u => `
-            <tr><td class="px-4 py-2 font-medium">${escapeHtml(u.username)}</td>
-            <td class="px-4 py-2">${escapeHtml(u.email)}</td>
-            <td class="px-4 py-2 text-xs">${u.createdAt || '—'}</td></tr>
-        `).join('');
+        // Build users map
+        usersMap.clear();
+        for (const item of allAllocatedNumbers) {
+            if (item.user_id && item.users?.username) {
+                usersMap.set(item.user_id, item.users.username);
+            }
+        }
+        return allAllocatedNumbers;
+    } catch (err) {
+        console.error("Fetch allocated numbers error:", err);
+        return [];
+    }
+}
+
+// Fetch OTPs with date filter
+async function fetchOtps(startDate, endDate) {
+    try {
+        let url = `${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=3000`;
+        if (startDate && endDate) {
+            url = `${SUPABASE_URL}/rest/v1/otp_logs?select=*&date=gte.${startDate}&date=lte.${endDate}&order=date.desc&limit=3000`;
+        }
+        const res = await fetch(url, { headers: { 'apikey': API_KEY } });
+        const data = await res.json();
+        return data || [];
+    } catch (err) {
+        console.error("Fetch OTPs error:", err);
+        return [];
+    }
+}
+
+// Match OTPs with allocated numbers based on phone_last3
+function matchOtpsWithAllocatedNumbers(otps, allocatedNumbers) {
+    // Create a map of last3 -> allocated number details
+    const last3Map = new Map();
+    for (const allocated of allocatedNumbers) {
+        if (allocated.last3) {
+            if (!last3Map.has(allocated.last3)) {
+                last3Map.set(allocated.last3, {
+                    userId: allocated.user_id,
+                    username: allocated.users?.username || 'Unknown',
+                    country: allocated.country || 'Unknown',
+                    fullNumber: allocated.number
+                });
+            }
+        }
     }
     
-    updateStats();
+    // Filter OTPs that have matching last3
+    const matched = [];
+    for (const otp of otps) {
+        if (otp.phone_last3 && last3Map.has(otp.phone_last3)) {
+            const match = last3Map.get(otp.phone_last3);
+            matched.push({
+                ...otp,
+                matchedUser: match.username,
+                matchedUserId: match.userId,
+                matchedRange: match.country,
+                matchedFullNumber: match.fullNumber
+            });
+        }
+    }
+    return matched;
+}
+
+// Update stats and table
+function updateUI(matchedList, startDate, endDate) {
+    const totalOtps = matchedList.length;
+    const totalEarnings = totalOtps * 0.005;
+    
+    document.getElementById('statOtps').textContent = totalOtps;
+    document.getElementById('statEarnings').textContent = `$${totalEarnings.toFixed(2)}`;
+    
+    // Update filter result display
+    if (startDate && endDate) {
+        document.getElementById('filterStartDate').textContent = startDate;
+        document.getElementById('filterEndDate').textContent = endDate;
+        document.getElementById('filterResult').classList.remove('hidden');
+    } else {
+        document.getElementById('filterResult').classList.add('hidden');
+    }
+    
+    const tbody = document.getElementById('otpTableBody');
+    if (matchedList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-400"><i class="fas fa-inbox text-4xl mb-3 opacity-50"></i><br/>No OTPs match any allocated numbers in this date range</td></tr>';
+        return;
+    }
+    
+    tbody.innerHTML = matchedList.map((otp, idx) => `
+        <tr class="hover:bg-purple-50 transition border-b border-gray-100">
+            <td class="px-6 py-3 text-gray-500 text-xs">${idx + 1}</td>
+            <td class="px-6 py-3 text-gray-600 text-xs whitespace-nowrap">${otp.date || 'N/A'}</td>
+            <td class="px-6 py-3 font-mono text-sm">
+                <span class="bg-gray-100 px-2 py-1 rounded-lg">${escapeHtml(maskPhoneByLast3(otp.phone_last3))}</span>
+            </td>
+            <td class="px-6 py-3">
+                <span class="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium">
+                    <i class="fas fa-user-circle text-xs"></i> ${escapeHtml(otp.matchedUser || 'Unknown')}
+                </span>
+            </td>
+            <td class="px-6 py-3">
+                <span class="font-mono font-bold text-purple-700 bg-purple-50 px-3 py-1.5 rounded-lg">${escapeHtml(otp.otp)}</span>
+            </td>
+            <td class="px-6 py-3"><span class="text-gray-600">${escapeHtml(otp.service || 'Unknown')}</span></td>
+            <td class="px-6 py-3">
+                <span class="inline-flex items-center gap-1 text-orange-600">
+                    <i class="fas fa-tag text-xs"></i> ${escapeHtml(otp.matchedRange || 'Unknown')}
+                </span>
+            </td>
+            <td class="px-6 py-3 text-gray-500 text-xs">${formatTime(otp.message_time, otp.time)}</td>
+            <td class="px-6 py-3 text-emerald-600 font-semibold">+$0.005</td>
+        </tr>
+    `).join('');
+}
+
+// Load global stats (users count and total allocated numbers)
+async function loadGlobalStats() {
+    try {
+        // Fetch users count
+        const usersRes = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id&role=eq.user`, { headers: { 'apikey': API_KEY } });
+        const users = await usersRes.json();
+        document.getElementById('statUsers').textContent = users.length;
+        
+        // Total allocated numbers already in allAllocatedNumbers
+        document.getElementById('statNumbers').textContent = allAllocatedNumbers.length;
+    } catch (err) {
+        console.error("Stats error:", err);
+    }
+}
+
+// Main function: load all data, match, and display
+async function loadMatchedOtps() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    if (!startDate || !endDate) {
+        // Set default dates if not set
+        const end = new Date();
+        const start = new Date();
+        start.setDate(end.getDate() - 7);
+        if (!document.getElementById('startDate').value) {
+            document.getElementById('startDate').value = start.toISOString().slice(0, 10);
+        }
+        if (!document.getElementById('endDate').value) {
+            document.getElementById('endDate').value = end.toISOString().slice(0, 10);
+        }
+    }
+    
+    const finalStartDate = document.getElementById('startDate').value;
+    const finalEndDate = document.getElementById('endDate').value;
+    
+    // Show loading state
+    document.getElementById('otpTableBody').innerHTML = '<tr><td colspan="9" class="text-center py-12"><div class="loading-spinner mx-auto mb-3"></div><p class="text-gray-500">Matching OTPs with allocated numbers...</p></td></tr>';
+    
+    // Fetch fresh data
+    await fetchAllAllocatedNumbers();
+    allOtps = await fetchOtps(finalStartDate, finalEndDate);
+    
+    // Match OTPs with allocated numbers
+    matchedOtps = matchOtpsWithAllocatedNumbers(allOtps, allAllocatedNumbers);
+    
+    // Update global stats
+    await loadGlobalStats();
+    
+    // Update UI
+    updateUI(matchedOtps, finalStartDate, finalEndDate);
+}
+
+// Set default dates
+function setDefaultDates() {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 7);
+    document.getElementById('startDate').value = start.toISOString().slice(0, 10);
+    document.getElementById('endDate').value = end.toISOString().slice(0, 10);
+}
+
+// Logout function
+function logout() {
+    localStorage.removeItem('elite_session');
+    window.location.href = '../index.html';
+}
+
+// Navigation handlers (mock for other pages)
+function setupNavigation() {
+    const navLinks = document.querySelectorAll('[data-page]');
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const page = link.getAttribute('data-page');
+            if (page !== 'dashboard') {
+                alert(`Navigation to "${page}" page would work in full application. Currently showing Smart OTP Tracker Dashboard.`);
+            }
+            document.getElementById('dropdown').classList.add('hidden-dropdown');
+        });
+    });
+}
+
+// Dropdown menu
+function setupDropdown() {
+    const menuBtn = document.getElementById('menuBtn');
+    const dropdown = document.getElementById('dropdown');
+    if (menuBtn) {
+        menuBtn.onclick = (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('hidden-dropdown');
+        };
+        document.addEventListener('click', () => dropdown.classList.add('hidden-dropdown'));
+    }
+}
+
+// Initialize dashboard
+async function init() {
+    setupDropdown();
+    setupNavigation();
+    setDefaultDates();
+    document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); logout(); };
+    document.getElementById('filterBtn').onclick = () => loadMatchedOtps();
+    
+    // Initial load
+    await loadMatchedOtps();
+}
+
+// Start the app
+document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
