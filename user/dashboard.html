@@ -15,30 +15,14 @@
             min-height: 100vh;
         }
         
-        /* Purple & Gray Theme */
-        :root {
-            --primary-purple: #7c3aed;
-            --primary-dark: #6d28d9;
-            --primary-light: #a78bfa;
-            --secondary-purple: #ede9fe;
-            --accent-purple: #c4b5fd;
-            --gray-soft: #f9fafb;
-            --gray-border: #e5e7eb;
-            --gray-text: #4b5563;
-            --white: #ffffff;
-        }
-        
         .page { display: none; }
         .page.active-page { display: block; }
         .hidden-dropdown { display: none; }
         
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #f3e8ff; border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6d28d9; }
         
-        /* Loading Spinner */
         .loading-spinner {
             width: 32px;
             height: 32px;
@@ -49,29 +33,18 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
         
-        /* OTP Row */
         .otp-row { transition: all 0.2s ease; }
         .otp-row:hover { background: #f5f3ff; transform: translateX(2px); }
         
-        /* Data Table */
-        .data-table {
-            border-collapse: separate;
-            border-spacing: 0;
-        }
         .data-table th {
             background: #f5f3ff;
             font-weight: 600;
             color: #5b21b6;
             border-bottom: 2px solid #ddd6fe;
         }
-        .data-table td {
-            border-bottom: 1px solid #e9d5ff;
-        }
-        .data-table tr:hover td {
-            background-color: #f5f3ff;
-        }
+        .data-table td { border-bottom: 1px solid #e9d5ff; }
+        .data-table tr:hover td { background-color: #f5f3ff; }
         
-        /* Reset Timer */
         .reset-timer {
             font-size: 12px;
             color: #6d28d9;
@@ -81,12 +54,8 @@
             background: #ede9fe;
             border-radius: 40px;
             display: inline-block;
-            width: auto;
-            margin-left: auto;
-            margin-right: auto;
         }
         
-        /* Notification */
         .reset-notification {
             position: fixed;
             top: 80px;
@@ -107,37 +76,14 @@
             to { top: 80px; opacity: 1; transform: translateX(-50%) scale(1); }
         }
         
-        /* Button Hover */
-        .btn-primary {
-            transition: all 0.2s ease;
-            background: #7c3aed;
-        }
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
-            background: #6d28d9;
-        }
-        .btn-secondary {
-            transition: all 0.2s ease;
-            background: #f3f4f6;
-            color: #374151;
-        }
-        .btn-secondary:hover {
-            background: #e5e7eb;
-            transform: translateY(-1px);
-        }
+        .btn-primary { background: #7c3aed; transition: all 0.2s ease; }
+        .btn-primary:hover { transform: translateY(-1px); background: #6d28d9; }
+        .btn-secondary { background: #f3f4f6; color: #374151; }
+        .btn-secondary:hover { background: #e5e7eb; }
         
-        /* Stat Card */
-        .stat-card {
-            transition: all 0.3s ease;
-            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-        }
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.3);
-        }
+        .stat-card { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); transition: all 0.3s ease; }
+        .stat-card:hover { transform: translateY(-4px); }
         
-        /* Custom Select */
         .custom-select {
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%237c3aed' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
             background-position: right 12px center;
@@ -146,35 +92,15 @@
             appearance: none;
         }
         
-        /* Nav Link */
-        .nav-link {
-            transition: all 0.2s ease;
-        }
-        .nav-link:hover {
-            background-color: #f5f3ff;
-            transform: translateX(4px);
-            color: #7c3aed;
-        }
+        .nav-link { transition: all 0.2s ease; }
+        .nav-link:hover { background-color: #f5f3ff; transform: translateX(4px); color: #7c3aed; }
         
-        /* Number Card */
-        .number-card {
-            transition: all 0.2s ease;
-        }
-        .number-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
+        .number-card { transition: all 0.2s ease; }
+        .number-card:hover { transform: translateY(-2px); }
         
-        /* Copy Button */
-        .copy-all-btn {
-            transition: all 0.2s ease;
-        }
-        .copy-all-btn:hover {
-            background: #7c3aed !important;
-            color: white !important;
-        }
+        .copy-all-btn { transition: all 0.2s ease; }
+        .copy-all-btn:hover { background: #7c3aed !important; color: white !important; }
         
-        /* Toast Message */
         .toast-success {
             position: fixed;
             bottom: 24px;
@@ -186,22 +112,15 @@
             font-size: 14px;
             z-index: 1000;
             animation: slideInRight 0.3s ease;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         @keyframes slideInRight {
             from { right: -100px; opacity: 0; }
             to { right: 24px; opacity: 1; }
         }
-        
-        /* Gray text accents */
-        .text-accent-gray { color: #4b5563; }
-        .border-gray-accent { border-color: #e5e7eb; }
-        .bg-gray-soft { background-color: #f9fafb; }
     </style>
 </head>
 <body>
 
-<!-- Top Navigation Bar - Purple Theme -->
 <nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
@@ -220,7 +139,7 @@
                     <p class="text-xs text-gray-500" id="userEmail"></p>
                 </div>
                 <div class="relative">
-                    <button id="menuButton" class="flex items-center gap-2 bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition duration-200">
+                    <button id="menuButton" class="flex items-center gap-2 bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition">
                         <i class="fas fa-user-circle text-purple-600 text-lg"></i>
                         <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
                     </button>
@@ -389,13 +308,13 @@ let userNumbers = [];
 let userPhoneNumbers = [];
 let userPhoneLast3s = [];
 let userOtps = [];
+let isLoading = false;
 
-// Store numbers data for copy all functionality
 window.countryNumbersStore = {};
 
 function getTodayStr() { return new Date().toISOString().slice(0, 10); }
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); }
-function getRangeFlag(c) { const f = {'Nigeria':'🇳🇬','Uzbekistan':'🇺🇿','USA':'🇺🇸','UK':'🇬🇧','Jordan':'🇯🇴','Tajikistan':'🇹🇯','Myanmar':'🇲🇲','Hungary':'🇭🇺','Slovenia':'🇸🇮','Venezuela':'🇻🇪','India':'🇮🇳','Germany':'🇩🇪','France':'🇫🇷'}; return f[c] || '🌍'; }
+function getRangeFlag(c) { return '📌'; }
 function showToast(m) { const t = document.createElement('div'); t.className = 'toast-success'; t.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${m}`; document.body.appendChild(t); setTimeout(() => t.remove(), 3000); }
 function getLast3Digits(p) { const d = p.toString().replace(/\D/g, ''); return d.length >= 3 ? d.slice(-3) : d; }
 function maskPhoneNumber(p) { if (!p) return '***'; const d = p.toString().replace(/\D/g, ''); if (d.length <= 6) return '***' + d.slice(-3); return d.slice(0,2) + '•'.repeat(Math.min(7, d.length-5)) + d.slice(-3); }
@@ -404,20 +323,40 @@ async function fetchUserById(id) {
     const r = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id,username,email&id=eq.${encodeURIComponent(id)}`, { headers: { 'apikey': SUPABASE_API_KEY } });
     const d = await r.json(); return d?.[0] || null;
 }
+
 async function fetchUserAllocatedNumbers(id) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,country&user_id=eq.${encodeURIComponent(id)}`, { headers: { 'apikey': SUPABASE_API_KEY } });
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,range_name&user_id=eq.${encodeURIComponent(id)}`, { headers: { 'apikey': SUPABASE_API_KEY } });
     return await r.json() || [];
 }
-async function fetchAllOtps() {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=2000`, { headers: { 'apikey': SUPABASE_API_KEY } });
+
+async function fetchUserOtps() {
+    if (!userPhoneLast3s.length) return [];
+    const last3Filter = userPhoneLast3s.map(l3 => `phone_last3=eq.${l3}`).join(',');
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&or=(${last3Filter})&order=date.desc&limit=500`, { headers: { 'apikey': SUPABASE_API_KEY } });
     return await r.json() || [];
 }
+
 function updateUserPhoneArrays() {
     userPhoneNumbers = []; userPhoneLast3s = [];
-    userNumbers.forEach(i => { if (i.number) { userPhoneNumbers.push(i.number); const l3 = getLast3Digits(i.number); if (l3) userPhoneLast3s.push(l3); } });
+    userNumbers.forEach(i => { 
+        if (i.number) { 
+            userPhoneNumbers.push(i.number); 
+            const l3 = getLast3Digits(i.number); 
+            if (l3 && l3.length === 3) userPhoneLast3s.push(l3); 
+        } 
+    });
     userPhoneLast3s = [...new Set(userPhoneLast3s)];
 }
-function processAllocatedNumbers(raw) { const g = {}; raw.forEach(i => { const c = i.country || 'Other'; if (!g[c]) g[c] = { range: c, numbers: [] }; g[c].numbers.push(i.number); }); return Object.values(g); }
+
+function processAllocatedNumbers(raw) { 
+    const g = {}; 
+    raw.forEach(i => { 
+        const c = i.range_name || i.country || 'Other'; 
+        if (!g[c]) g[c] = { range: c, numbers: [] }; 
+        g[c].numbers.push(i.number); 
+    }); 
+    return Object.values(g); 
+}
 
 function loadUserNumbersUI() {
     const processed = processAllocatedNumbers(userNumbers);
@@ -427,7 +366,7 @@ function loadUserNumbersUI() {
         return { range: g.range, available, total: g.numbers.length };
     });
     const sel = document.getElementById('countrySelect');
-    if (sel) sel.innerHTML = '<option value="">-- Select Range --</option>' + ranges.map(c => `<option value="${c.range}">${getRangeFlag(c.range)} ${c.range} (${c.available}/${c.total} available)</option>`).join('');
+    if (sel) sel.innerHTML = '<option value="">-- Select Range --</option>' + ranges.map(c => `<option value="${c.range}">📌 ${c.range} (${c.available}/${c.total} available)</option>`).join('');
 }
 
 function displayNumbers(range) {
@@ -467,7 +406,7 @@ function displayNumbers(range) {
         <div class="border border-purple-100 rounded-xl overflow-hidden">
             <div class="bg-purple-50 px-5 py-3 flex justify-between items-center border-b border-purple-100">
                 <div>
-                    <span class="font-semibold text-gray-700">${getRangeFlag(range)} ${range}</span>
+                    <span class="font-semibold text-gray-700">📌 ${range}</span>
                     <span class="text-xs font-normal text-gray-500 ml-2">(${availableNumbers.length} available)</span>
                 </div>
                 <button onclick="copyAllNumbers('${range.replace(/'/g, "\\'")}', '${rangeKey}')" class="copy-all-btn bg-purple-100 hover:bg-purple-600 text-purple-700 hover:text-white px-3 py-1.5 rounded-lg text-sm transition">
@@ -482,37 +421,13 @@ function displayNumbers(range) {
 }
 
 function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showToast(`Copied: ${text.slice(-10)}`);
-    }).catch(() => {
-        const textarea = document.createElement('textarea');
-        textarea.value = text;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        showToast(`Copied: ${text.slice(-10)}`);
-    });
+    navigator.clipboard.writeText(text).then(() => showToast(`Copied: ${text.slice(-10)}`));
 }
 
 function copyAllNumbers(range, rangeKey) {
     const numbers = window.countryNumbersStore[rangeKey];
-    if (!numbers || numbers.length === 0) {
-        showToast(`No numbers to copy for ${range}`);
-        return;
-    }
-    const numbersList = numbers.join('\n');
-    navigator.clipboard.writeText(numbersList).then(() => {
-        showToast(`📋 Copied ${numbers.length} numbers from ${range}`);
-    }).catch(() => {
-        const textarea = document.createElement('textarea');
-        textarea.value = numbersList;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        showToast(`📋 Copied ${numbers.length} numbers from ${range}`);
-    });
+    if (!numbers || numbers.length === 0) { showToast(`No numbers to copy for ${range}`); return; }
+    navigator.clipboard.writeText(numbers.join('\n')).then(() => showToast(`📋 Copied ${numbers.length} numbers from ${range}`));
 }
 
 function renderTodayOtps() {
@@ -522,10 +437,17 @@ function renderTodayOtps() {
     if (!tbody) return;
     if (!todayOtps.length) { tbody.innerHTML = ''; if (empty) empty.classList.remove('hidden'); return; }
     if (empty) empty.classList.add('hidden');
-    tbody.innerHTML = todayOtps.map(o => { const m = userPhoneNumbers.find(n => getLast3Digits(n) === o.phone_last3); return `<tr class="otp-row border-b border-gray-100"><td class="px-6 py-3 font-mono text-sm">${escapeHtml(m ? maskPhoneNumber(m) : '***'+o.phone_last3)}<\/td><td class="px-6 py-3">${escapeHtml(o.service || 'Unknown')}<\/td><td class="px-6 py-3"><span class="font-mono font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg">${escapeHtml(o.otp)}<\/span><\/td><td class="px-6 py-3 text-gray-500 text-xs">${o.message_time ? new Date(o.message_time).toLocaleTimeString() : ''}<\/td><\/tr>`; }).join('');
+    tbody.innerHTML = todayOtps.map(o => { 
+        const m = userPhoneNumbers.find(n => getLast3Digits(n) === o.phone_last3); 
+        return `<tr class="otp-row border-b border-gray-100"><td class="px-6 py-3 font-mono text-sm">${escapeHtml(m ? maskPhoneNumber(m) : '***'+o.phone_last3)}<\/td><td class="px-6 py-3">${escapeHtml(o.service || 'Unknown')}<\/td><td class="px-6 py-3"><span class="font-mono font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-lg">${escapeHtml(o.otp)}<\/span><\/td><td class="px-6 py-3 text-gray-500 text-xs">${o.message_time ? new Date(o.message_time).toLocaleTimeString() : ''}<\/td><\/tr>`; 
+    }).join('');
 }
 
-function updateTodayStats() { const todayCount = userOtps.filter(o => o.date === getTodayStr()).length; document.getElementById('totalOtpCount').textContent = todayCount; document.getElementById('totalEarnings').textContent = `$${(todayCount * 0.005).toFixed(2)}`; }
+function updateTodayStats() { 
+    const todayCount = userOtps.filter(o => o.date === getTodayStr()).length; 
+    document.getElementById('totalOtpCount').textContent = todayCount; 
+    document.getElementById('totalEarnings').textContent = `$${(todayCount * 0.005).toFixed(2)}`; 
+}
 
 function fetchPastOtps() {
     let start = document.getElementById('startDate').value;
@@ -542,52 +464,153 @@ function fetchPastOtps() {
     if (filtered.length === 0) { tbody.innerHTML = ''; if (empty) empty.classList.remove('hidden'); if (earnSpan) earnSpan.textContent = '$0.00'; return; }
     if (empty) empty.classList.add('hidden');
     if (earnSpan) earnSpan.textContent = `$${(filtered.length * 0.005).toFixed(2)}`;
-    tbody.innerHTML = filtered.map(o => { const m = userPhoneNumbers.find(n => getLast3Digits(n) === o.phone_last3); return `<tr class="hover:bg-gray-50 border-b border-gray-100"><td class="px-6 py-3 text-gray-500 text-xs whitespace-nowrap">${o.date || 'N/A'}<\/td><td class="px-6 py-3 font-mono text-sm">${escapeHtml(m ? maskPhoneNumber(m) : '***'+o.phone_last3)}<\/td><td class="px-6 py-3">${escapeHtml(o.service || 'Unknown')}<\/td><td class="px-6 py-3"><span class="font-mono font-bold text-purple-600">${escapeHtml(o.otp)}<\/span><\/td><td class="px-6 py-3">${escapeHtml(o.country || 'Unknown')}<\/td><td class="px-6 py-3 text-gray-500 text-xs">${o.message_time ? new Date(o.message_time).toLocaleTimeString() : ''}<\/td><\/tr>`; }).join('');
+    tbody.innerHTML = filtered.map(o => { 
+        const m = userPhoneNumbers.find(n => getLast3Digits(n) === o.phone_last3); 
+        return `<tr class="hover:bg-gray-50 border-b border-gray-100"><td class="px-6 py-3 text-gray-500 text-xs whitespace-nowrap">${o.date || 'N/A'}<\/td><td class="px-6 py-3 font-mono text-sm">${escapeHtml(m ? maskPhoneNumber(m) : '***'+o.phone_last3)}<\/td><td class="px-6 py-3">${escapeHtml(o.service || 'Unknown')}<\/td><td class="px-6 py-3"><span class="font-mono font-bold text-purple-600">${escapeHtml(o.otp)}<\/span><\/td><td class="px-6 py-3">${escapeHtml(o.range_name || o.country || 'Unknown')}<\/td><td class="px-6 py-3 text-gray-500 text-xs">${o.message_time ? new Date(o.message_time).toLocaleTimeString() : ''}<\/td><\/tr>`; 
+    }).join('');
 }
 
 function resetFilter() { document.getElementById('startDate').value = ''; document.getElementById('endDate').value = ''; document.getElementById('filterInfo').classList.add('hidden'); fetchPastOtps(); }
-async function refreshAll() { if (!currentUser) return; const all = await fetchAllOtps(); userOtps = all.filter(o => userPhoneLast3s.includes(o.phone_last3)); renderTodayOtps(); updateTodayStats(); fetchPastOtps(); loadUserNumbersUI(); if (document.getElementById('allocationPage').classList.contains('active-page') && document.getElementById('countrySelect').value) displayNumbers(document.getElementById('countrySelect').value); }
-function updateResetTimer() { const now = new Date(); const resetTime = new Date(); resetTime.setHours(1, 0, 0, 0); if (now >= resetTime) resetTime.setDate(resetTime.getDate() + 1); const diff = resetTime - now; const hours = Math.floor(diff / (1000 * 60 * 60)); const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)); const seconds = Math.floor((diff % (1000 * 60)) / 1000); const timerElement = document.getElementById('resetTimer'); if (timerElement) timerElement.innerHTML = `<i class="fas fa-clock mr-2"></i> Resets in ${hours}h ${minutes}m ${seconds}s`; }
+
+async function refreshAll() { 
+    if (!currentUser || isLoading) return; 
+    isLoading = true;
+    const all = await fetchUserOtps(); 
+    userOtps = all; 
+    renderTodayOtps(); 
+    updateTodayStats(); 
+    fetchPastOtps(); 
+    loadUserNumbersUI(); 
+    if (document.getElementById('allocationPage').classList.contains('active-page') && document.getElementById('countrySelect').value) 
+        displayNumbers(document.getElementById('countrySelect').value); 
+    isLoading = false;
+}
+
+function updateResetTimer() { 
+    const now = new Date(); 
+    const resetTime = new Date(); 
+    resetTime.setHours(1, 0, 0, 0); 
+    if (now >= resetTime) resetTime.setDate(resetTime.getDate() + 1); 
+    const diff = resetTime - now; 
+    const hours = Math.floor(diff / (1000 * 60 * 60)); 
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)); 
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000); 
+    const timerElement = document.getElementById('resetTimer'); 
+    if (timerElement) timerElement.innerHTML = `<i class="fas fa-clock mr-2"></i> Resets in ${hours}h ${minutes}m ${seconds}s`; 
+}
+
 let lastDate = getTodayStr();
-function checkDateChange() { const currentDate = getTodayStr(); if (currentDate !== lastDate) { lastDate = currentDate; refreshAll(); const notif = document.createElement('div'); notif.className = 'reset-notification'; notif.innerHTML = `<i class="fas fa-sync-alt mr-2"></i> Today's OTP stats have been reset at 1:00 AM`; document.body.appendChild(notif); setTimeout(() => notif.remove(), 3000); } }
+function checkDateChange() { 
+    const currentDate = getTodayStr(); 
+    if (currentDate !== lastDate) { 
+        lastDate = currentDate; 
+        refreshAll(); 
+        const notif = document.createElement('div'); 
+        notif.className = 'reset-notification'; 
+        notif.innerHTML = `<i class="fas fa-sync-alt mr-2"></i> Today's OTP stats have been reset at 1:00 AM`; 
+        document.body.appendChild(notif); 
+        setTimeout(() => notif.remove(), 3000); 
+    } 
+}
+
 function getUserIdFromUrl() { return new URLSearchParams(window.location.search).get('id'); }
-function saveCurrentPage(p) { localStorage.setItem('elite_current_page', p); }
-function getSavedPage() { return localStorage.getItem('elite_current_page') || 'allocation'; }
-function loadSavedPage() { const s = getSavedPage(); ['allocation','today','total','past'].forEach(p => document.getElementById(p+'Page').classList.remove('active-page')); document.getElementById(s+'Page').classList.add('active-page'); if (s === 'allocation') loadUserNumbersUI(); if (s === 'today') renderTodayOtps(); if (s === 'total') updateTodayStats(); if (s === 'past') fetchPastOtps(); }
+
+function saveCurrentPage(p) { 
+    localStorage.setItem('elite_current_page', p);
+    if (currentUser) localStorage.setItem('elite_user_id', currentUser.id);
+}
+
+function getSavedPage() { 
+    const savedUserId = localStorage.getItem('elite_user_id');
+    const currentUserId = getUserIdFromUrl();
+    if (savedUserId !== currentUserId) return 'allocation';
+    return localStorage.getItem('elite_current_page') || 'allocation'; 
+}
+
+function loadSavedPage() { 
+    const s = getSavedPage(); 
+    ['allocation','today','total','past'].forEach(p => document.getElementById(p+'Page').classList.remove('active-page')); 
+    document.getElementById(s+'Page').classList.add('active-page'); 
+    if (s === 'allocation') loadUserNumbersUI(); 
+    if (s === 'today') renderTodayOtps(); 
+    if (s === 'total') updateTodayStats(); 
+    if (s === 'past') fetchPastOtps(); 
+}
 
 async function initDashboard() {
     const userId = getUserIdFromUrl();
     if (!userId) { window.location.href = '../index.html'; return; }
+    
     document.getElementById('numbersDisplay').innerHTML = '<div class="text-center py-12"><div class="loading-spinner mx-auto"></div><p class="mt-3 text-gray-500">Loading user data...</p></div>';
+    
     const user = await fetchUserById(userId);
     if (!user) { document.getElementById('numbersDisplay').innerHTML = '<div class="text-center py-12 text-red-500"><i class="fas fa-exclamation-triangle text-4xl mb-3"></i><p>User not found</p></div>'; return; }
+    
     currentUser = user;
     document.getElementById('userName').innerText = currentUser.username || 'User';
     document.getElementById('userEmail').innerText = currentUser.email || '';
+    
     userNumbers = await fetchUserAllocatedNumbers(currentUser.id);
     updateUserPhoneArrays();
-    const all = await fetchAllOtps();
-    userOtps = all.filter(o => userPhoneLast3s.includes(o.phone_last3));
-    const end = new Date(), start = new Date(); start.setDate(end.getDate() - 6);
+    
+    userOtps = await fetchUserOtps();
+    
+    const end = new Date(), start = new Date(); 
+    start.setDate(end.getDate() - 6);
     document.getElementById('startDate').value = start.toISOString().slice(0,10);
     document.getElementById('endDate').value = end.toISOString().slice(0,10);
+    
     document.getElementById('countrySelect').onchange = e => { if (e.target.value) displayNumbers(e.target.value); };
     document.getElementById('fetchBtn').onclick = fetchPastOtps;
     document.getElementById('resetFilterBtn').onclick = resetFilter;
-    renderTodayOtps(); updateTodayStats(); fetchPastOtps(); loadUserNumbersUI();
+    
+    renderTodayOtps(); 
+    updateTodayStats(); 
+    fetchPastOtps(); 
+    loadUserNumbersUI();
     document.getElementById('numbersDisplay').innerHTML = '<div class="text-center py-12 text-gray-400"><i class="fas fa-globe-africa text-4xl mb-3 opacity-50"></i><p>Select a range to view numbers</p></div>';
+    
     loadSavedPage();
     showToast(`Welcome ${currentUser.username}!`);
-    updateResetTimer(); setInterval(updateResetTimer, 1000); setInterval(checkDateChange, 60000);
+    updateResetTimer(); 
+    setInterval(updateResetTimer, 1000); 
+    setInterval(checkDateChange, 60000);
 }
 
-function setupNavigation() { ['allocation','today','total','past'].forEach(p => { document.querySelectorAll(`[data-page="${p}"]`).forEach(link => { link.onclick = (e) => { e.preventDefault(); ['allocation','today','total','past'].forEach(pg => document.getElementById(pg+'Page').classList.remove('active-page')); document.getElementById(p+'Page').classList.add('active-page'); document.getElementById('dropdownMenu').classList.add('hidden-dropdown'); saveCurrentPage(p); if (p === 'allocation') { loadUserNumbersUI(); if (document.getElementById('countrySelect').value) displayNumbers(document.getElementById('countrySelect').value); } if (p === 'today') renderTodayOtps(); if (p === 'total') updateTodayStats(); if (p === 'past') fetchPastOtps(); }; }); }); }
-function setupDropdown() { const btn = document.getElementById('menuButton'), drop = document.getElementById('dropdownMenu'); if (btn) { btn.onclick = (e) => { e.stopPropagation(); drop.classList.toggle('hidden-dropdown'); }; document.addEventListener('click', () => drop.classList.add('hidden-dropdown')); } }
+function setupNavigation() { 
+    ['allocation','today','total','past'].forEach(p => { 
+        document.querySelectorAll(`[data-page="${p}"]`).forEach(link => { 
+            link.onclick = (e) => { 
+                e.preventDefault(); 
+                ['allocation','today','total','past'].forEach(pg => document.getElementById(pg+'Page').classList.remove('active-page')); 
+                document.getElementById(p+'Page').classList.add('active-page'); 
+                document.getElementById('dropdownMenu').classList.add('hidden-dropdown'); 
+                saveCurrentPage(p); 
+                if (p === 'allocation') { loadUserNumbersUI(); if (document.getElementById('countrySelect').value) displayNumbers(document.getElementById('countrySelect').value); } 
+                if (p === 'today') renderTodayOtps(); 
+                if (p === 'total') updateTodayStats(); 
+                if (p === 'past') fetchPastOtps(); 
+            }; 
+        }); 
+    }); 
+}
+
+function setupDropdown() { 
+    const btn = document.getElementById('menuButton'), drop = document.getElementById('dropdownMenu'); 
+    if (btn) { 
+        btn.onclick = (e) => { e.stopPropagation(); drop.classList.toggle('hidden-dropdown'); }; 
+        document.addEventListener('click', () => drop.classList.add('hidden-dropdown')); 
+    } 
+}
 
 window.copyToClipboard = copyToClipboard;
 window.copyAllNumbers = copyAllNumbers;
 
-document.addEventListener('DOMContentLoaded', async () => { setupNavigation(); setupDropdown(); await initDashboard(); });
+document.addEventListener('DOMContentLoaded', async () => { 
+    setupNavigation(); 
+    setupDropdown(); 
+    await initDashboard(); 
+});
 </script>
 </body>
 </html>
