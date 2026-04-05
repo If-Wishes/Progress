@@ -41,6 +41,13 @@
             background-color: #f5f3ff;
             color: #7c3aed;
         }
+        .otp-exceeded {
+            background-color: #fef2f2;
+            opacity: 0.7;
+        }
+        .otp-exceeded:hover {
+            background-color: #fee2e2;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-purple-50 to-gray-100 min-h-screen">
@@ -76,7 +83,7 @@
 <main class="max-w-7xl mx-auto px-4 py-8">
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-900">📊 Smart OTP Tracker</h1>
-        <p class="text-gray-500 text-sm mt-1">Tracking only OTPs that match allocated numbers across all users</p>
+        <p class="text-gray-500 text-sm mt-1">Tracking only OTPs that match allocated numbers across all users (Max 2 OTPs per number per day)</p>
     </div>
 
     <!-- Date Range Filter Section -->
@@ -99,12 +106,12 @@
         </div>
         <div id="filterResult" class="mt-4 text-sm text-gray-600 hidden bg-purple-50 p-3 rounded-lg">
             <i class="fas fa-chart-line mr-1 text-purple-500"></i>Showing OTPs from <span id="filterStartDate" class="font-medium text-purple-700"></span> to <span id="filterEndDate" class="font-medium text-purple-700"></span>
-            <span id="filterInfo" class="ml-2 text-gray-500">(Only OTPs matching allocated numbers)</span>
+            <span id="filterInfo" class="ml-2 text-gray-500">(Max 2 OTPs per number per day - exceeded ones not counted)</span>
         </div>
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
         <div class="stat-card bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl shadow-lg p-6 text-white">
             <div class="flex items-center justify-between">
                 <p class="text-purple-100 text-sm font-medium">Total Users</p>
@@ -114,17 +121,18 @@
         </div>
         <div class="stat-card bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl shadow-lg p-6 text-white">
             <div class="flex items-center justify-between">
-                <p class="text-emerald-100 text-sm font-medium">Total Allocated Numbers</p>
+                <p class="text-emerald-100 text-sm font-medium">Total Numbers</p>
                 <i class="fas fa-database text-emerald-300 text-xl opacity-70"></i>
             </div>
             <p class="text-white text-3xl font-bold mt-2" id="statNumbers">0</p>
         </div>
         <div class="stat-card bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl shadow-lg p-6 text-white">
             <div class="flex items-center justify-between">
-                <p class="text-amber-100 text-sm font-medium">Matched OTPs</p>
+                <p class="text-amber-100 text-sm font-medium">Valid OTPs</p>
                 <i class="fas fa-key text-amber-300 text-xl opacity-70"></i>
             </div>
             <p class="text-white text-3xl font-bold mt-2" id="statOtps">0</p>
+            <p class="text-amber-100 text-xs mt-1">(First 2 per number/day)</p>
         </div>
         <div class="stat-card bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl shadow-lg p-6 text-white">
             <div class="flex items-center justify-between">
@@ -132,7 +140,15 @@
                 <i class="fas fa-coins text-rose-300 text-xl opacity-70"></i>
             </div>
             <p class="text-white text-3xl font-bold mt-2" id="statEarnings">$0.00</p>
-            <p class="text-rose-100 text-xs mt-1">($0.005 per OTP)</p>
+            <p class="text-rose-100 text-xs mt-1">($0.005 per valid OTP)</p>
+        </div>
+        <div class="stat-card bg-gradient-to-br from-slate-500 to-slate-600 rounded-2xl shadow-lg p-6 text-white">
+            <div class="flex items-center justify-between">
+                <p class="text-slate-100 text-sm font-medium">Exceeded OTPs</p>
+                <i class="fas fa-ban text-slate-300 text-xl opacity-70"></i>
+            </div>
+            <p class="text-white text-3xl font-bold mt-2" id="statExceeded">0</p>
+            <p class="text-slate-100 text-xs mt-1">(Not counted/earned)</p>
         </div>
     </div>
 
@@ -141,7 +157,7 @@
         <div class="p-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center">
             <h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>Matched OTP Records</h3>
             <div class="text-xs text-gray-500 bg-purple-100 px-3 py-1.5 rounded-full">
-                <i class="fas fa-info-circle mr-1 text-purple-500"></i> Showing OTPs that match allocated numbers
+                <i class="fas fa-info-circle mr-1 text-purple-500"></i> Max 2 OTPs per number per day (exceeded ones are grayed out)
             </div>
         </div>
         <div class="overflow-x-auto table-container max-h-[500px] overflow-y-auto">
@@ -156,11 +172,12 @@
                         <th class="px-6 py-3 text-left text-gray-700 font-semibold">Service</th>
                         <th class="px-6 py-3 text-left text-gray-700 font-semibold">Range</th>
                         <th class="px-6 py-3 text-left text-gray-700 font-semibold">Time</th>
+                        <th class="px-6 py-3 text-left text-gray-700 font-semibold">Status</th>
                         <th class="px-6 py-3 text-left text-gray-700 font-semibold">Earned</th>
                     </tr>
                 </thead>
                 <tbody id="otpTableBody" class="divide-y divide-gray-100">
-                    <tr><td colspan="9" class="text-center py-12 text-gray-400"><div class="loading-spinner mx-auto mb-3"></div>Loading matched OTPs...</td></tr>
+                    <tr><td colspan="10" class="text-center py-12 text-gray-400"><div class="loading-spinner mx-auto mb-3"></div>Loading matched OTPs...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -221,9 +238,9 @@ async function fetchAllAllocatedNumbers() {
 
 async function fetchOtps(startDate, endDate) {
     try {
-        let url = `${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=3000`;
+        let url = `${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=5000`;
         if (startDate && endDate) {
-            url = `${SUPABASE_URL}/rest/v1/otp_logs?select=*&date=gte.${startDate}&date=lte.${endDate}&order=date.desc&limit=3000`;
+            url = `${SUPABASE_URL}/rest/v1/otp_logs?select=*&date=gte.${startDate}&date=lte.${endDate}&order=date.desc&limit=5000`;
         }
         const res = await fetch(url, { headers: { 'apikey': API_KEY } });
         const data = await res.json();
@@ -235,27 +252,43 @@ async function fetchOtps(startDate, endDate) {
 }
 
 function matchOtpsWithAllocatedNumbers(otps, allocatedNumbers) {
+    // Create map of last3 -> allocated number details
     const last3Map = new Map();
     for (const allocated of allocatedNumbers) {
         if (allocated.last3 && !last3Map.has(allocated.last3)) {
             last3Map.set(allocated.last3, {
                 userId: allocated.user_id,
                 username: allocated.users?.username || 'Unknown',
-                country: allocated.country || 'Unknown',
+                range: allocated.range_name || allocated.country || 'Unknown',
                 fullNumber: allocated.number
             });
         }
     }
+    
+    // Match OTPs and apply daily limit (max 2 per number per day)
     const matched = [];
+    const dailyCountMap = new Map(); // key: "date_last3"
+    
     for (const otp of otps) {
         if (otp.phone_last3 && last3Map.has(otp.phone_last3)) {
             const match = last3Map.get(otp.phone_last3);
+            const otpDate = otp.date || otp.message_time?.slice(0, 10);
+            const key = `${otpDate}_${otp.phone_last3}`;
+            const currentCount = dailyCountMap.get(key) || 0;
+            const isValid = currentCount < 2;
+            
+            if (isValid) {
+                dailyCountMap.set(key, currentCount + 1);
+            }
+            
             matched.push({
                 ...otp,
                 matchedUser: match.username,
                 matchedUserId: match.userId,
-                matchedRange: match.country,
-                matchedFullNumber: match.fullNumber
+                matchedRange: match.range,
+                matchedFullNumber: match.fullNumber,
+                isValid: isValid,
+                dailyCount: currentCount + (isValid ? 1 : 0)
             });
         }
     }
@@ -263,11 +296,14 @@ function matchOtpsWithAllocatedNumbers(otps, allocatedNumbers) {
 }
 
 function updateUI(matchedList, startDate, endDate) {
-    const totalOtps = matchedList.length;
+    const validOtps = matchedList.filter(otp => otp.isValid === true);
+    const exceededOtps = matchedList.filter(otp => otp.isValid === false);
+    const totalOtps = validOtps.length;
     const totalEarnings = totalOtps * 0.005;
     
     document.getElementById('statOtps').textContent = totalOtps;
     document.getElementById('statEarnings').textContent = `$${totalEarnings.toFixed(2)}`;
+    document.getElementById('statExceeded').textContent = exceededOtps.length;
     
     if (startDate && endDate) {
         document.getElementById('filterStartDate').textContent = startDate;
@@ -279,23 +315,34 @@ function updateUI(matchedList, startDate, endDate) {
     
     const tbody = document.getElementById('otpTableBody');
     if (matchedList.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-400"><i class="fas fa-inbox text-4xl mb-3 opacity-50"></i><br/>No OTPs match any allocated numbers in this date range</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-12 text-gray-400"><i class="fas fa-inbox text-4xl mb-3 opacity-50"></i><br/>No OTPs match any allocated numbers in this date range</td></tr>';
         return;
     }
     
-    tbody.innerHTML = matchedList.map((otp, idx) => `
-        <tr class="hover:bg-purple-50 transition border-b border-gray-100">
-            <td class="px-6 py-3 text-gray-500 text-xs">${idx + 1}</td>
-            <td class="px-6 py-3 text-gray-600 text-xs whitespace-nowrap">${otp.date || 'N/A'}</td>
-            <td class="px-6 py-3 font-mono text-sm"><span class="bg-gray-100 px-2 py-1 rounded-lg">${escapeHtml(maskPhoneByLast3(otp.phone_last3))}</span></td>
-            <td class="px-6 py-3"><span class="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium"><i class="fas fa-user-circle text-xs"></i> ${escapeHtml(otp.matchedUser || 'Unknown')}</span></td>
-            <td class="px-6 py-3"><span class="font-mono font-bold text-purple-700 bg-purple-50 px-3 py-1.5 rounded-lg">${escapeHtml(otp.otp)}</span></td>
-            <td class="px-6 py-3"><span class="text-gray-600">${escapeHtml(otp.service || 'Unknown')}</span></td>
-            <td class="px-6 py-3"><span class="inline-flex items-center gap-1 text-orange-600"><i class="fas fa-tag text-xs"></i> ${escapeHtml(otp.matchedRange || 'Unknown')}</span></td>
-            <td class="px-6 py-3 text-gray-500 text-xs">${formatTime(otp.message_time, otp.time)}</td>
-            <td class="px-6 py-3 text-emerald-600 font-semibold">+$0.005</td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = matchedList.map((otp, idx) => {
+        const isValid = otp.isValid;
+        const rowClass = isValid ? '' : 'otp-exceeded';
+        const statusBadge = isValid 
+            ? '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✓ Counted</span>'
+            : '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">✗ Exceeded Limit</span>';
+        const earnedText = isValid ? '+$0.005' : '$0.00';
+        const earnedClass = isValid ? 'text-emerald-600 font-semibold' : 'text-gray-400';
+        
+        return `
+            <tr class="hover:bg-purple-50 transition border-b border-gray-100 ${rowClass}">
+                <td class="px-6 py-3 text-gray-500 text-xs">${idx + 1}</td>
+                <td class="px-6 py-3 text-gray-600 text-xs whitespace-nowrap">${otp.date || 'N/A'}</td>
+                <td class="px-6 py-3 font-mono text-sm"><span class="bg-gray-100 px-2 py-1 rounded-lg">${escapeHtml(maskPhoneByLast3(otp.phone_last3))}</span></td>
+                <td class="px-6 py-3"><span class="inline-flex items-center gap-1 bg-purple-100 text-purple-700 px-2 py-1 rounded-full text-xs font-medium"><i class="fas fa-user-circle text-xs"></i> ${escapeHtml(otp.matchedUser || 'Unknown')}</span></td>
+                <td class="px-6 py-3"><span class="font-mono font-bold text-purple-700 bg-purple-50 px-3 py-1.5 rounded-lg">${escapeHtml(otp.otp)}</span></td>
+                <td class="px-6 py-3"><span class="text-gray-600">${escapeHtml(otp.service || 'Unknown')}</span></td>
+                <td class="px-6 py-3"><span class="inline-flex items-center gap-1 text-orange-600"><i class="fas fa-tag text-xs"></i> ${escapeHtml(otp.matchedRange || 'Unknown')}</span></td>
+                <td class="px-6 py-3 text-gray-500 text-xs">${formatTime(otp.message_time, otp.time)}</td>
+                <td class="px-6 py-3">${statusBadge}</td>
+                <td class="px-6 py-3 ${earnedClass}">${earnedText}</td>
+            </tr>
+        `;
+    }).join('');
 }
 
 async function loadGlobalStats() {
@@ -316,7 +363,7 @@ async function loadMatchedOtps() {
     const finalStartDate = startDate || document.getElementById('startDate').value;
     const finalEndDate = endDate || document.getElementById('endDate').value;
     
-    document.getElementById('otpTableBody').innerHTML = '<tr><td colspan="9" class="text-center py-12"><div class="loading-spinner mx-auto mb-3"></div><p class="text-gray-500">Matching OTPs with allocated numbers...</p></td></tr>';
+    document.getElementById('otpTableBody').innerHTML = '<tr><td colspan="10" class="text-center py-12"><div class="loading-spinner mx-auto mb-3"></div><p class="text-gray-500">Matching OTPs with allocated numbers...</p></td></tr>';
     
     await fetchAllAllocatedNumbers();
     allOtps = await fetchOtps(finalStartDate, finalEndDate);
@@ -342,7 +389,6 @@ function logout() {
     window.location.href = '../index.html';
 }
 
-// ================= DROPDOWN MENU (WORKS LIKE MIMA) =================
 function setupDropdown() {
     const menuBtn = document.getElementById('menuBtn');
     const dropdown = document.getElementById('dropdown');
@@ -355,7 +401,6 @@ function setupDropdown() {
     }
 }
 
-// ================= INITIALIZE =================
 async function init() {
     setupDropdown();
     setDefaultDates();
