@@ -11,7 +11,7 @@
         
         body { 
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
             min-height: 100vh;
         }
         
@@ -20,7 +20,7 @@
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 24px;
-            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1);
         }
         
         /* Smooth Transitions */
@@ -56,7 +56,7 @@
             border-radius: 20px;
             font-weight: bold;
             font-family: monospace;
-            font-size: 1.1rem;
+            font-size: 0.9rem;
         }
         
         /* Stat Card */
@@ -114,7 +114,7 @@
             box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
         }
         
-        /* OTP Row */
+        /* OTP Entry */
         .otp-entry {
             background: white;
             border-radius: 12px;
@@ -127,34 +127,14 @@
             border-color: #7c3aed;
             box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
         }
+        
+        .hidden-dropdown { display: none !important; }
     </style>
 </head>
 <body>
 
-<!-- LOGIN SECTION -->
-<div id="loginBox" class="min-h-screen flex items-center justify-center p-4">
-    <div class="glass-card max-w-md w-full p-8 fade-in">
-        <div class="text-center mb-6">
-            <div class="w-16 h-16 bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <i class="fas fa-crown text-white text-2xl"></i>
-            </div>
-            <h2 class="text-2xl font-bold text-gray-800">ELITE<span class="text-purple-600">Panel</span></h2>
-            <p class="text-gray-500 text-sm mt-1">Secure User Portal</p>
-        </div>
-        
-        <input id="username" type="text" placeholder="Username" class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-3 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
-        <input id="password" type="password" placeholder="Password" class="w-full border border-gray-200 rounded-xl px-4 py-3 mb-4 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition">
-        
-        <button onclick="login()" class="btn-purple w-full text-white py-3 rounded-xl font-semibold shadow-md">
-            <i class="fas fa-sign-in-alt mr-2"></i> Login
-        </button>
-        
-        <p id="msg" class="text-center mt-4 text-red-500 text-sm"></p>
-    </div>
-</div>
-
-<!-- DASHBOARD SECTION -->
-<div id="dashboard" class="hidden min-h-screen">
+<!-- DASHBOARD SECTION (shown immediately after login) -->
+<div id="dashboard" class="min-h-screen">
     
     <!-- Navigation Bar -->
     <nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
@@ -169,15 +149,22 @@
                 </div>
             </div>
             
-            <select id="menu" class="custom-select border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
-                <option value="profile">👤 Profile</option>
-                <option value="allocation">📌 Allocation</option>
-                <option value="today">📊 Today's Stat</option>
-                <option value="total">💰 Total OTP</option>
-                <option value="past">📋 Past Records</option>
-                <option value="support">📞 Contact Support</option>
-                <option value="logout">🚪 Logout</option>
-            </select>
+            <div class="relative">
+                <button id="menuButton" class="flex items-center gap-2 bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition">
+                    <i class="fas fa-user-circle text-purple-600 text-lg"></i>
+                    <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
+                </button>
+                <div id="dropdownMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden">
+                    <a href="#" data-page="profile" class="nav-link block px-4 py-2 hover:bg-purple-50">👤 Profile</a>
+                    <a href="#" data-page="allocation" class="nav-link block px-4 py-2 hover:bg-purple-50">📌 Allocation</a>
+                    <a href="#" data-page="today" class="nav-link block px-4 py-2 hover:bg-purple-50">📊 Today's Stat</a>
+                    <a href="#" data-page="total" class="nav-link block px-4 py-2 hover:bg-purple-50">💰 Total OTP</a>
+                    <a href="#" data-page="past" class="nav-link block px-4 py-2 hover:bg-purple-50">📋 Past Records</a>
+                    <div class="border-t border-gray-100"></div>
+                    <a href="#" data-page="support" class="nav-link block px-4 py-2 hover:bg-purple-50 text-purple-600">📞 Support</a>
+                    <a href="#" id="logoutBtn" class="nav-link block px-4 py-2 text-red-600 hover:bg-red-50">🚪 Logout</a>
+                </div>
+            </div>
         </div>
     </nav>
     
@@ -200,30 +187,24 @@ function getPanelDate(date) { return date ? date.slice(0,10) : new Date().toISOS
 function formatTime(timeStr) { return timeStr ? new Date(timeStr).toLocaleTimeString() : '-'; }
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); }
 
-// Login Function
-async function login() {
-    const username = document.getElementById('username').value.trim();
-    const password = document.getElementById('password').value.trim();
-    const msgBox = document.getElementById('msg');
+// Get user from URL and load data
+async function initFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
     
-    if (!username || !password) {
-        msgBox.innerText = 'Please enter username and password';
+    if (!userId) {
+        window.location.href = '../index.html';
         return;
     }
     
     try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&username=eq.${encodeURIComponent(username)}`, {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&id=eq.${encodeURIComponent(userId)}`, {
             headers: { 'apikey': SUPABASE_API_KEY }
         });
         const users = await res.json();
         
         if (!users.length) {
-            msgBox.innerText = 'User not found';
-            return;
-        }
-        
-        if (users[0].password !== password) {
-            msgBox.innerText = 'Wrong password';
+            window.location.href = '../index.html';
             return;
         }
         
@@ -232,18 +213,23 @@ async function login() {
         // Load user data
         await loadUserData();
         
-        // Show dashboard
-        document.getElementById('loginBox').classList.add('hidden');
-        document.getElementById('dashboard').classList.remove('hidden');
+        // Setup dropdown
+        setupDropdown();
+        setupNavigation();
         
-        // Setup menu
-        const menu = document.getElementById('menu');
-        menu.onchange = () => handleMenu(menu.value);
-        
+        // Show profile page by default
         showPage('profile');
         
+        // Setup logout
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('elite_session');
+            window.location.href = '../index.html';
+        });
+        
     } catch (err) {
-        msgBox.innerText = 'Login error: ' + err.message;
+        console.error('Init error:', err);
+        window.location.href = '../index.html';
     }
 }
 
@@ -266,17 +252,6 @@ async function loadUserData() {
     
     // Filter OTPs for this user
     allOtps = allOtps.filter(otp => userLast3s.includes(otp.phone_last3));
-}
-
-// Handle Menu Navigation
-function handleMenu(value) {
-    if (value === 'logout') {
-        location.reload();
-    } else if (value === 'support') {
-        window.open('https://wa.me/2348113903584', '_blank');
-    } else {
-        showPage(value);
-    }
 }
 
 // Profile Page
@@ -394,7 +369,7 @@ function todayPage() {
     `;
 }
 
-// Total OTP Page
+// Total OTP Page (Earnings)
 function totalPage() {
     const today = getPanelDate(new Date().toISOString());
     const todayCount = allOtps.filter(o => o.date === today).length;
@@ -435,7 +410,6 @@ function updateCountdown() {
     
     el.innerHTML = `<i class="fas fa-clock mr-1"></i> Resets in ${hours}h ${minutes}m ${seconds}s`;
 }
-setInterval(updateCountdown, 1000);
 
 // Past Records Page
 function pastPage() {
@@ -527,34 +501,70 @@ function showPage(page) {
         case 'total':
             content.innerHTML = totalPage();
             updateCountdown();
+            setInterval(updateCountdown, 1000);
             break;
         case 'past':
+            // Set default dates
+            const today = new Date();
+            const weekAgo = new Date();
+            weekAgo.setDate(today.getDate() - 7);
+            setTimeout(() => {
+                const startInput = document.getElementById('startDate');
+                const endInput = document.getElementById('endDate');
+                if (startInput) startInput.value = weekAgo.toISOString().slice(0,10);
+                if (endInput) endInput.value = today.toISOString().slice(0,10);
+            }, 100);
             content.innerHTML = pastPage();
+            break;
+        case 'support':
+            window.open('https://wa.me/2348113903584', '_blank');
+            showPage('profile');
             break;
         default:
             content.innerHTML = profilePage();
     }
 }
 
+// Dropdown Setup
+function setupDropdown() {
+    const menuBtn = document.getElementById('menuButton');
+    const dropdown = document.getElementById('dropdownMenu');
+    
+    if (menuBtn) {
+        menuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            dropdown.classList.toggle('hidden-dropdown');
+        });
+    }
+    
+    document.addEventListener('click', (e) => {
+        if (!menuBtn.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden-dropdown');
+        }
+    });
+}
+
+// Navigation Setup
+function setupNavigation() {
+    const navLinks = document.querySelectorAll('[data-page]');
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const page = link.getAttribute('data-page');
+            showPage(page);
+            document.getElementById('dropdownMenu').classList.add('hidden-dropdown');
+        });
+    });
+}
+
 // Make functions global
-window.login = login;
 window.uploadAvatar = uploadAvatar;
 window.displayNumbers = displayNumbers;
 window.filterPast = filterPast;
 window.showPage = showPage;
-window.handleMenu = handleMenu;
 
-// Set default dates for past records
-setTimeout(() => {
-    const today = new Date();
-    const weekAgo = new Date();
-    weekAgo.setDate(today.getDate() - 7);
-    
-    const startInput = document.getElementById('startDate');
-    const endInput = document.getElementById('endDate');
-    if (startInput) startInput.value = weekAgo.toISOString().slice(0,10);
-    if (endInput) endInput.value = today.toISOString().slice(0,10);
-}, 100);
+// Start app
+initFromUrl();
 </script>
 </body>
 </html>
