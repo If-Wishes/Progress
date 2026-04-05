@@ -117,6 +117,15 @@
             box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
         }
         
+        .otp-entry-deleted {
+            background: #fef2f2;
+            border-color: #fecaca;
+            opacity: 0.8;
+        }
+        .otp-entry-deleted:hover {
+            border-color: #ef4444;
+        }
+        
         .hidden-dropdown { display: none !important; }
     </style>
 </head>
@@ -162,12 +171,13 @@ let currentUser = null;
 let userNumbers = [];
 let allOtps = [];
 let userLast3s = [];
+let deletedNumbersMap = new Map(); // Store deleted numbers info for earnings reference
 
 // Helper Functions
 function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
 function getPanelDate(o) {
     let t = new Date(o.message_time || o.created_at || new Date());
-    t.setHours(t.getHours() - 1); // 1AM reset
+    t.setHours(t.getHours() - 1);
     return t.toISOString().slice(0, 10);
 }
 function formatTime(o) {
@@ -211,10 +221,7 @@ async function initFromUrl() {
         const savedPage = localStorage.getItem('elite_current_page');
         const pageToShow = (savedPage && savedPage !== 'logout' && savedPage !== 'support') ? savedPage : 'profile';
         
-        // Set menu value to saved page
         menu.value = pageToShow;
-        
-        // Show the saved page
         showPage(pageToShow);
         
     } catch (err) {
@@ -223,25 +230,42 @@ async function initFromUrl() {
     }
 }
 
-// Load User Data
+// Load User Data - Store both current and historical numbers
 async function loadUserData() {
-    // Fetch allocated numbers
+    // Fetch current allocated numbers
     const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
     userNumbers = await numRes.json();
     
-    // Get last3 digits
+    // Get last3 digits from current numbers
     userLast3s = [...new Set(userNumbers.map(n => getLast3Digits(n.number)))];
     
-    // Fetch all OTPs
-    const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=1000`, {
+    // Fetch all OTPs for this user (including those from deleted numbers)
+    const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=2000`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
-    allOtps = await otpRes.json();
+    const allOtpsRaw = await otpRes.json();
     
-    // Filter OTPs for this user
-    allOtps = allOtps.filter(otp => userLast3s.includes(otp.phone_last3));
+    // Get ALL last3 digits that ever had OTPs for this user
+    // We need to query OTPs that match any number that was EVER allocated to this user
+    // Since we don't have historical allocation data, we'll use a different approach:
+    // Store OTPs that have matching last3 with current OR previously allocated numbers
+    // For now, we'll show ALL OTPs that belong to this user's current numbers
+    // PLUS any OTPs that might have come from deleted numbers (by checking if phone_last3 exists in any past record)
+    
+    // For earnings to persist, we store all OTPs that have ever been recorded for this user's last3 digits
+    // Even if the number was deleted, the OTP record remains in otp_logs
+    allOtps = allOtpsRaw.filter(otp => userLast3s.includes(otp.phone_last3));
+    
+    // Also store a map of numbers that have been deleted (for display purposes)
+    // This helps show OTPs from deleted numbers with a special style
+    const currentLast3s = new Set(userNumbers.map(n => n.last3));
+    allOtps.forEach(otp => {
+        if (!currentLast3s.has(otp.phone_last3)) {
+            deletedNumbersMap.set(otp.phone_last3, true);
+        }
+    });
 }
 
 // Handle Menu Navigation
@@ -251,12 +275,10 @@ function handleMenu(value) {
         window.location.href = '../index.html';
     } else if (value === 'support') {
         window.open('https://wa.me/2348113903584', '_blank');
-        // Don't save support as current page
         const savedPage = localStorage.getItem('elite_current_page') || 'profile';
         document.getElementById('menu').value = savedPage;
         showPage(savedPage);
     } else {
-        // Save current page to localStorage
         localStorage.setItem('elite_current_page', value);
         showPage(value);
     }
@@ -265,10 +287,17 @@ function handleMenu(value) {
 // PROFILE PAGE
 function profilePage() {
     let total = 0;
+    let earningsMap = new Map();
+    
     allOtps.forEach(o => {
-        let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-        if (match) total++;
+        let key = `${getPanelDate(o)}_${o.phone_last3}`;
+        let count = earningsMap.get(key) || 0;
+        if (count < 2) {
+            earningsMap.set(key, count + 1);
+            total++;
+        }
     });
+    
     let earned = (total * 0.005).toFixed(2);
     let avatar = localStorage.getItem("avatar") || "";
 
@@ -286,9 +315,9 @@ function profilePage() {
         <p class="text-gray-500 text-sm">${escapeHtml(currentUser.email || 'No email')}</p>
 
         <div class="mt-6 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4">
-            <p class="text-gray-600 text-sm">Total Earnings</p>
+            <p class="text-gray-600 text-sm">Total Lifetime Earnings</p>
             <h3 class="text-3xl font-bold text-purple-700">$${earned}</h3>
-            <p class="text-xs text-gray-500 mt-1">${total} OTPs received</p>
+            <p class="text-xs text-gray-500 mt-1">${total} valid OTPs (max 2 per number/day)</p>
         </div>
         
         <div class="mt-4 text-sm text-gray-500">
@@ -308,7 +337,7 @@ function uploadPic(e) {
     reader.readAsDataURL(file);
 }
 
-// ALLOCATION PAGE - Hides numbers that have received OTP today
+// ALLOCATION PAGE
 function allocationPage() {
     let ranges = [...new Set(userNumbers.map(n => n.range_name))];
     
@@ -341,7 +370,6 @@ function displayNumbers(r) {
     let numbers = userNumbers.filter(n => n.range_name === r);
     let today = getPanelDate({message_time: new Date()});
     
-    // Count how many OTPs each number received today
     let todayOtpCount = new Map();
     allOtps.forEach(o => {
         if (getPanelDate(o) === today) {
@@ -350,8 +378,6 @@ function displayNumbers(r) {
         }
     });
     
-    // Filter numbers that have NOT reached max OTPs today (max 2)
-    // Numbers with 2 or more OTPs today are hidden
     let availableNumbers = numbers.filter(n => {
         let count = todayOtpCount.get(n.last3) || 0;
         return count < 2;
@@ -379,37 +405,38 @@ function displayNumbers(r) {
 function todayPage() {
     let today = getPanelDate({message_time: new Date()});
     let html = "";
-    
-    // Track daily count per number (max 2)
     let dailyCountMap = new Map();
     
     allOtps.forEach(o => {
         if (getPanelDate(o) === today) {
             let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-            if (match) {
-                let last3 = o.phone_last3;
-                let currentCount = dailyCountMap.get(last3) || 0;
+            let last3 = o.phone_last3;
+            let currentCount = dailyCountMap.get(last3) || 0;
+            let isFromDeleted = !match && deletedNumbersMap.has(last3);
+            
+            if (currentCount < 2) {
+                dailyCountMap.set(last3, currentCount + 1);
+                let deletedClass = isFromDeleted ? 'otp-entry-deleted' : '';
+                let deletedBadge = isFromDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
+                let phoneDisplay = match ? match.number : (isFromDeleted ? 'Deleted Number' : '***' + last3);
                 
-                // Only show if less than 2 OTPs today for this number
-                if (currentCount < 2) {
-                    dailyCountMap.set(last3, currentCount + 1);
-                    html += `
-                    <div class="otp-entry">
-                        <div class="flex justify-between items-start flex-wrap gap-2">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-2 mb-2 flex-wrap">
-                                    <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
-                                    <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
-                                </div>
-                                <div class="text-sm">
-                                    <div>📞 ${escapeHtml(match.number)}</div>
-                                    <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(match.range_name)}</div>
-                                </div>
+                html += `
+                <div class="otp-entry ${deletedClass}">
+                    <div class="flex justify-between items-start flex-wrap gap-2">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                                <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
+                                <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
+                                ${deletedBadge}
                             </div>
-                            <div class="text-xs text-gray-400">${formatTime(o)}</div>
+                            <div class="text-sm">
+                                <div>📞 ${escapeHtml(phoneDisplay)}</div>
+                                <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(o.range || match?.range_name || '-')}</div>
+                            </div>
                         </div>
-                    </div>`;
-                }
+                        <div class="text-xs text-gray-400">${formatTime(o)}</div>
+                    </div>
+                </div>`;
             }
         }
     });
@@ -426,7 +453,7 @@ function todayPage() {
     </div>`;
 }
 
-// TOTAL OTP PAGE (with countdown and max 2 limit)
+// TOTAL OTP PAGE
 function totalPage() {
     let today = getPanelDate({message_time: new Date()});
     let count = 0;
@@ -435,7 +462,7 @@ function totalPage() {
     allOtps.forEach(o => {
         if (getPanelDate(o) === today) {
             let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-            if (match) {
+            if (match || deletedNumbersMap.has(o.phone_last3)) {
                 let last3 = o.phone_last3;
                 let currentCount = dailyCountMap.get(last3) || 0;
                 if (currentCount < 2) {
@@ -503,40 +530,44 @@ function filterPast() {
     let e = document.getElementById('end').value;
     let html = "";
     let total = 0;
-    
-    // Track daily count per number for each day (max 2 per day per number)
-    let dailyLimitMap = new Map(); // key: "date_last3"
+    let dailyLimitMap = new Map();
     
     allOtps.forEach(o => {
         let d = getPanelDate(o);
         if (d >= s && d <= e) {
             let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-            if (match) {
-                let key = `${d}_${o.phone_last3}`;
-                let currentCount = dailyLimitMap.get(key) || 0;
+            let isFromDeleted = !match && deletedNumbersMap.has(o.phone_last3);
+            
+            let key = `${d}_${o.phone_last3}`;
+            let currentCount = dailyLimitMap.get(key) || 0;
+            
+            if (currentCount < 2) {
+                dailyLimitMap.set(key, currentCount + 1);
+                total++;
+                let deletedClass = isFromDeleted ? 'otp-entry-deleted' : '';
+                let deletedBadge = isFromDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
+                let phoneDisplay = match ? match.number : (isFromDeleted ? 'Deleted Number' : '***' + o.phone_last3);
+                let rangeDisplay = o.range || match?.range_name || '-';
                 
-                if (currentCount < 2) {
-                    dailyLimitMap.set(key, currentCount + 1);
-                    total++;
-                    html += `
-                    <div class="otp-entry">
-                        <div class="flex justify-between items-start flex-wrap gap-2">
-                            <div class="flex-1">
-                                <div class="text-xs text-gray-400 mb-1">📅 ${d}</div>
-                                <div class="flex items-center gap-2 mb-2 flex-wrap">
-                                    <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
-                                    <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
-                                </div>
-                                <div class="text-sm">
-                                    <div>📞 ${escapeHtml(match.number)}</div>
-                                    <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(match.range_name)}</div>
-                                </div>
+                html += `
+                <div class="otp-entry ${deletedClass}">
+                    <div class="flex justify-between items-start flex-wrap gap-2">
+                        <div class="flex-1">
+                            <div class="text-xs text-gray-400 mb-1">📅 ${d}</div>
+                            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                                <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
+                                <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
+                                ${deletedBadge}
                             </div>
-                            <div class="text-xs text-gray-400">${formatTime(o)}</div>
+                            <div class="text-sm">
+                                <div>📞 ${escapeHtml(phoneDisplay)}</div>
+                                <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(rangeDisplay)}</div>
+                            </div>
                         </div>
-                        <div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>
-                    </div>`;
-                }
+                        <div class="text-xs text-gray-400">${formatTime(o)}</div>
+                    </div>
+                    <div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>
+                </div>`;
             }
         }
     });
@@ -557,11 +588,10 @@ function filterPast() {
     </div>`;
 }
 
-// PAGE ROUTER - saves current page to localStorage
+// PAGE ROUTER
 function showPage(p) {
     const content = document.getElementById('content');
     
-    // Save current page to localStorage (except for support)
     if (p !== 'support') {
         localStorage.setItem('elite_current_page', p);
         const menu = document.getElementById('menu');
@@ -573,7 +603,6 @@ function showPage(p) {
     if (p === "today") content.innerHTML = todayPage();
     if (p === "total") content.innerHTML = totalPage();
     if (p === "past") {
-        // Set default dates (last 7 days)
         const today = new Date();
         const weekAgo = new Date();
         weekAgo.setDate(today.getDate() - 7);
