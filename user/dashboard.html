@@ -23,18 +23,11 @@
             display: inline-block;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .number-badge {
-            background: #eef2ff;
-            color: #1e40af;
-            padding: 2px 8px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 500;
-        }
         .stat-card { transition: all 0.3s ease; }
         .stat-card:hover { transform: translateY(-4px); }
         .nav-link { transition: all 0.2s; display: block; }
         .nav-link:hover { background-color: #f5f3ff; color: #7c3aed; }
+        .number-card:hover { background-color: #f5f3ff !important; }
     </style>
 </head>
 <body>
@@ -81,7 +74,7 @@
         <div id="allocationPage" class="page">
             <h1 class="text-2xl font-bold text-gray-900">📌 Number Allocation</h1>
             <p class="text-gray-500 mt-1 mb-4">Select a range to view numbers assigned to you</p>
-            <select id="countrySelect" class="w-full md:w-64 border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 mb-4 focus:ring-2 focus:ring-purple-500 outline-none">
+            <select id="rangeSelect" class="w-full md:w-64 border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 mb-4 focus:ring-2 focus:ring-purple-500 outline-none">
                 <option value="">-- Select Range --</option>
             </select>
             <div id="numbersDisplay" class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 text-center text-gray-400">
@@ -192,11 +185,9 @@ let userNumbers = [];
 let userPhoneNumbers = [];
 let userPhoneLast3s = [];
 let userOtps = [];
-let isDataLoaded = false;
 
 function getTodayStr() { return new Date().toISOString().slice(0, 10); }
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); }
-function getRangeFlag(r) { return '📌'; }
 function showToast(m) { const t = document.createElement('div'); t.className = 'fixed bottom-24 right-6 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm z-50 shadow-lg'; t.innerHTML = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); }
 function getLast3Digits(p) { const d = p.toString().replace(/\D/g, ''); return d.length >= 3 ? d.slice(-3) : d; }
 function maskPhoneNumber(p) { if (!p) return '***'; const d = p.toString().replace(/\D/g, ''); if (d.length <= 6) return '***' + d.slice(-3); return d.slice(0,2) + '•'.repeat(Math.min(7, d.length-5)) + d.slice(-3); }
@@ -207,14 +198,17 @@ async function fetchUserById(id) {
 }
 
 async function fetchUserAllocatedNumbers(id) {
+    // Use range_name column (not country)
     const r = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,range_name&user_id=eq.${encodeURIComponent(id)}`, { headers: { 'apikey': SUPABASE_API_KEY } });
-    return await r.json() || [];
+    const data = await r.json();
+    console.log('Allocated numbers for user:', data);
+    return data || [];
 }
 
 async function fetchUserOtps() {
     if (!userPhoneLast3s.length) return [];
     const last3Filter = userPhoneLast3s.map(l3 => `phone_last3=eq.${l3}`).join(',');
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&or=(${last3Filter})&order=date.desc&limit=300`, { headers: { 'apikey': SUPABASE_API_KEY } });
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&or=(${last3Filter})&order=date.desc&limit=500`, { headers: { 'apikey': SUPABASE_API_KEY } });
     return await r.json() || [];
 }
 
@@ -228,14 +222,16 @@ function updateUserPhoneArrays() {
         } 
     });
     userPhoneLast3s = [...new Set(userPhoneLast3s)];
+    console.log('User phone numbers:', userPhoneNumbers);
+    console.log('Last3 digits for matching:', userPhoneLast3s);
 }
 
 function processAllocatedNumbers(raw) { 
     const g = {}; 
     raw.forEach(i => { 
-        const r = i.range_name || 'Other'; 
-        if (!g[r]) g[r] = { range: r, numbers: [] }; 
-        g[r].numbers.push(i.number); 
+        const rangeName = i.range_name || 'Other'; 
+        if (!g[rangeName]) g[rangeName] = { range: rangeName, numbers: [] }; 
+        g[rangeName].numbers.push(i.number); 
     }); 
     return Object.values(g); 
 }
@@ -247,8 +243,14 @@ function loadUserNumbersUI() {
         const available = g.numbers.filter(n => !usedLast3s.has(getLast3Digits(n))).length;
         return { range: g.range, available, total: g.numbers.length };
     });
-    const sel = document.getElementById('countrySelect');
-    if (sel) sel.innerHTML = '<option value="">-- Select Range --</option>' + ranges.map(c => `<option value="${c.range}">📌 ${c.range} (${c.available}/${c.total} available)</option>`).join('');
+    const sel = document.getElementById('rangeSelect');
+    if (sel) {
+        if (ranges.length === 0) {
+            sel.innerHTML = '<option value="">-- No numbers allocated --</option>';
+        } else {
+            sel.innerHTML = '<option value="">-- Select Range --</option>' + ranges.map(c => `<option value="${c.range}">📌 ${c.range} (${c.available}/${c.total} available)</option>`).join('');
+        }
+    }
 }
 
 function displayNumbers(range) {
@@ -270,7 +272,10 @@ function displayNumbers(range) {
     
     div.innerHTML = `
         <div class="border border-purple-100 rounded-xl overflow-hidden">
-            <div class="bg-purple-50 px-4 py-3 font-semibold border-b border-purple-100">📌 ${range}</div>
+            <div class="bg-purple-50 px-4 py-3 font-semibold border-b border-purple-100 flex justify-between items-center">
+                <span>📌 ${range}</span>
+                <button onclick="copyAllNumbers('${range.replace(/'/g, "\\'")}')" class="text-xs bg-purple-100 hover:bg-purple-600 hover:text-white text-purple-700 px-2 py-1 rounded transition">📋 Copy All</button>
+            </div>
             <div class="divide-y divide-gray-100">
                 ${availableNumbers.map(num => `<div class="px-4 py-3 font-mono text-sm flex justify-between items-center hover:bg-purple-50"><span>📞 ${escapeHtml(num)}</span><button onclick="copyNumber('${escapeHtml(num)}')" class="text-purple-500 text-xs hover:text-purple-700"><i class="far fa-copy"></i> Copy</button></div>`).join('')}
             </div>
@@ -278,7 +283,19 @@ function displayNumbers(range) {
     `;
 }
 
-function copyNumber(text) { navigator.clipboard.writeText(text).then(() => showToast(`Copied: ${text.slice(-10)}`)); }
+function copyNumber(text) { 
+    navigator.clipboard.writeText(text).then(() => showToast(`Copied: ${text.slice(-10)}`)); 
+}
+
+function copyAllNumbers(range) {
+    const processed = processAllocatedNumbers(userNumbers);
+    const rangeData = processed.find(g => g.range === range);
+    if (!rangeData || !rangeData.numbers.length) { showToast('No numbers to copy'); return; }
+    const usedLast3s = new Set(userOtps.map(o => o.phone_last3));
+    const availableNumbers = rangeData.numbers.filter(n => !usedLast3s.has(getLast3Digits(n)));
+    if (availableNumbers.length === 0) { showToast('No available numbers to copy'); return; }
+    navigator.clipboard.writeText(availableNumbers.join('\n')).then(() => showToast(`📋 Copied ${availableNumbers.length} numbers`));
+}
 
 function renderTodayOtps() {
     const today = getTodayStr();
@@ -310,7 +327,7 @@ function fetchPastOtps() {
     if (earnSpan) earnSpan.textContent = `$${(filtered.length * 0.005).toFixed(2)}`;
     tbody.innerHTML = filtered.map(o => { 
         const m = userPhoneNumbers.find(n => getLast3Digits(n) === o.phone_last3); 
-        return `<tr class="hover:bg-purple-50 border-b border-gray-100"><td class="px-6 py-3 text-gray-600 text-xs whitespace-nowrap">${o.date || 'N/A'}<\/td><td class="px-6 py-3 font-mono text-sm">${escapeHtml(m ? maskPhoneNumber(m) : '***'+o.phone_last3)}<\/td><td class="px-6 py-3">${escapeHtml(o.service || 'Unknown')}<\/td><td class="px-6 py-3"><span class="font-mono font-bold text-purple-600">${escapeHtml(o.otp)}<\/span><\/td><td class="px-6 py-3">${escapeHtml(o.range_name || 'Unknown')}<\/td><td class="px-6 py-3 text-gray-500 text-xs">${o.message_time ? new Date(o.message_time).toLocaleTimeString() : ''}<\/td><\/tr>`; 
+        return `<tr class="hover:bg-purple-50 border-b border-gray-100"><td class="px-6 py-3 text-gray-600 text-xs whitespace-nowrap">${o.date || 'N/A'}<\/td><td class="px-6 py-3 font-mono text-sm">${escapeHtml(m ? maskPhoneNumber(m) : '***'+o.phone_last3)}<\/td><td class="px-6 py-3">${escapeHtml(o.service || 'Unknown')}<\/td><td class="px-6 py-3"><span class="font-mono font-bold text-purple-600">${escapeHtml(o.otp)}<\/span><\/td><td class="px-6 py-3">${escapeHtml(o.range_name || o.country || 'Unknown')}<\/td><td class="px-6 py-3 text-gray-500 text-xs">${o.message_time ? new Date(o.message_time).toLocaleTimeString() : ''}<\/td><\/tr>`; 
     }).join('');
 }
 
@@ -318,8 +335,8 @@ async function refreshAll() {
     if (!currentUser) return; 
     userOtps = await fetchUserOtps(); 
     renderTodayOtps(); updateTotalStats(); fetchPastOtps(); loadUserNumbersUI(); 
-    if (document.getElementById('allocationPage').classList.contains('active-page') && document.getElementById('countrySelect').value) 
-        displayNumbers(document.getElementById('countrySelect').value); 
+    if (document.getElementById('allocationPage').classList.contains('active-page') && document.getElementById('rangeSelect').value) 
+        displayNumbers(document.getElementById('rangeSelect').value); 
 }
 
 function getUserIdFromUrl() { return new URLSearchParams(window.location.search).get('id'); }
@@ -344,6 +361,8 @@ async function initDashboard() {
     const userId = getUserIdFromUrl();
     if (!userId) { window.location.href = '../index.html'; return; }
     
+    document.getElementById('numbersDisplay').innerHTML = '<div class="text-center py-8"><div class="loading-spinner"></div><p class="mt-2">Loading your numbers...</p></div>';
+    
     const user = await fetchUserById(userId);
     if (!user) { window.location.href = '../index.html'; return; }
     
@@ -359,12 +378,13 @@ async function initDashboard() {
     document.getElementById('startDate').value = start.toISOString().slice(0,10);
     document.getElementById('endDate').value = end.toISOString().slice(0,10);
     
-    document.getElementById('countrySelect').onchange = e => { if (e.target.value) displayNumbers(e.target.value); };
+    document.getElementById('rangeSelect').onchange = e => { if (e.target.value) displayNumbers(e.target.value); };
     document.getElementById('fetchBtn').onclick = fetchPastOtps;
     
     renderTodayOtps(); updateTotalStats(); fetchPastOtps(); loadUserNumbersUI();
+    document.getElementById('numbersDisplay').innerHTML = '<div class="text-center py-8 text-gray-400">Select a range to view numbers</div>';
     loadSavedPage();
-    showToast(`Welcome ${currentUser.username}!`);
+    showToast(`Welcome ${currentUser.username}! You have ${userPhoneNumbers.length} numbers.`);
 }
 
 function setupNavigation() { 
@@ -376,7 +396,7 @@ function setupNavigation() {
                 document.getElementById(p+'Page').classList.add('active-page'); 
                 document.getElementById('dropdownMenu').classList.add('hidden-dropdown'); 
                 saveCurrentPage(p); 
-                if (p === 'allocation') { loadUserNumbersUI(); if (document.getElementById('countrySelect').value) displayNumbers(document.getElementById('countrySelect').value); } 
+                if (p === 'allocation') { loadUserNumbersUI(); if (document.getElementById('rangeSelect').value) displayNumbers(document.getElementById('rangeSelect').value); } 
                 if (p === 'today') renderTodayOtps(); 
                 if (p === 'total') updateTotalStats(); 
                 if (p === 'past') fetchPastOtps(); 
@@ -394,6 +414,7 @@ function setupDropdown() {
 }
 
 window.copyNumber = copyNumber;
+window.copyAllNumbers = copyAllNumbers;
 
 document.addEventListener('DOMContentLoaded', async () => { setupNavigation(); setupDropdown(); await initDashboard(); });
 </script>
