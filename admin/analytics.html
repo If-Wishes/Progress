@@ -19,6 +19,15 @@
         .used-number:hover {
             background-color: #fecaca !important;
         }
+        .deleted-number {
+            background-color: #e5e7eb !important;
+            border-left: 3px solid #6b7280 !important;
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+        .deleted-number:hover {
+            background-color: #d1d5db !important;
+        }
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -80,7 +89,7 @@
 
 <main class="max-w-7xl mx-auto px-4 py-8">
     <h1 class="text-2xl font-bold text-gray-800">📌 Range Allocation</h1>
-    <p class="text-gray-500 mb-6">Manage numbers - <span class="text-red-600">Red highlighted numbers</span> have received OTPs</p>
+    <p class="text-gray-500 mb-6">Manage numbers - <span class="text-red-600">Red highlighted numbers</span> have received OTPs | <span class="text-gray-500">Gray numbers</span> are deleted (earnings preserved)</p>
     
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Add Numbers Form -->
@@ -129,9 +138,17 @@ Example:
         <!-- Allocated Numbers List -->
         <div class="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
             <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-list-ul text-purple-500"></i> Allocated Numbers</h2>
-            <select id="filterSelect" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 mb-4 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
-                <option value="">-- All Users --</option>
-            </select>
+            
+            <!-- Show/Hide Deleted Toggle -->
+            <div class="flex items-center justify-between mb-4">
+                <select id="filterSelect" class="w-2/3 border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                    <option value="">-- All Users --</option>
+                </select>
+                <button id="toggleDeletedBtn" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg transition">
+                    <i class="fas fa-eye-slash mr-1"></i> Hide Deleted
+                </button>
+            </div>
+            
             <div id="allocationsList" class="max-h-96 overflow-y-auto space-y-3">
                 <div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
             </div>
@@ -169,6 +186,7 @@ document.getElementById('adminName').innerText = session.username;
 let usersList = [];
 let usedNumbersSet = new Set();
 let customRanges = [];
+let showDeleted = false;
 
 function getLast3Digits(number) {
     let cleaned = number.replace(/[^0-9]/g, '');
@@ -274,7 +292,13 @@ async function loadAllocatedNumbers() {
     }
     
     const res = await fetch(url, { headers: { 'apikey': API_KEY } });
-    const allocations = await res.json();
+    let allocations = await res.json();
+    
+    // Filter out deleted numbers if showDeleted is false
+    if (!showDeleted) {
+        allocations = allocations.filter(item => !item.is_deleted);
+    }
+    
     const container = document.getElementById('allocationsList');
     
     if (!allocations || allocations.length === 0) {
@@ -301,6 +325,7 @@ async function loadAllocatedNumbers() {
     for (const key in grouped) {
         const g = grouped[key];
         const usedCount = g.numbers.filter(num => usedNumbersSet.has(num.last3)).length;
+        const deletedCount = g.numbers.filter(num => num.is_deleted).length;
         const totalCount = g.numbers.length;
         
         html += `
@@ -311,7 +336,9 @@ async function loadAllocatedNumbers() {
                         <span class="ml-2 inline-flex items-center gap-1 text-sm font-medium text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
                             ${getRangeFlag(g.range)} ${escapeHtml(g.range)}
                         </span>
-                        ${usedCount > 0 ? `<span class="ml-2 text-xs text-red-600 bg-red-100 px-2 py-0.5 rounded-full">⚠️ ${usedCount}/${totalCount} used</span>` : `<span class="ml-2 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">✅ ${totalCount} active</span>`}
+                        ${usedCount > 0 ? `<span class="ml-2 text-xs text-red-600 bg-red-100 px-2 py-0.5 rounded-full">⚠️ ${usedCount}/${totalCount} used</span>` : ''}
+                        ${deletedCount > 0 ? `<span class="ml-2 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">🗑️ ${deletedCount} deleted</span>` : ''}
+                        ${usedCount === 0 && deletedCount === 0 ? `<span class="ml-2 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">✅ ${totalCount} active</span>` : ''}
                     </div>
                     <button onclick="deleteRangeNumbers('${g.userId}', '${escapeHtml(g.range).replace(/'/g, "\\'")}')" class="text-red-500 text-sm hover:text-red-700 transition">
                         <i class="fas fa-trash-alt mr-1"></i>Delete All
@@ -320,29 +347,100 @@ async function loadAllocatedNumbers() {
                 <div class="p-3 flex flex-wrap gap-2 bg-white">
                     ${g.numbers.map(num => {
                         const isUsed = usedNumbersSet.has(num.last3);
-                        const usedClass = isUsed ? 'used-number' : '';
-                        const usedIcon = isUsed ? '<i class="fas fa-check-circle text-red-500 mr-1 text-xs"></i>' : '<i class="fas fa-circle text-green-500 mr-1 text-xs"></i>';
-                        const title = isUsed ? 'This number has received an OTP' : 'Active number - no OTP received yet';
+                        const isDeleted = num.is_deleted;
+                        let usedClass = '';
+                        let statusIcon = '';
+                        let statusText = '';
+                        
+                        if (isDeleted) {
+                            usedClass = 'deleted-number';
+                            statusIcon = '<i class="fas fa-trash-alt text-gray-500 mr-1 text-xs"></i>';
+                            statusText = 'Deleted';
+                        } else if (isUsed) {
+                            usedClass = 'used-number';
+                            statusIcon = '<i class="fas fa-check-circle text-red-500 mr-1 text-xs"></i>';
+                            statusText = 'Used';
+                        } else {
+                            statusIcon = '<i class="fas fa-circle text-green-500 mr-1 text-xs"></i>';
+                            statusText = 'Active';
+                        }
+                        
+                        const title = isDeleted ? 'This number has been deleted (earnings preserved)' : (isUsed ? 'This number has received an OTP' : 'Active number - no OTP received yet');
                         
                         return `
                             <div class="bg-gray-100 rounded-lg px-3 py-1.5 flex items-center gap-2 ${usedClass} transition" title="${title}">
-                                ${usedIcon}
-                                <span class="font-mono text-sm">${escapeHtml(num.number)}</span>
+                                ${statusIcon}
+                                <span class="font-mono text-sm ${isDeleted ? 'line-through' : ''}">${escapeHtml(num.number)}</span>
                                 <span class="text-xs text-gray-400">(last3: ${num.last3})</span>
-                                <button onclick="deleteSingleNumber('${num.id}')" class="text-red-400 hover:text-red-600 ml-1">
-                                    <i class="fas fa-times-circle"></i>
+                                ${!isDeleted ? `<button onclick="softDeleteNumber('${num.id}')" class="text-gray-400 hover:text-red-600 ml-1" title="Soft delete (preserve earnings)">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>` : ''}
+                                <button onclick="restoreNumber('${num.id}')" class="text-green-500 hover:text-green-700 ml-1 text-xs" title="Restore number">
+                                    <i class="fas fa-undo-alt"></i>
                                 </button>
                             </div>
                         `;
                     }).join('')}
                 </div>
                 <div class="bg-gray-50 px-4 py-2 text-xs text-gray-500 border-t border-purple-100">
-                    📊 Total: ${totalCount} numbers | Used: ${usedCount} | Active: ${totalCount - usedCount}
+                    📊 Total: ${totalCount} numbers | Used: ${usedCount} | Active: ${totalCount - usedCount - deletedCount} | Deleted: ${deletedCount}
                 </div>
             </div>
         `;
     }
     container.innerHTML = html;
+}
+
+// Soft delete - mark as deleted but keep in database for earnings
+async function softDeleteNumber(numberId) {
+    if (!confirm('Delete this number? Earnings will be preserved and the number will be hidden from users. You can restore it later.')) return;
+    
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?id=eq.${numberId}`, {
+            method: 'PATCH',
+            headers: { 
+                'apikey': API_KEY, 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ is_deleted: true, deleted_at: new Date().toISOString() })
+        });
+        
+        if (res.ok) {
+            await loadAllocatedNumbers();
+            await fetchUsedNumbers();
+            showMessage('✅ Number soft deleted (earnings preserved)', 'success');
+        } else {
+            showMessage('❌ Error deleting number', 'error');
+        }
+    } catch (err) {
+        showMessage('❌ Error: ' + err.message, 'error');
+    }
+}
+
+// Restore a soft-deleted number
+async function restoreNumber(numberId) {
+    if (!confirm('Restore this number? It will become visible to users again.')) return;
+    
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?id=eq.${numberId}`, {
+            method: 'PATCH',
+            headers: { 
+                'apikey': API_KEY, 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ is_deleted: false, deleted_at: null })
+        });
+        
+        if (res.ok) {
+            await loadAllocatedNumbers();
+            await fetchUsedNumbers();
+            showMessage('✅ Number restored successfully', 'success');
+        } else {
+            showMessage('❌ Error restoring number', 'error');
+        }
+    } catch (err) {
+        showMessage('❌ Error: ' + err.message, 'error');
+    }
 }
 
 async function addNumbers() {
@@ -383,7 +481,8 @@ async function addNumbers() {
                     user_id: userId,
                     number: number,
                     last3: last3,
-                    range_name: rangeName
+                    range_name: rangeName,
+                    is_deleted: false
                 })
             });
             
@@ -413,34 +512,34 @@ async function addNumbers() {
     setTimeout(() => { messageBox.classList.add('hidden'); }, 3000);
 }
 
+// Delete all numbers for a user in a range (soft delete)
 async function deleteRangeNumbers(userId, range) {
-    if (!confirm(`Delete all numbers for this user in ${range}?`)) return;
+    if (!confirm(`Delete ALL numbers for this user in ${range}? Earnings will be preserved.`)) return;
     
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&range_name=eq.${encodeURIComponent(range)}`, {
-        method: 'DELETE',
-        headers: { 'apikey': API_KEY }
-    });
-    
-    if (res.ok) {
-        await loadAllocatedNumbers();
-        showMessage('Numbers deleted successfully', 'success');
-        setTimeout(() => document.getElementById('messageBox').classList.add('hidden'), 2000);
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&range_name=eq.${encodeURIComponent(range)}`, {
+            method: 'PATCH',
+            headers: { 
+                'apikey': API_KEY, 
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ is_deleted: true, deleted_at: new Date().toISOString() })
+        });
+        
+        if (res.ok) {
+            await loadAllocatedNumbers();
+            showMessage('Numbers soft deleted successfully (earnings preserved)', 'success');
+        } else {
+            showMessage('Error deleting numbers', 'error');
+        }
+    } catch (err) {
+        showMessage('Error: ' + err.message, 'error');
     }
 }
 
 async function deleteSingleNumber(numberId) {
-    if (!confirm('Delete this number?')) return;
-    
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?id=eq.${numberId}`, {
-        method: 'DELETE',
-        headers: { 'apikey': API_KEY }
-    });
-    
-    if (res.ok) {
-        await loadAllocatedNumbers();
-        await fetchUsedNumbers();
-        showMessage('Number deleted', 'success');
-    }
+    if (!confirm('Delete this number? Earnings will be preserved.')) return;
+    await softDeleteNumber(numberId);
 }
 
 function showMessage(msg, type) {
@@ -492,6 +591,8 @@ function setupModal() {
 
 window.deleteRangeNumbers = deleteRangeNumbers;
 window.deleteSingleNumber = deleteSingleNumber;
+window.softDeleteNumber = softDeleteNumber;
+window.restoreNumber = restoreNumber;
 
 function setupDropdown() {
     const menuBtn = document.getElementById('menuBtn');
@@ -507,6 +608,20 @@ function setupDropdown() {
 
 document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); logout(); };
 document.getElementById('addBtn').onclick = addNumbers;
+
+// Toggle deleted numbers visibility
+const toggleBtn = document.getElementById('toggleDeletedBtn');
+if (toggleBtn) {
+    toggleBtn.onclick = () => {
+        showDeleted = !showDeleted;
+        toggleBtn.innerHTML = showDeleted ? '<i class="fas fa-eye mr-1"></i> Show Deleted' : '<i class="fas fa-eye-slash mr-1"></i> Hide Deleted';
+        loadAllocatedNumbers();
+    };
+}
+
+// First, add is_deleted column to the table (run this SQL in Supabase)
+// ALTER TABLE allocated_numbers ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT false;
+// ALTER TABLE allocated_numbers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP;
 
 async function init() {
     setupDropdown();
