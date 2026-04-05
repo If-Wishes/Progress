@@ -3,486 +3,554 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusPanel | Analytics</title>
+    <title>ELITE Panel | Range Allocation</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link rel="stylesheet" href="../css/style.css">
     <style>
-        .custom-country-item {
+        .hidden-dropdown { display: none; }
+        .success { background-color: #d1fae5; color: #065f46; }
+        .error { background-color: #fee2e2; color: #991b1b; }
+        .used-number {
+            background-color: #fee2e2 !important;
+            border-left: 3px solid #dc2626 !important;
+            text-decoration: line-through;
+            opacity: 0.8;
+        }
+        .used-number:hover {
+            background-color: #fecaca !important;
+        }
+        /* Carmine & Carrot Theme */
+        .btn-carmine {
+            background-color: #dc2626;
+            transition: all 0.2s ease;
+        }
+        .btn-carmine:hover {
+            background-color: #b91c1c;
+            transform: translateY(-1px);
+        }
+        .btn-carrot {
+            background-color: #f97316;
+            transition: all 0.2s ease;
+        }
+        .btn-carrot:hover {
+            background-color: #ea580c;
+            transform: translateY(-1px);
+        }
+        .range-tag {
+            background: linear-gradient(135deg, #fef2f2 0%, #ffedd5 100%);
+            border-left: 3px solid #dc2626;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 8px 12px;
-            border-radius: 8px;
-            background: #f9fafb;
-            margin-bottom: 6px;
+            justify-content: center;
+            z-index: 1000;
         }
-        .custom-country-item:hover {
-            background: #f3f4f6;
+        .modal-content {
+            background: white;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            animation: slideUp 0.2s ease;
         }
-        .number-thread-input {
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-        }
-        .country-badge {
-            transition: all 0.2s ease;
+        @keyframes slideUp {
+            from { transform: translateY(30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
     </style>
 </head>
 <body class="bg-gray-50">
 
-<nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+<nav class="bg-white shadow-sm border-b border-orange-100 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex items-center gap-4">
-                <a href="dashboard.html" class="text-gray-600 hover:text-gray-800"><i class="fas fa-arrow-left"></i></a>
-                <div class="h-8 w-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-                    <i class="fas fa-chart-line text-white text-sm"></i>
+                <a href="dashboard.html" class="text-gray-600 hover:text-carmine-600"><i class="fas fa-arrow-left"></i></a>
+                <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-red-600 to-orange-500 flex items-center justify-center">
+                    <i class="fas fa-crown text-white text-sm"></i>
                 </div>
-                <span class="text-xl font-bold text-gray-800">MIMA<span class="text-indigo-600">Panel</span></span>
+                <span class="text-xl font-bold">ELITE<span class="text-orange-500">Panel</span></span>
                 <span class="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">Admin</span>
             </div>
-            <div class="flex items-center gap-4">
-                <div class="text-right hidden sm:block">
-                    <p class="text-sm font-medium text-gray-800" id="adminName">Admin</p>
-                    <p class="text-xs text-gray-500">Analytics View</p>
+            <div class="flex items-center gap-4 relative">
+                <div class="text-right"><p class="text-sm font-medium" id="adminName">Admin</p><p class="text-xs text-gray-500">Range Allocation</p></div>
+                <div class="relative">
+                    <button id="menuBtn" class="bg-gray-100 rounded-full px-3 py-2 hover:bg-orange-50 transition"><i class="fas fa-user-shield text-orange-500"></i><i class="fas fa-chevron-down text-xs"></i></button>
+                    <div id="dropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border hidden-dropdown z-50">
+                        <a href="dashboard.html" class="block px-4 py-2 hover:bg-orange-50">Dashboard</a>
+                        <a href="users.html" class="block px-4 py-2 hover:bg-orange-50">Users</a>
+                        <a href="analytics.html" class="block px-4 py-2 bg-orange-50 text-orange-600">Range Allocation</a>
+                        <a href="activities.html" class="block px-4 py-2 hover:bg-orange-50">User Activities</a>
+                        <div class="border-t"></div>
+                        <a href="#" id="logoutBtn" class="block px-4 py-2 text-red-600">Logout</a>
+                    </div>
                 </div>
-                <button onclick="adminLogout()" class="text-gray-500 hover:text-red-600 transition">
-                    <i class="fas fa-sign-out-alt text-lg"></i>
-                </button>
             </div>
         </div>
     </div>
 </nav>
 
-<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="mb-8">
-        <h1 class="text-2xl font-bold text-gray-900">Number Analytics</h1>
-        <p class="text-gray-500 mt-1">Add number threads per user by country and calculate totals</p>
-    </div>
-
-    <!-- Add Numbers Section -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
-        <h2 class="text-lg font-semibold text-gray-800 mb-4">📝 Add Numbers for User</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <!-- User Selector -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Select User</label>
-                <select id="analyticsUserSelect" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50">
+<main class="max-w-7xl mx-auto px-4 py-8">
+    <h1 class="text-2xl font-bold text-gray-800">📌 Range Allocation</h1>
+    <p class="text-gray-500 mb-6">Manage number ranges - <span class="text-red-600">Red highlighted numbers</span> have received OTPs</p>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Add Numbers Form -->
+        <div class="bg-white rounded-2xl border border-orange-100 shadow-sm p-6">
+            <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-plus-circle text-orange-500"></i> Add Numbers to Range</h2>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">👤 Select User *</label>
+                <select id="userSelect" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
                     <option value="">-- Select User --</option>
                 </select>
             </div>
             
-            <!-- Country Selector with Add Country Button -->
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Select Country</label>
-                <div class="flex gap-2">
-                    <select id="countrySelect" class="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50">
-                        <option value="">-- Select Country --</option>
-                        <option value="Jordan">🇯🇴 Jordan</option>
-                        <option value="Tajikistan">🇹🇯 Tajikistan</option>
-                        <option value="Nigeria">🇳🇬 Nigeria</option>
-                        <option value="Myanmar">🇲🇲 Myanmar</option>
-                        <option value="Hungary">🇭🇺 Hungary</option>
-                        <option value="Slovenia">🇸🇮 Slovenia</option>
-                        <option value="Venezuela">🇻🇪 Venezuela</option>
-                    </select>
-                    <button id="addCountryBtn" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 rounded-xl transition">
-                        <i class="fas fa-plus"></i>
+            <div class="mb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <label class="block text-sm font-medium text-gray-700">🌍 Select Range *</label>
+                    <button id="addRangeBtn" class="text-xs bg-gradient-to-r from-red-500 to-orange-500 text-white px-3 py-1 rounded-full hover:shadow-md transition">
+                        <i class="fas fa-plus mr-1"></i> New Range
                     </button>
                 </div>
-                <div id="customCountriesList" class="mt-2 text-sm"></div>
+                <select id="rangeSelect" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
+                    <option value="">-- Select Range --</option>
+                </select>
             </div>
             
-            <!-- Action Button -->
-            <div class="flex items-end">
-                <button id="addNumberBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-xl transition">
-                    <i class="fas fa-plus mr-2"></i>Add Number Thread
-                </button>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">📞 Phone Numbers *</label>
+                <textarea id="numbersInput" rows="5" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 font-mono text-sm focus:ring-2 focus:ring-orange-500 outline-none" 
+                    placeholder="Enter phone numbers (one per line or comma separated)
+Example:
++2348123456789
++998901234567
++1234567890"></textarea>
+                <p class="text-xs text-gray-400 mt-1">Numbers must have at least 3 digits for matching</p>
             </div>
+            
+            <button id="addBtn" class="w-full bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 text-white py-2.5 rounded-xl transition shadow-md">
+                <i class="fas fa-plus mr-2"></i>Allocate Numbers
+            </button>
+            
+            <div id="messageBox" class="mt-4 text-sm text-center hidden rounded-lg p-2"></div>
         </div>
         
-        <!-- Number Thread Input -->
-        <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">Number Thread (paste numbers, one per line or comma-separated)</label>
-            <textarea id="numberThreadInput" rows="5" class="w-full border border-gray-200 rounded-xl px-4 py-3 number-thread-input focus:ring-2 focus:ring-indigo-300" 
-                placeholder="Example:&#10;+962 7 1234 5678&#10;+992 93 123 4567&#10;+234 812 345 6789&#10;&#10;Or: +962 7 1234 5678, +992 93 123 4567, +234 812 345 6789"></textarea>
-            <p class="text-xs text-gray-400 mt-2">💡 Tip: Enter numbers separated by commas or new lines. Each line/entry will be counted separately.</p>
-        </div>
-    </div>
-
-    <!-- User Numbers Summary -->
-    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden mb-8">
-        <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-            <h2 class="text-lg font-semibold text-gray-800">📊 User Number Threads Summary</h2>
-            <p class="text-sm text-gray-500 mt-1">All numbers added per user, grouped by country</p>
-        </div>
-        <div id="userNumbersContainer" class="divide-y divide-gray-100"></div>
-    </div>
-
-    <!-- Statistics Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl shadow-lg p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-indigo-100 text-sm font-medium">Total Users</p>
-                    <p class="text-white text-3xl font-bold mt-1" id="totalUsersCount">0</p>
-                </div>
-                <i class="fas fa-users text-indigo-200 text-4xl opacity-75"></i>
-            </div>
-        </div>
-        <div class="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl shadow-lg p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-emerald-100 text-sm font-medium">Total Number Threads</p>
-                    <p class="text-white text-3xl font-bold mt-1" id="totalNumbersCount">0</p>
-                </div>
-                <i class="fas fa-phone-alt text-emerald-200 text-4xl opacity-75"></i>
-            </div>
-        </div>
-        <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl shadow-lg p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-purple-100 text-sm font-medium">Countries Used</p>
-                    <p class="text-white text-3xl font-bold mt-1" id="totalCountriesCount">0</p>
-                </div>
-                <i class="fas fa-globe text-purple-200 text-4xl opacity-75"></i>
+        <!-- Allocated Numbers List -->
+        <div class="bg-white rounded-2xl border border-orange-100 shadow-sm p-6">
+            <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-list-ul text-orange-500"></i> Allocated Numbers</h2>
+            <select id="filterSelect" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 mb-4 bg-gray-50 focus:ring-2 focus:ring-orange-500 outline-none">
+                <option value="">-- All Users --</option>
+            </select>
+            <div id="allocationsList" class="max-h-96 overflow-y-auto space-y-3">
+                <div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
             </div>
         </div>
     </div>
 </main>
 
-<!-- Add Country Modal -->
-<div id="addCountryModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
-    <div class="bg-white rounded-2xl max-w-md w-full mx-4 p-6 shadow-2xl">
-        <h3 class="text-xl font-bold text-gray-800 mb-4">➕ Add Custom Country</h3>
-        <div class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Country Name</label>
-                <input type="text" id="newCountryName" placeholder="e.g., Brazil, Canada" class="w-full border border-gray-200 rounded-xl px-4 py-3">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">Country Flag (Emoji)</label>
-                <input type="text" id="newCountryFlag" placeholder="e.g., 🇧🇷, 🇨🇦" maxlength="2" class="w-full border border-gray-200 rounded-xl px-4 py-3">
-                <p class="text-xs text-gray-400 mt-1">Enter a flag emoji or leave blank for default 🌍</p>
-            </div>
+<!-- Modal for Adding New Range -->
+<div id="rangeModal" class="modal-overlay hidden">
+    <div class="modal-content p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-800"><i class="fas fa-tag text-orange-500 mr-2"></i>Add New Range</h3>
+            <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
         </div>
-        <div class="flex justify-end gap-3 mt-6">
-            <button id="closeModalBtn" class="px-4 py-2 border rounded-xl text-gray-600 hover:bg-gray-50">Cancel</button>
-            <button id="saveCountryBtn" class="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700">Add Country</button>
+        <div class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Range Name *</label>
+            <input type="text" id="newRangeName" class="w-full border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-orange-500 outline-none" placeholder="e.g., Europe Premium, Asia Gold">
+            <p class="text-xs text-gray-400 mt-1">Use a unique name for this range</p>
+        </div>
+        <div class="flex gap-3">
+            <button id="saveRangeBtn" class="flex-1 bg-gradient-to-r from-red-600 to-orange-500 text-white py-2.5 rounded-xl transition">Save Range</button>
+            <button id="cancelModalBtn" class="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-xl hover:bg-gray-300 transition">Cancel</button>
         </div>
     </div>
 </div>
 
-<script src="../js/data.js"></script>
-<script src="../js/auth.js"></script>
 <script>
-    if (!requireAdminAuth()) {}
-    
-    // Custom countries storage
-    let customCountries = [];
-    let userNumberData = [];
-    
-    function loadCustomCountries() {
-        const stored = localStorage.getItem('nexus_custom_countries');
-        customCountries = stored ? JSON.parse(stored) : [];
-        renderCustomCountriesList();
-        updateCountrySelect();
+const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
+const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
+
+// Custom Ranges Storage (Supabase table: ranges)
+let customRanges = [];
+
+const session = JSON.parse(localStorage.getItem('elite_session') || 'null');
+if (!session || session.role !== 'admin') window.location.href = '../index.html';
+document.getElementById('adminName').innerText = session.username;
+
+let usersList = [];
+let usedNumbersSet = new Set(); // Store last3 digits that have received OTPs
+
+// Helper functions
+function getLast3Digits(number) {
+    let cleaned = number.replace(/[^0-9]/g, '');
+    return cleaned.slice(-3);
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m));
+}
+
+function getRangeFlag(rangeName) {
+    // Default emoji for ranges
+    const flags = {
+        'Carmine': '❤️', 'Carrot': '🥕', 'Europe Premium': '🇪🇺', 'Asia Gold': '🌟',
+        'Americas': '🌎', 'Africa Pro': '🌍', 'Middle East': '🕌', 'South East': '🐉'
+    };
+    return flags[rangeName] || '📌';
+}
+
+// Fetch all OTPs to know used numbers
+async function fetchUsedNumbers() {
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=phone_last3`, {
+            headers: { 'apikey': API_KEY }
+        });
+        const otps = await res.json();
+        usedNumbersSet.clear();
+        otps.forEach(otp => {
+            if (otp.phone_last3) usedNumbersSet.add(otp.phone_last3);
+        });
+        console.log(`Loaded ${usedNumbersSet.size} used numbers`);
+    } catch (err) {
+        console.error("Error fetching OTPs:", err);
     }
-    
-    function saveCustomCountries() {
-        localStorage.setItem('nexus_custom_countries', JSON.stringify(customCountries));
-        renderCustomCountriesList();
-        updateCountrySelect();
-    }
-    
-    function renderCustomCountriesList() {
-        const container = document.getElementById('customCountriesList');
-        if (!container) return;
-        
-        if (customCountries.length === 0) {
-            container.innerHTML = '<p class="text-xs text-gray-400 mt-1">No custom countries added. Click + to add more.</p>';
-            return;
+}
+
+// Load custom ranges from Supabase (table: ranges) or initialize default
+async function loadRanges() {
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/ranges?select=*&order=name.asc`, {
+            headers: { 'apikey': API_KEY }
+        });
+        let data = await res.json();
+        if (data.length === 0) {
+            // Default ranges: Carmine and Carrot
+            const defaultRanges = [{ name: 'Carmine' }, { name: 'Carrot' }];
+            for (const r of defaultRanges) {
+                await fetch(`${SUPABASE_URL}/rest/v1/ranges`, {
+                    method: 'POST',
+                    headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: r.name })
+                });
+            }
+            const refetch = await fetch(`${SUPABASE_URL}/rest/v1/ranges?select=*&order=name.asc`, {
+                headers: { 'apikey': API_KEY }
+            });
+            data = await refetch.json();
         }
+        customRanges = data;
+        updateRangeDropdowns();
+    } catch (err) {
+        console.error("Load ranges error:", err);
+        // Fallback default
+        customRanges = [{ name: 'Carmine' }, { name: 'Carrot' }];
+        updateRangeDropdowns();
+    }
+}
+
+// Add new range to Supabase
+async function addNewRange(rangeName) {
+    if (!rangeName.trim()) return false;
+    const exists = customRanges.some(r => r.name.toLowerCase() === rangeName.trim().toLowerCase());
+    if (exists) return false;
+    
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/ranges`, {
+            method: 'POST',
+            headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: rangeName.trim() })
+        });
+        if (res.ok) {
+            await loadRanges();
+            return true;
+        }
+        return false;
+    } catch (err) {
+        console.error("Add range error:", err);
+        return false;
+    }
+}
+
+function updateRangeDropdowns() {
+    const rangeSelect = document.getElementById('rangeSelect');
+    rangeSelect.innerHTML = '<option value="">-- Select Range --</option>' + 
+        customRanges.map(r => `<option value="${escapeHtml(r.name)}">${getRangeFlag(r.name)} ${escapeHtml(r.name)}</option>`).join('');
+}
+
+// Load users
+async function loadUsers() {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id,username&role=eq.user`, {
+        headers: { 'apikey': API_KEY }
+    });
+    usersList = await res.json();
+    
+    const userSelect = document.getElementById('userSelect');
+    userSelect.innerHTML = '<option value="">-- Select User --</option>' + 
+        usersList.map(u => `<option value="${u.id}">${escapeHtml(u.username)}</option>`).join('');
+    
+    const filterSelect = document.getElementById('filterSelect');
+    filterSelect.innerHTML = '<option value="">-- All Users --</option>' + 
+        usersList.map(u => `<option value="${u.id}">${escapeHtml(u.username)}</option>`).join('');
+    filterSelect.onchange = loadAllocatedNumbers;
+}
+
+// Load allocated numbers with used highlighting
+async function loadAllocatedNumbers() {
+    const filterUserId = document.getElementById('filterSelect').value;
+    let url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&order=allocated_at.desc`;
+    if (filterUserId) {
+        url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&user_id=eq.${filterUserId}&order=allocated_at.desc`;
+    }
+    
+    const res = await fetch(url, { headers: { 'apikey': API_KEY } });
+    const allocations = await res.json();
+    const container = document.getElementById('allocationsList');
+    
+    if (allocations.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-database"></i><br/>No numbers allocated yet</div>';
+        return;
+    }
+    
+    // Group by user and range (country field is now used as 'range')
+    const grouped = {};
+    for (const item of allocations) {
+        const rangeName = item.country || 'Unknown'; // country field stores range name
+        const key = `${item.user_id}_${rangeName}`;
+        if (!grouped[key]) {
+            grouped[key] = {
+                userId: item.user_id,
+                userName: item.users?.username || 'Unknown',
+                range: rangeName,
+                numbers: []
+            };
+        }
+        grouped[key].numbers.push(item);
+    }
+    
+    let html = '';
+    for (const key in grouped) {
+        const g = grouped[key];
+        const usedCount = g.numbers.filter(num => usedNumbersSet.has(num.last3)).length;
+        const totalCount = g.numbers.length;
         
-        container.innerHTML = `
-            <div class="mt-2 pt-1">
-                <p class="text-xs font-medium text-gray-500 mb-1">Custom Countries:</p>
-                ${customCountries.map((country, index) => `
-                    <div class="custom-country-item">
-                        <span class="text-sm">${country.flag || '🌍'} ${country.name}</span>
-                        <button onclick="removeCustomCountry(${index})" class="text-red-400 hover:text-red-600 text-xs">
-                            <i class="fas fa-times"></i>
-                        </button>
+        html += `
+            <div class="border border-orange-100 rounded-xl overflow-hidden shadow-sm range-tag">
+                <div class="bg-gradient-to-r from-red-50 to-orange-50 px-4 py-3 flex justify-between items-center">
+                    <div>
+                        <span class="font-semibold text-gray-800">👤 ${escapeHtml(g.userName)}</span>
+                        <span class="ml-2 inline-flex items-center gap-1 text-sm font-medium text-orange-700 bg-orange-100 px-2 py-0.5 rounded-full">
+                            ${getRangeFlag(g.range)} ${escapeHtml(g.range)}
+                        </span>
+                        ${usedCount > 0 ? `<span class="ml-2 text-xs text-red-600 bg-red-100 px-2 py-0.5 rounded-full">⚠️ ${usedCount}/${totalCount} used</span>` : `<span class="ml-2 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">✅ ${totalCount} active</span>`}
                     </div>
-                `).join('')}
+                    <button onclick="deleteRangeNumbers('${g.userId}', '${escapeHtml(g.range).replace(/'/g, "\\'")}')" class="text-red-500 text-sm hover:text-red-700 transition">
+                        <i class="fas fa-trash-alt mr-1"></i>Delete All
+                    </button>
+                </div>
+                <div class="p-3 flex flex-wrap gap-2 bg-white">
+                    ${g.numbers.map(num => {
+                        const isUsed = usedNumbersSet.has(num.last3);
+                        const usedClass = isUsed ? 'used-number' : '';
+                        const usedIcon = isUsed ? '<i class="fas fa-check-circle text-red-500 mr-1 text-xs"></i>' : '<i class="fas fa-circle text-green-500 mr-1 text-xs"></i>';
+                        const title = isUsed ? 'This number has received an OTP' : 'Active number - no OTP received yet';
+                        
+                        return `
+                            <div class="bg-gray-100 rounded-lg px-3 py-1.5 flex items-center gap-2 ${usedClass} transition" title="${title}">
+                                ${usedIcon}
+                                <span class="font-mono text-sm">${escapeHtml(num.number)}</span>
+                                <span class="text-xs text-gray-400">(last3: ${num.last3})</span>
+                                <button onclick="deleteSingleNumber('${num.id}')" class="text-red-400 hover:text-red-600 ml-1">
+                                    <i class="fas fa-times-circle"></i>
+                                </button>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+                <div class="bg-gray-50 px-4 py-2 text-xs text-gray-500 border-t border-orange-100">
+                    📊 Total: ${totalCount} numbers | Used: ${usedCount} | Active: ${totalCount - usedCount}
+                </div>
             </div>
         `;
     }
+    container.innerHTML = html;
+}
+
+// Add numbers to user with selected range
+async function addNumbers() {
+    const userId = document.getElementById('userSelect').value;
+    const rangeName = document.getElementById('rangeSelect').value;
+    const numbersInput = document.getElementById('numbersInput').value;
+    const messageBox = document.getElementById('messageBox');
     
-    function updateCountrySelect() {
-        const select = document.getElementById('countrySelect');
-        if (!select) return;
+    if (!userId) { showMessage('Please select a user', 'error'); return; }
+    if (!rangeName) { showMessage('Please select a range', 'error'); return; }
+    if (!numbersInput.trim()) { showMessage('Please enter phone numbers', 'error'); return; }
+    
+    let numbers = numbersInput.split(/[,\n]/).map(n => n.trim()).filter(n => n.length > 0);
+    if (numbers.length === 0) { showMessage('No valid numbers found', 'error'); return; }
+    
+    showMessage('Adding numbers...', 'info');
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const number of numbers) {
+        const last3 = getLast3Digits(number);
+        if (last3.length < 3) {
+            errorCount++;
+            continue;
+        }
         
-        const baseCountries = [
-            'Jordan', 'Tajikistan', 'Nigeria', 'Myanmar', 'Hungary', 'Slovenia', 'Venezuela'
-        ];
-        
-        select.innerHTML = '<option value="">-- Select Country --</option>';
-        
-        baseCountries.forEach(country => {
-            const flag = {Jordan:'🇯🇴', Tajikistan:'🇹🇯', Nigeria:'🇳🇬', Myanmar:'🇲🇲', Hungary:'🇭🇺', Slovenia:'🇸🇮', Venezuela:'🇻🇪'}[country] || '🌍';
-            select.innerHTML += `<option value="${country}">${flag} ${country}</option>`;
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
+            method: 'POST',
+            headers: { 
+                'apikey': API_KEY, 
+                'Content-Type': 'application/json',
+                'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+                user_id: userId,
+                number: number,
+                last3: last3,
+                country: rangeName  // country field stores the range name
+            })
         });
         
-        customCountries.forEach(country => {
-            select.innerHTML += `<option value="${country.name}">${country.flag || '🌍'} ${country.name}</option>`;
-        });
-    }
-    
-    function addCustomCountry(name, flag) {
-        if (!name.trim()) { alert('Please enter a country name'); return false; }
-        
-        const exists = [...customCountries.map(c => c.name), 'Jordan', 'Tajikistan', 'Nigeria', 'Myanmar', 'Hungary', 'Slovenia', 'Venezuela']
-            .some(c => c.toLowerCase() === name.trim().toLowerCase());
-        
-        if (exists) { alert('This country already exists'); return false; }
-        
-        customCountries.push({ name: name.trim(), flag: flag.trim() || '🌍' });
-        saveCustomCountries();
-        return true;
-    }
-    
-    window.removeCustomCountry = (index) => {
-        if (confirm(`Remove "${customCountries[index].name}"?`)) {
-            const countryName = customCountries[index].name;
-            customCountries.splice(index, 1);
-            saveCustomCountries();
-            userNumberData = userNumberData.filter(item => item.country !== countryName);
-            saveAnalyticsData();
-            renderUserNumbersSummary();
-            updateStatistics();
-        }
-    };
-    
-    function loadAnalyticsData() {
-        const stored = localStorage.getItem('nexus_analytics_numbers');
-        userNumberData = stored ? JSON.parse(stored) : [];
-        renderUserNumbersSummary();
-        updateStatistics();
-    }
-    
-    function saveAnalyticsData() {
-        localStorage.setItem('nexus_analytics_numbers', JSON.stringify(userNumberData));
-    }
-    
-    function parseNumberThread(input) {
-        if (!input.trim()) return [];
-        if (input.includes(',')) {
-            return input.split(',').map(n => n.trim()).filter(n => n.length > 0);
-        }
-        return input.split('\n').map(n => n.trim()).filter(n => n.length > 0);
-    }
-    
-    function getCountryFlag(country) {
-        const flags = {Jordan:'🇯🇴', Tajikistan:'🇹🇯', Nigeria:'🇳🇬', Myanmar:'🇲🇲', Hungary:'🇭🇺', Slovenia:'🇸🇮', Venezuela:'🇻🇪'};
-        const custom = customCountries.find(c => c.name === country);
-        return custom?.flag || flags[country] || '🌍';
-    }
-    
-    function addNumbersForUser(userId, country, numbers) {
-        if (!userId || !country || numbers.length === 0) return false;
-        
-        const existingIndex = userNumberData.findIndex(item => item.userId === userId && item.country === country);
-        
-        if (existingIndex !== -1) {
-            const existingNumbers = userNumberData[existingIndex].numbers;
-            const newNumbers = numbers.filter(num => !existingNumbers.includes(num));
-            if (newNumbers.length > 0) {
-                userNumberData[existingIndex].numbers.push(...newNumbers);
-            }
+        if (res.ok) {
+            successCount++;
         } else {
-            userNumberData.push({ userId, country, numbers, addedAt: new Date().toISOString() });
-        }
-        
-        saveAnalyticsData();
-        renderUserNumbersSummary();
-        updateStatistics();
-        return true;
-    }
-    
-    function deleteNumbersEntry(userId, country) {
-        if (confirm(`Delete all numbers for this user in ${country}?`)) {
-            userNumberData = userNumberData.filter(item => !(item.userId === userId && item.country === country));
-            saveAnalyticsData();
-            renderUserNumbersSummary();
-            updateStatistics();
+            errorCount++;
         }
     }
     
-    function deleteSpecificNumber(userId, country, numberIndex) {
-        const entryIndex = userNumberData.findIndex(item => item.userId === userId && item.country === country);
-        if (entryIndex !== -1) {
-            userNumberData[entryIndex].numbers.splice(numberIndex, 1);
-            if (userNumberData[entryIndex].numbers.length === 0) {
-                userNumberData.splice(entryIndex, 1);
-            }
-            saveAnalyticsData();
-            renderUserNumbersSummary();
-            updateStatistics();
-        }
+    if (successCount > 0) {
+        showMessage(`✅ Successfully added ${successCount} numbers to range "${escapeHtml(rangeName)}"!`, 'success');
+        document.getElementById('numbersInput').value = '';
+        await loadAllocatedNumbers();
+    } else {
+        showMessage(`❌ Failed to add numbers. Ensure numbers have at least 3 digits and range exists.`, 'error');
     }
     
-    function renderUserNumbersSummary() {
-        const container = document.getElementById('userNumbersContainer');
-        const users = getUsers();
-        
-        if (userNumberData.length === 0) {
-            container.innerHTML = `
-                <div class="text-center py-12">
-                    <i class="fas fa-inbox text-gray-300 text-5xl mb-3"></i>
-                    <p class="text-gray-400">No numbers added yet</p>
-                    <p class="text-sm text-gray-400">Select a user and country above to add number threads</p>
-                </div>
-            `;
-            return;
-        }
-        
-        const groupedByUser = {};
-        userNumberData.forEach(item => {
-            if (!groupedByUser[item.userId]) groupedByUser[item.userId] = [];
-            groupedByUser[item.userId].push(item);
-        });
-        
-        let html = '';
-        for (const userId in groupedByUser) {
-            const user = users.find(u => u.id === userId);
-            const userName = user ? user.username : 'Unknown User';
-            const userItems = groupedByUser[userId];
-            const userTotalNumbers = userItems.reduce((sum, item) => sum + item.numbers.length, 0);
-            
-            html += `
-                <div class="p-6 hover:bg-gray-50 transition">
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                            <i class="fas fa-user text-indigo-600"></i>
-                        </div>
-                        <div>
-                            <h3 class="font-semibold text-gray-800 text-lg">${escapeHtml(userName)}</h3>
-                            <p class="text-sm text-gray-500">Total: ${userTotalNumbers} number${userTotalNumbers !== 1 ? 's' : ''}</p>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            `;
-            
-            userItems.forEach(item => {
-                html += `
-                    <div class="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <span class="text-xl">${getCountryFlag(item.country)}</span>
-                                <span class="font-medium text-gray-700">${item.country}</span>
-                            </div>
-                            <button onclick="deleteNumbersEntry('${userId}', '${item.country}')" class="text-red-400 hover:text-red-600">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </div>
-                        <div class="space-y-1 max-h-48 overflow-y-auto">
-                            ${item.numbers.map((num, idx) => `
-                                <div class="flex items-center justify-between text-sm py-1 border-b border-gray-50 group">
-                                    <span class="font-mono text-gray-600 text-xs break-all">${escapeHtml(num)}</span>
-                                    <button onclick="deleteSpecificNumber('${userId}', '${item.country}', ${idx})" class="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100">
-                                        <i class="fas fa-times-circle text-xs"></i>
-                                    </button>
-                                </div>
-                            `).join('')}
-                        </div>
-                        <div class="mt-3 pt-2 border-t border-gray-100">
-                            <p class="text-xs text-gray-400">Total: ${item.numbers.length} number${item.numbers.length !== 1 ? 's' : ''}</p>
-                        </div>
-                    </div>
-                `;
-            });
-            
-            html += `</div></div>`;
-        }
-        
-        container.innerHTML = html;
-    }
+    setTimeout(() => {
+        messageBox.classList.add('hidden');
+    }, 3000);
+}
+
+// Delete all numbers for a user in a specific range
+async function deleteRangeNumbers(userId, range) {
+    if (!confirm(`Delete ALL numbers for user in range "${range}"? This action cannot be undone.`)) return;
     
-    function updateStatistics() {
-        const uniqueUsers = new Set(userNumberData.map(item => item.userId));
-        document.getElementById('totalUsersCount').textContent = uniqueUsers.size;
-        document.getElementById('totalNumbersCount').textContent = userNumberData.reduce((sum, item) => sum + item.numbers.length, 0);
-        document.getElementById('totalCountriesCount').textContent = new Set(userNumberData.map(item => item.country)).size;
-    }
-    
-    function populateUserSelect() {
-        const select = document.getElementById('analyticsUserSelect');
-        const users = getUsers();
-        if (select) {
-            select.innerHTML = '<option value="">-- Select User --</option>' + 
-                users.map(u => `<option value="${u.id}">${escapeHtml(u.username)}</option>`).join('');
-        }
-    }
-    
-    function handleAddNumbers() {
-        const userId = document.getElementById('analyticsUserSelect').value;
-        const country = document.getElementById('countrySelect').value;
-        const numberInput = document.getElementById('numberThreadInput').value;
-        
-        if (!userId) { alert('Please select a user'); return; }
-        if (!country) { alert('Please select a country'); return; }
-        if (!numberInput.trim()) { alert('Please enter numbers'); return; }
-        
-        const numbers = parseNumberThread(numberInput);
-        if (numbers.length === 0) { alert('No valid numbers found'); return; }
-        
-        addNumbersForUser(userId, country, numbers);
-        document.getElementById('numberThreadInput').value = '';
-        
-        const btn = document.getElementById('addNumberBtn');
-        const original = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-check mr-2"></i>Added!';
-        btn.classList.add('bg-green-600');
-        setTimeout(() => {
-            btn.innerHTML = original;
-            btn.classList.remove('bg-green-600');
-        }, 1500);
-    }
-    
-    function openModal() { document.getElementById('addCountryModal').classList.remove('hidden'); }
-    function closeModal() { document.getElementById('addCountryModal').classList.add('hidden'); }
-    
-    function handleAddCountry() {
-        const name = document.getElementById('newCountryName').value.trim();
-        const flag = document.getElementById('newCountryFlag').value.trim();
-        if (addCustomCountry(name, flag)) {
-            closeModal();
-            document.getElementById('newCountryName').value = '';
-            document.getElementById('newCountryFlag').value = '';
-        }
-    }
-    
-    document.addEventListener('DOMContentLoaded', () => {
-        initData();
-        loadCustomCountries();
-        loadAnalyticsData();
-        populateUserSelect();
-        
-        document.getElementById('addNumberBtn').addEventListener('click', handleAddNumbers);
-        document.getElementById('addCountryBtn').addEventListener('click', openModal);
-        document.getElementById('closeModalBtn').addEventListener('click', closeModal);
-        document.getElementById('saveCountryBtn').addEventListener('click', handleAddCountry);
-        
-        document.getElementById('addCountryModal').addEventListener('click', (e) => {
-            if (e.target.id === 'addCountryModal') closeModal();
-        });
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&country=eq.${encodeURIComponent(range)}`, {
+        method: 'DELETE',
+        headers: { 'apikey': API_KEY }
     });
     
-    window.deleteNumbersEntry = deleteNumbersEntry;
-    window.deleteSpecificNumber = deleteSpecificNumber;
+    if (res.ok) {
+        await loadAllocatedNumbers();
+        showMessage(`🗑️ Deleted all numbers in range "${range}"`, 'success');
+        setTimeout(() => {
+            document.getElementById('messageBox').classList.add('hidden');
+        }, 2000);
+    } else {
+        showMessage('Error deleting numbers', 'error');
+    }
+}
+
+// Delete single number
+async function deleteSingleNumber(numberId) {
+    if (!confirm('Delete this number?')) return;
+    
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?id=eq.${numberId}`, {
+        method: 'DELETE',
+        headers: { 'apikey': API_KEY }
+    });
+    
+    if (res.ok) {
+        await loadAllocatedNumbers();
+        showMessage('Number deleted', 'success');
+    }
+}
+
+// Show message helper
+function showMessage(msg, type) {
+    const messageBox = document.getElementById('messageBox');
+    messageBox.textContent = msg;
+    messageBox.className = `mt-4 text-sm text-center p-2 rounded-lg ${type === 'success' ? 'bg-green-100 text-green-700' : type === 'error' ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700'}`;
+    messageBox.classList.remove('hidden');
+}
+
+// Logout
+function logout() {
+    localStorage.removeItem('elite_session');
+    window.location.href = '../index.html';
+}
+
+// Modal handling for adding new range
+function setupModal() {
+    const modal = document.getElementById('rangeModal');
+    const addRangeBtn = document.getElementById('addRangeBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const cancelModalBtn = document.getElementById('cancelModalBtn');
+    const saveRangeBtn = document.getElementById('saveRangeBtn');
+    
+    addRangeBtn.onclick = () => {
+        modal.classList.remove('hidden');
+        document.getElementById('newRangeName').value = '';
+    };
+    
+    const closeModal = () => modal.classList.add('hidden');
+    closeModalBtn.onclick = closeModal;
+    cancelModalBtn.onclick = closeModal;
+    
+    saveRangeBtn.onclick = async () => {
+        const newName = document.getElementById('newRangeName').value.trim();
+        if (!newName) {
+            showMessage('Please enter a range name', 'error');
+            return;
+        }
+        const success = await addNewRange(newName);
+        if (success) {
+            showMessage(`✅ Range "${escapeHtml(newName)}" created!`, 'success');
+            closeModal();
+        } else {
+            showMessage('❌ Range already exists or error occurred', 'error');
+        }
+        setTimeout(() => document.getElementById('messageBox').classList.add('hidden'), 2000);
+    };
+    
+    // Click outside to close
+    modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+}
+
+// Make global functions
+window.deleteRangeNumbers = deleteRangeNumbers;
+window.deleteSingleNumber = deleteSingleNumber;
+
+// Event listeners
+document.getElementById('menuBtn').onclick = e => { e.stopPropagation(); document.getElementById('dropdown').classList.toggle('hidden-dropdown'); };
+document.addEventListener('click', () => document.getElementById('dropdown').classList.add('hidden-dropdown'));
+document.getElementById('logoutBtn').onclick = e => { e.preventDefault(); logout(); };
+document.getElementById('addBtn').onclick = addNumbers;
+
+// Initialize app
+async function init() {
+    await loadRanges();
+    await fetchUsedNumbers();
+    await loadUsers();
+    await loadAllocatedNumbers();
+    setupModal();
+}
+
+init();
 </script>
 </body>
 </html>
