@@ -44,6 +44,17 @@
             background-color: #f5f3ff;
         }
         
+        .number-item-hidden {
+            opacity: 0.5;
+            background-color: #f3f4f6;
+            border-left: 3px solid #9ca3af;
+            text-decoration: line-through;
+        }
+        .number-item-hidden:hover {
+            transform: none;
+            background-color: #f3f4f6;
+        }
+        
         .otp-badge {
             background: linear-gradient(135deg, #7c3aed, #6d28d9);
             color: white;
@@ -196,8 +207,15 @@ async function initFromUrl() {
         const menu = document.getElementById('menu');
         menu.onchange = () => handleMenu(menu.value);
         
-        // Show profile page by default
-        showPage('profile');
+        // Get saved page from localStorage or default to profile
+        const savedPage = localStorage.getItem('elite_current_page');
+        const pageToShow = (savedPage && savedPage !== 'logout' && savedPage !== 'support') ? savedPage : 'profile';
+        
+        // Set menu value to saved page
+        menu.value = pageToShow;
+        
+        // Show the saved page
+        showPage(pageToShow);
         
     } catch (err) {
         console.error('Init error:', err);
@@ -229,12 +247,17 @@ async function loadUserData() {
 // Handle Menu Navigation
 function handleMenu(value) {
     if (value === 'logout') {
+        localStorage.removeItem('elite_current_page');
         window.location.href = '../index.html';
     } else if (value === 'support') {
         window.open('https://wa.me/2348113903584', '_blank');
-        showPage('profile');
-        document.getElementById('menu').value = 'profile';
+        // Don't save support as current page
+        const savedPage = localStorage.getItem('elite_current_page') || 'profile';
+        document.getElementById('menu').value = savedPage;
+        showPage(savedPage);
     } else {
+        // Save current page to localStorage
+        localStorage.setItem('elite_current_page', value);
         showPage(value);
     }
 }
@@ -285,7 +308,7 @@ function uploadPic(e) {
     reader.readAsDataURL(file);
 }
 
-// ALLOCATION PAGE
+// ALLOCATION PAGE - Hides numbers that have received OTP today
 function allocationPage() {
     let ranges = [...new Set(userNumbers.map(n => n.range_name))];
     
@@ -300,6 +323,7 @@ function allocationPage() {
             ${ranges.map(r => `<option value="${escapeHtml(r)}">📌 ${escapeHtml(r)}</option>`).join('')}
         </select>
         <div id="numBox" class="space-y-2"></div>
+        <div class="mt-4 text-xs text-gray-400 text-center">⚠️ Numbers that have received OTP today are hidden (max 2 per day)</div>
     </div>`;
     
     setTimeout(() => {
@@ -315,14 +339,40 @@ function allocationPage() {
 
 function displayNumbers(r) {
     let numbers = userNumbers.filter(n => n.range_name === r);
-    let html = numbers.map(n => `
+    let today = getPanelDate({message_time: new Date()});
+    
+    // Count how many OTPs each number received today
+    let todayOtpCount = new Map();
+    allOtps.forEach(o => {
+        if (getPanelDate(o) === today) {
+            let last3 = o.phone_last3;
+            todayOtpCount.set(last3, (todayOtpCount.get(last3) || 0) + 1);
+        }
+    });
+    
+    // Filter numbers that have NOT reached max OTPs today (max 2)
+    // Numbers with 2 or more OTPs today are hidden
+    let availableNumbers = numbers.filter(n => {
+        let count = todayOtpCount.get(n.last3) || 0;
+        return count < 2;
+    });
+    
+    let hiddenCount = numbers.length - availableNumbers.length;
+    
+    let html = availableNumbers.map(n => `
         <div class="number-item bg-gray-50 rounded-xl p-3 flex justify-between items-center">
             <span class="font-mono text-sm">📞 ${escapeHtml(n.number)}</span>
             <span class="text-xs text-gray-400">last3: ${n.last3}</span>
         </div>
     `).join('');
     
-    document.getElementById('numBox').innerHTML = html || '<p class="text-gray-400 text-center py-4">No numbers in this range</p>';
+    if (availableNumbers.length === 0) {
+        html = '<p class="text-gray-400 text-center py-4">⚠️ No available numbers in this range today. All numbers have reached the daily limit (2 OTPs).</p>';
+    } else if (hiddenCount > 0) {
+        html += `<div class="mt-3 text-xs text-gray-400 text-center">🔒 ${hiddenCount} number(s) hidden because they reached daily limit (2 OTPs)</div>`;
+    }
+    
+    document.getElementById('numBox').innerHTML = html;
 }
 
 // TODAY PAGE
@@ -330,26 +380,36 @@ function todayPage() {
     let today = getPanelDate({message_time: new Date()});
     let html = "";
     
+    // Track daily count per number (max 2)
+    let dailyCountMap = new Map();
+    
     allOtps.forEach(o => {
         if (getPanelDate(o) === today) {
             let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
             if (match) {
-                html += `
-                <div class="otp-entry">
-                    <div class="flex justify-between items-start flex-wrap gap-2">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-2 flex-wrap">
-                                <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
-                                <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
+                let last3 = o.phone_last3;
+                let currentCount = dailyCountMap.get(last3) || 0;
+                
+                // Only show if less than 2 OTPs today for this number
+                if (currentCount < 2) {
+                    dailyCountMap.set(last3, currentCount + 1);
+                    html += `
+                    <div class="otp-entry">
+                        <div class="flex justify-between items-start flex-wrap gap-2">
+                            <div class="flex-1">
+                                <div class="flex items-center gap-2 mb-2 flex-wrap">
+                                    <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
+                                    <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
+                                </div>
+                                <div class="text-sm">
+                                    <div>📞 ${escapeHtml(match.number)}</div>
+                                    <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(match.range_name)}</div>
+                                </div>
                             </div>
-                            <div class="text-sm">
-                                <div>📞 ${escapeHtml(match.number)}</div>
-                                <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(match.range_name)}</div>
-                            </div>
+                            <div class="text-xs text-gray-400">${formatTime(o)}</div>
                         </div>
-                        <div class="text-xs text-gray-400">${formatTime(o)}</div>
-                    </div>
-                </div>`;
+                    </div>`;
+                }
             }
         }
     });
@@ -362,18 +422,27 @@ function todayPage() {
     <div class="glass-card p-6 fade-in">
         <h2 class="text-xl font-bold mb-4">📊 Today's OTP Statistics</h2>
         <div class="space-y-3">${html}</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">⚠️ Maximum 2 OTPs per number per day</div>
     </div>`;
 }
 
-// TOTAL OTP PAGE (with countdown)
+// TOTAL OTP PAGE (with countdown and max 2 limit)
 function totalPage() {
     let today = getPanelDate({message_time: new Date()});
     let count = 0;
+    let dailyCountMap = new Map();
     
     allOtps.forEach(o => {
         if (getPanelDate(o) === today) {
             let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-            if (match) count++;
+            if (match) {
+                let last3 = o.phone_last3;
+                let currentCount = dailyCountMap.get(last3) || 0;
+                if (currentCount < 2) {
+                    dailyCountMap.set(last3, currentCount + 1);
+                    count++;
+                }
+            }
         }
     });
     
@@ -385,6 +454,7 @@ function totalPage() {
             <div class="stat-card rounded-2xl p-6 text-white mb-4">
                 <p class="text-purple-100 text-sm">Total OTP Today</p>
                 <p class="text-5xl font-bold mt-2">${count}</p>
+                <p class="text-purple-100 text-xs mt-1">(Max 2 per number)</p>
             </div>
             <div class="stat-card rounded-2xl p-6 text-white">
                 <p class="text-purple-100 text-sm">Today's Earnings</p>
@@ -434,30 +504,39 @@ function filterPast() {
     let html = "";
     let total = 0;
     
+    // Track daily count per number for each day (max 2 per day per number)
+    let dailyLimitMap = new Map(); // key: "date_last3"
+    
     allOtps.forEach(o => {
         let d = getPanelDate(o);
         if (d >= s && d <= e) {
             let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
             if (match) {
-                total++;
-                html += `
-                <div class="otp-entry">
-                    <div class="flex justify-between items-start flex-wrap gap-2">
-                        <div class="flex-1">
-                            <div class="text-xs text-gray-400 mb-1">📅 ${d}</div>
-                            <div class="flex items-center gap-2 mb-2 flex-wrap">
-                                <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
-                                <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
+                let key = `${d}_${o.phone_last3}`;
+                let currentCount = dailyLimitMap.get(key) || 0;
+                
+                if (currentCount < 2) {
+                    dailyLimitMap.set(key, currentCount + 1);
+                    total++;
+                    html += `
+                    <div class="otp-entry">
+                        <div class="flex justify-between items-start flex-wrap gap-2">
+                            <div class="flex-1">
+                                <div class="text-xs text-gray-400 mb-1">📅 ${d}</div>
+                                <div class="flex items-center gap-2 mb-2 flex-wrap">
+                                    <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
+                                    <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
+                                </div>
+                                <div class="text-sm">
+                                    <div>📞 ${escapeHtml(match.number)}</div>
+                                    <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(match.range_name)}</div>
+                                </div>
                             </div>
-                            <div class="text-sm">
-                                <div>📞 ${escapeHtml(match.number)}</div>
-                                <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(match.range_name)}</div>
-                            </div>
+                            <div class="text-xs text-gray-400">${formatTime(o)}</div>
                         </div>
-                        <div class="text-xs text-gray-400">${formatTime(o)}</div>
-                    </div>
-                    <div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>
-                </div>`;
+                        <div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>
+                    </div>`;
+                }
             }
         }
     });
@@ -474,12 +553,21 @@ function filterPast() {
         <span class="font-semibold">Total: ${total} OTPs</span>
         <span class="mx-2">|</span>
         <span class="font-bold text-purple-700">$${earn}</span>
+        <p class="text-xs text-gray-400 mt-1">(Max 2 OTPs per number per day)</p>
     </div>`;
 }
 
-// PAGE ROUTER
+// PAGE ROUTER - saves current page to localStorage
 function showPage(p) {
     const content = document.getElementById('content');
+    
+    // Save current page to localStorage (except for support)
+    if (p !== 'support') {
+        localStorage.setItem('elite_current_page', p);
+        const menu = document.getElementById('menu');
+        if (menu) menu.value = p;
+    }
+    
     if (p === "profile") content.innerHTML = profilePage();
     if (p === "allocation") content.innerHTML = allocationPage();
     if (p === "today") content.innerHTML = todayPage();
