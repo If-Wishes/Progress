@@ -22,17 +22,22 @@ logging.getLogger('urllib3').setLevel(logging.ERROR)
 
 app = Flask(__name__)
 
+# ===== CONFIGURATION =====
 API_ID = int(os.environ.get('API_ID', 28057671))
 API_HASH = os.environ.get('API_HASH', '081b1f0d65bc8cc11fb4dc8901f7858e')
 PHONE_NUMBER = os.environ.get('PHONE_NUMBER', '+2348037138956')
 CHANNEL_ID = int(os.environ.get('CHANNEL_ID', -1003481016140))
 
-# Read session from environment variable MY_SESSION.SESSION
+# Session from environment variable (Render) or file (local)
 SESSION_STRING = os.environ.get('MY_SESSION.SESSION', None)
+if not SESSION_STRING:
+    SESSION_STRING = os.environ.get('SESSION_STRING', None)
 
+# Supabase
 SUPABASE_URL = os.environ.get('SUPABASE_URL', "https://uizrpckqnproauqllono.supabase.co")
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY', "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE")
 
+# ===== GLOBALS =====
 recent_messages = []
 last_processed_id = 0
 processed_ids = set()
@@ -40,7 +45,7 @@ processed_ids = set()
 def extract_fields(text):
     """Extract all fields from the message"""
     try:
-        # Extract Country (handles both with and without emoji)
+        # Extract Country
         country_match = re.search(r'[🌍]*\s*Country:\s*(.+?)(?:\n|$)', text)
         # Extract Number
         number_match = re.search(r'[📱]*\s*Number:\s*(.+?)(?:\n|$)', text)
@@ -50,7 +55,7 @@ def extract_fields(text):
         time_match = re.search(r'[📅]*\s*Date/Time:\s*(.+?)(?:\n|$)', text)
         # Extract Range
         range_match = re.search(r'[🌐]*\s*Range:\s*(.+?)(?:\n|$)', text)
-        # Extract the full message (everything after "Message:" or "💬 Message:")
+        # Extract the full message
         message_match = re.search(r'(?:💬\s*)?Message:\s*(.+?)(?:\n━━|$)', text, re.DOTALL)
         
         country = country_match.group(1).strip() if country_match else None
@@ -76,7 +81,7 @@ def extract_fields(text):
             "range": range_val,
             "message": message_clean
         }
-    except Exception as e:
+    except:
         return None
 
 def save_to_supabase(text, message_id):
@@ -84,12 +89,10 @@ def save_to_supabase(text, message_id):
         if "Country:" not in text or "Number:" not in text:
             return False
         
-        # Extract all fields
         extracted = extract_fields(text)
         if not extracted:
             return False
         
-        # Build payload with all fields
         payload = {
             "country": extracted["country"],
             "phone_full": extracted["phone_full"],
@@ -117,13 +120,16 @@ def save_to_supabase(text, message_id):
 async def telegram_listener():
     global last_processed_id, processed_ids
     
+    # Create client
     if SESSION_STRING:
         client = TelegramClient(StringSession(SESSION_STRING), API_ID, API_HASH)
     else:
         client = TelegramClient('my_session', API_ID, API_HASH)
     
+    # Connect
     await client.start(phone=PHONE_NUMBER)
     
+    # Load existing messages to prevent duplicates
     try:
         latest_message = await client.get_messages(CHANNEL_ID, limit=1)
         if latest_message:
@@ -133,6 +139,7 @@ async def telegram_listener():
     except:
         pass
     
+    # Handle new messages
     @client.on(events.NewMessage(chats=CHANNEL_ID))
     async def handler(event):
         global last_processed_id, processed_ids
@@ -141,25 +148,30 @@ async def telegram_listener():
             message = event.message
             message_id = message.id
             
+            # Duplicate check
             if message_id in processed_ids or message_id <= last_processed_id:
                 return
             
+            # Mark as processed
             processed_ids.add(message_id)
             last_processed_id = message_id
             
+            # Clean old IDs
             if len(processed_ids) > 2000:
                 to_remove = list(processed_ids)[:500]
                 for old_id in to_remove:
                     processed_ids.remove(old_id)
             
+            # Process message
             text = message.text
             if text and "Country:" in text and "Number:" in text:
                 message_age = datetime.now().timestamp() - message.date.timestamp()
                 if message_age > 120:
                     return
+                
                 save_to_supabase(text, message_id)
                 
-                # Store preview in memory
+                # Store preview
                 extracted = extract_fields(text)
                 recent_messages.insert(0, {
                     "id": message_id,
@@ -176,6 +188,7 @@ async def telegram_listener():
 def run_telegram():
     asyncio.run(telegram_listener())
 
+# ===== FLASK ROUTES =====
 @app.route('/')
 def home():
     return jsonify({
@@ -200,6 +213,7 @@ def get_latest():
         "messages": recent_messages[:limit]
     })
 
+# ===== MAIN =====
 if __name__ == "__main__":
     telegram_thread = threading.Thread(target=run_telegram, daemon=True)
     telegram_thread.start()
