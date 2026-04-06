@@ -171,7 +171,8 @@ let currentUser = null;
 let userNumbers = [];
 let allOtps = [];
 let userLast3s = [];
-let deletedNumbersMap = new Map(); // Store deleted numbers info for earnings reference
+let deletedNumbersMap = new Map();
+let matchedOtpIds = new Set(); // Track already matched OTPs to avoid duplicates
 
 // Helper Functions
 function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
@@ -186,6 +187,73 @@ function formatTime(o) {
     return '-';
 }
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); }
+
+// Send matched OTP to match_otp table
+async function sendToMatchOtp(otp, allocatedNumber) {
+    try {
+        const payload = {
+            otp_log_id: otp.id,
+            allocated_number_id: allocatedNumber.id,
+            user_id: currentUser.id,
+            phone_last3: otp.phone_last3,
+            otp: otp.otp,
+            country: otp.country,
+            phone_full: allocatedNumber.number,
+            sender: otp.sender || otp.service,
+            range_name: allocatedNumber.range_name,
+            matched_date: new Date().toISOString().slice(0, 10),
+            matched_time: new Date().toISOString(),
+            earnings: 0.005,
+            is_counted: true,
+            message: otp.message,
+            time_raw: otp.time_raw
+        };
+        
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/match_otp`, {
+            method: 'POST',
+            headers: {
+                'apikey': SUPABASE_API_KEY,
+                'Authorization': `Bearer ${SUPABASE_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (res.ok) {
+            console.log('✅ Matched OTP saved to match_otp table');
+        } else {
+            console.error('Failed to save match_otp:', await res.text());
+        }
+    } catch (err) {
+        console.error('Error saving match_otp:', err);
+    }
+}
+
+// Check and send unmatched OTPs to match_otp
+async function processUnmatchedOtps() {
+    // Get existing matched OTP IDs from match_otp table
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/match_otp?select=otp_log_id&user_id=eq.${currentUser.id}`, {
+            headers: { 'apikey': SUPABASE_API_KEY }
+        });
+        const matched = await res.json();
+        matchedOtpIds.clear();
+        matched.forEach(m => matchedOtpIds.add(m.otp_log_id));
+    } catch (err) {
+        console.error('Error fetching matched OTPs:', err);
+    }
+    
+    // Process each OTP that matches user's numbers and not yet matched
+    for (const otp of allOtps) {
+        if (matchedOtpIds.has(otp.id)) continue;
+        
+        const matchedNumber = userNumbers.find(n => getLast3Digits(n.number) === otp.phone_last3);
+        if (matchedNumber) {
+            await sendToMatchOtp(otp, matchedNumber);
+            matchedOtpIds.add(otp.id);
+        }
+    }
+}
 
 // Get user from URL and load data
 async function initFromUrl() {
@@ -212,6 +280,9 @@ async function initFromUrl() {
         
         // Load user data
         await loadUserData();
+        
+        // Process unmatched OTPs to match_otp table
+        await processUnmatchedOtps();
         
         // Setup menu
         const menu = document.getElementById('menu');
@@ -241,25 +312,16 @@ async function loadUserData() {
     // Get last3 digits from current numbers
     userLast3s = [...new Set(userNumbers.map(n => getLast3Digits(n.number)))];
     
-    // Fetch all OTPs for this user (including those from deleted numbers)
+    // Fetch all OTPs for this user
     const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=2000`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
     const allOtpsRaw = await otpRes.json();
     
-    // Get ALL last3 digits that ever had OTPs for this user
-    // We need to query OTPs that match any number that was EVER allocated to this user
-    // Since we don't have historical allocation data, we'll use a different approach:
-    // Store OTPs that have matching last3 with current OR previously allocated numbers
-    // For now, we'll show ALL OTPs that belong to this user's current numbers
-    // PLUS any OTPs that might have come from deleted numbers (by checking if phone_last3 exists in any past record)
-    
-    // For earnings to persist, we store all OTPs that have ever been recorded for this user's last3 digits
-    // Even if the number was deleted, the OTP record remains in otp_logs
+    // Filter OTPs that match user's numbers
     allOtps = allOtpsRaw.filter(otp => userLast3s.includes(otp.phone_last3));
     
-    // Also store a map of numbers that have been deleted (for display purposes)
-    // This helps show OTPs from deleted numbers with a special style
+    // Store deleted numbers info
     const currentLast3s = new Set(userNumbers.map(n => n.last3));
     allOtps.forEach(otp => {
         if (!currentLast3s.has(otp.phone_last3)) {
@@ -337,7 +399,7 @@ function uploadPic(e) {
     reader.readAsDataURL(file);
 }
 
-// ALLOCATION PAGE
+// ALLOCATION PAGE - Hide numbers after 1 OTP
 function allocationPage() {
     let ranges = [...new Set(userNumbers.map(n => n.range_name))];
     
@@ -352,7 +414,7 @@ function allocationPage() {
             ${ranges.map(r => `<option value="${escapeHtml(r)}">📌 ${escapeHtml(r)}</option>`).join('')}
         </select>
         <div id="numBox" class="space-y-2"></div>
-        <div class="mt-4 text-xs text-gray-400 text-center">⚠️ Numbers that have received OTP today are hidden (max 2 per day)</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">⚠️ Numbers that have received OTP today are hidden (max 1 per day)</div>
     </div>`;
     
     setTimeout(() => {
@@ -370,6 +432,7 @@ function displayNumbers(r) {
     let numbers = userNumbers.filter(n => n.range_name === r);
     let today = getPanelDate({message_time: new Date()});
     
+    // Count OTPs per number today (max 1 = hide after 1)
     let todayOtpCount = new Map();
     allOtps.forEach(o => {
         if (getPanelDate(o) === today) {
@@ -378,9 +441,10 @@ function displayNumbers(r) {
         }
     });
     
+    // Hide numbers that have received ANY OTP today (count >= 1)
     let availableNumbers = numbers.filter(n => {
         let count = todayOtpCount.get(n.last3) || 0;
-        return count < 2;
+        return count < 1; // Hide after 1 OTP
     });
     
     let hiddenCount = numbers.length - availableNumbers.length;
@@ -393,9 +457,9 @@ function displayNumbers(r) {
     `).join('');
     
     if (availableNumbers.length === 0) {
-        html = '<p class="text-gray-400 text-center py-4">⚠️ No available numbers in this range today. All numbers have reached the daily limit (2 OTPs).</p>';
+        html = '<p class="text-gray-400 text-center py-4">⚠️ No available numbers in this range today. All numbers have reached the daily limit (1 OTP).</p>';
     } else if (hiddenCount > 0) {
-        html += `<div class="mt-3 text-xs text-gray-400 text-center">🔒 ${hiddenCount} number(s) hidden because they reached daily limit (2 OTPs)</div>`;
+        html += `<div class="mt-3 text-xs text-gray-400 text-center">🔒 ${hiddenCount} number(s) hidden because they received OTP today (max 1 per day)</div>`;
     }
     
     document.getElementById('numBox').innerHTML = html;
