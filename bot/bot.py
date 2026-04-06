@@ -26,7 +26,9 @@ API_ID = int(os.environ.get('API_ID', 28057671))
 API_HASH = os.environ.get('API_HASH', '081b1f0d65bc8cc11fb4dc8901f7858e')
 PHONE_NUMBER = os.environ.get('PHONE_NUMBER', '+2348037138956')
 CHANNEL_ID = int(os.environ.get('CHANNEL_ID', -1003481016140))
-SESSION_STRING = os.environ.get('SESSION_STRING', None)
+
+# Read session from environment variable MY_SESSION.SESSION
+SESSION_STRING = os.environ.get('MY_SESSION.SESSION', None)
 
 SUPABASE_URL = os.environ.get('SUPABASE_URL', "https://uizrpckqnproauqllono.supabase.co")
 SUPABASE_KEY = os.environ.get('SUPABASE_KEY', "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE")
@@ -35,14 +37,70 @@ recent_messages = []
 last_processed_id = 0
 processed_ids = set()
 
+def extract_fields(text):
+    """Extract all fields from the message"""
+    try:
+        # Extract Country (handles both with and without emoji)
+        country_match = re.search(r'[🌍]*\s*Country:\s*(.+?)(?:\n|$)', text)
+        # Extract Number
+        number_match = re.search(r'[📱]*\s*Number:\s*(.+?)(?:\n|$)', text)
+        # Extract Sender
+        sender_match = re.search(r'[📌]*\s*Sender:\s*(.+?)(?:\n|$)', text)
+        # Extract Date/Time
+        time_match = re.search(r'[📅]*\s*Date/Time:\s*(.+?)(?:\n|$)', text)
+        # Extract Range
+        range_match = re.search(r'[🌐]*\s*Range:\s*(.+?)(?:\n|$)', text)
+        # Extract the full message (everything after "Message:" or "💬 Message:")
+        message_match = re.search(r'(?:💬\s*)?Message:\s*(.+?)(?:\n━━|$)', text, re.DOTALL)
+        
+        country = country_match.group(1).strip() if country_match else None
+        phone_full = number_match.group(1).strip() if number_match else None
+        sender = sender_match.group(1).strip() if sender_match else None
+        time_raw = time_match.group(1).strip() if time_match else None
+        range_val = range_match.group(1).strip() if range_match else None
+        message_clean = message_match.group(1).strip() if message_match else None
+        
+        # Extract last 3 digits from phone number
+        phone_last3 = None
+        if phone_full:
+            digits = re.sub(r'\D', '', phone_full)
+            if len(digits) >= 3:
+                phone_last3 = digits[-3:]
+        
+        return {
+            "country": country,
+            "phone_full": phone_full,
+            "phone_last3": phone_last3,
+            "sender": sender,
+            "time_raw": time_raw,
+            "range": range_val,
+            "message": message_clean
+        }
+    except Exception as e:
+        return None
+
 def save_to_supabase(text, message_id):
     try:
         if "Country:" not in text or "Number:" not in text:
             return False
         
-        payload = {"message": text}
+        # Extract all fields
+        extracted = extract_fields(text)
+        if not extracted:
+            return False
         
-        requests.post(
+        # Build payload with all fields
+        payload = {
+            "country": extracted["country"],
+            "phone_full": extracted["phone_full"],
+            "phone_last3": extracted["phone_last3"],
+            "sender": extracted["sender"],
+            "range": extracted["range"],
+            "time_raw": extracted["time_raw"],
+            "message": extracted["message"]
+        }
+        
+        response = requests.post(
             f"{SUPABASE_URL}/rest/v1/otp_logs",
             headers={
                 "apikey": SUPABASE_KEY,
@@ -52,7 +110,7 @@ def save_to_supabase(text, message_id):
             json=payload,
             timeout=5
         )
-        return True
+        return response.status_code == 201
     except:
         return False
 
@@ -101,9 +159,11 @@ async def telegram_listener():
                     return
                 save_to_supabase(text, message_id)
                 
+                # Store preview in memory
+                extracted = extract_fields(text)
                 recent_messages.insert(0, {
                     "id": message_id,
-                    "preview": text[:100],
+                    "phone": extracted.get("phone_full") if extracted else "Unknown",
                     "time": str(message.date)
                 })
                 while len(recent_messages) > 100:
