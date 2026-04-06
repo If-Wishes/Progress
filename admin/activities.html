@@ -60,15 +60,6 @@
             font-size: 0.9rem;
         }
         
-        .otp-exceeded {
-            background: #fef2f2;
-            border-color: #fecaca;
-            opacity: 0.7;
-        }
-        .otp-exceeded:hover {
-            border-color: #ef4444;
-        }
-        
         .dropdown-enter {
             animation: dropdownFade 0.2s ease;
         }
@@ -140,25 +131,20 @@
             </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
             <div class="stat-card stat-card-purple-1 rounded-2xl shadow-lg p-6 text-white">
-                <p class="text-purple-100 text-sm font-medium">Total OTPs (Valid)</p>
+                <p class="text-purple-100 text-sm font-medium">Total OTPs</p>
                 <p class="text-3xl font-bold mt-1" id="totalOtps">0</p>
-                <p class="text-purple-100 text-xs mt-1">(Max 2 per number/day)</p>
+                <p class="text-purple-100 text-xs mt-1">(All OTPs count)</p>
             </div>
             <div class="stat-card stat-card-purple-2 rounded-2xl shadow-lg p-6 text-white">
                 <p class="text-amber-100 text-sm font-medium">Total Earnings</p>
                 <p class="text-3xl font-bold mt-1" id="totalEarnings">$0.00</p>
-                <p class="text-amber-100 text-xs mt-1">($0.005 per valid OTP)</p>
+                <p class="text-amber-100 text-xs mt-1">($0.005 per OTP)</p>
             </div>
             <div class="stat-card stat-card-purple-3 rounded-2xl shadow-lg p-6 text-white">
                 <p class="text-blue-100 text-sm font-medium">Unique Numbers</p>
                 <p class="text-3xl font-bold mt-1" id="uniqueNumbers">0</p>
-            </div>
-            <div class="stat-card stat-card-purple-4 rounded-2xl shadow-lg p-6 text-white">
-                <p class="text-purple-100 text-sm font-medium">Exceeded OTPs</p>
-                <p class="text-3xl font-bold mt-1" id="exceededOtps">0</p>
-                <p class="text-purple-100 text-xs mt-1">(Not counted/earned)</p>
             </div>
         </div>
 
@@ -166,7 +152,7 @@
             <div class="p-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center">
                 <h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>OTP Records</h3>
                 <div class="text-sm text-gray-500">
-                    <i class="fas fa-info-circle mr-1 text-purple-400"></i> Max 2 OTPs per number per day (exceeded ones are grayed out)
+                    <i class="fas fa-info-circle mr-1 text-purple-400"></i> All OTPs count (no daily limits)
                 </div>
             </div>
             <div id="otpRecordsList" class="p-4 space-y-3 max-h-[600px] overflow-y-auto">
@@ -220,13 +206,6 @@ function formatTime(messageTime) {
         if (!isNaN(d.getTime())) return d.toLocaleTimeString();
     }
     return '-';
-}
-
-function getPanelDate(dateStr) {
-    if (!dateStr) return null;
-    const d = new Date(dateStr);
-    d.setHours(d.getHours() - 1);
-    return d.toISOString().slice(0, 10);
 }
 
 async function fetchAllUsers() {
@@ -310,7 +289,6 @@ async function loadUserData() {
         document.getElementById('totalOtps').textContent = '0';
         document.getElementById('totalEarnings').textContent = '$0.00';
         document.getElementById('uniqueNumbers').textContent = '0';
-        document.getElementById('exceededOtps').textContent = '0';
         return;
     }
     
@@ -328,34 +306,14 @@ async function loadUserData() {
     const allOtps = await fetchAllOtps();
     userOtps = filterOtpsByUserAndDate(allOtps, userPhoneLast3s, startDate, endDate);
     
-    // Apply max 2 per number per day limit
-    let dailyCountMap = new Map(); // key: "date_last3"
-    let validOtps = [];
-    let exceededOtps = [];
-    
-    for (const otp of userOtps) {
-        const otpDate = otp.date || otp.message_time?.slice(0, 10);
-        const key = `${otpDate}_${otp.phone_last3}`;
-        const currentCount = dailyCountMap.get(key) || 0;
-        
-        if (currentCount < 2) {
-            dailyCountMap.set(key, currentCount + 1);
-            validOtps.push(otp);
-        } else {
-            exceededOtps.push(otp);
-        }
-    }
-    
-    const totalOtps = validOtps.length;
+    // No limit - all OTPs count
+    const totalOtps = userOtps.length;
     const totalEarnings = totalOtps * 0.005;
-    const uniqueNumbers = [...new Set(validOtps.map(otp => otp.phone_last3))].length;
-    const activeRanges = [...new Set(validOtps.map(otp => otp.country).filter(c => c))].length;
+    const uniqueNumbers = [...new Set(userOtps.map(otp => otp.phone_last3))].length;
     
     document.getElementById('totalOtps').textContent = totalOtps;
     document.getElementById('totalEarnings').textContent = `$${totalEarnings.toFixed(2)}`;
     document.getElementById('uniqueNumbers').textContent = uniqueNumbers;
-    document.getElementById('activeRanges').textContent = activeRanges;
-    document.getElementById('exceededOtps').textContent = exceededOtps.length;
     
     if (userOtps.length === 0) {
         document.getElementById('otpRecordsList').innerHTML = `
@@ -369,8 +327,7 @@ async function loadUserData() {
     
     let html = '';
     
-    // Show valid OTPs first
-    for (const otp of validOtps) {
+    for (const otp of userOtps) {
         const numberInfo = userNumberMap.get(otp.phone_last3);
         const phoneNumber = numberInfo?.number || otp.phone_last3;
         const maskedNumber = maskPhoneNumber(phoneNumber);
@@ -415,59 +372,11 @@ async function loadUserData() {
         `;
     }
     
-    // Show exceeded OTPs (not counted)
-    for (const otp of exceededOtps) {
-        const numberInfo = userNumberMap.get(otp.phone_last3);
-        const phoneNumber = numberInfo?.number || otp.phone_last3;
-        const maskedNumber = maskPhoneNumber(phoneNumber);
-        const rangeName = numberInfo?.range_name || otp.country || 'Unknown';
-        const timeStr = formatTime(otp.message_time);
-        
-        html += `
-            <div class="otp-entry otp-exceeded">
-                <div class="flex justify-between items-start flex-wrap gap-2">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-2 flex-wrap">
-                            <span class="text-xs text-gray-400">#${otp.id || ''}</span>
-                            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">📅 ${otp.date || 'N/A'}</span>
-                            <span class="otp-badge text-xs opacity-50">${escapeHtml(otp.otp)}</span>
-                            <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">✗ Exceeded Limit</span>
-                        </div>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm opacity-60">
-                            <div>
-                                <span class="text-gray-500 text-xs">📞 Phone</span>
-                                <p class="font-mono font-medium">${escapeHtml(maskedNumber)}</p>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 text-xs">🔐 Last3</span>
-                                <p class="font-mono">${escapeHtml(otp.phone_last3)}</p>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 text-xs">✉️ Sender</span>
-                                <p>${escapeHtml(otp.sender || otp.service || 'Unknown')}</p>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 text-xs">📌 Range</span>
-                                <p>${escapeHtml(rangeName)}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-xs text-gray-400">${timeStr}</div>
-                        <div class="text-red-500 font-semibold text-sm mt-1">$0.00 (Limit Exceeded)</div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
     html += `
         <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
-            <span class="font-semibold">Valid: ${totalOtps} OTPs</span>
+            <span class="font-semibold">Total: ${totalOtps} OTPs</span>
             <span class="mx-2">|</span>
             <span class="font-bold text-purple-700">$${totalEarnings.toFixed(2)}</span>
-            <span class="mx-2">|</span>
-            <span class="text-gray-500">Exceeded: ${exceededOtps.length} OTPs (not counted)</span>
         </div>
     `;
     
