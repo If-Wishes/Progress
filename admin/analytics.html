@@ -60,7 +60,6 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
-        /* OTP Entry Card */
         .otp-entry {
             background: white;
             border-radius: 12px;
@@ -91,6 +90,14 @@
         .nav-link:hover {
             background-color: #f5f3ff;
             color: #7c3aed;
+        }
+        .btn-total {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            transition: all 0.2s;
+        }
+        .btn-total:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
         }
     </style>
 </head>
@@ -181,16 +188,16 @@ Example:
         
         <!-- Allocated Numbers List -->
         <div class="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
-            <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-list-ul text-purple-500"></i> Allocated Numbers</h2>
-            
-            <div class="flex items-center justify-between mb-4">
-                <select id="filterSelect" class="w-2/3 border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
-                    <option value="">-- All Users --</option>
-                </select>
-                <button id="toggleDeletedBtn" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-2 rounded-lg transition">
-                    <i class="fas fa-eye-slash mr-1"></i> Hide Deleted
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="font-semibold text-gray-800 flex items-center gap-2"><i class="fas fa-list-ul text-purple-500"></i> Allocated Numbers</h2>
+                <button onclick="window.location.href='total.html'" class="btn-total text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md transition flex items-center gap-2">
+                    <i class="fas fa-chart-line"></i> TOTAL
                 </button>
             </div>
+            
+            <select id="filterSelect" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 mb-4 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                <option value="">-- All Users --</option>
+            </select>
             
             <div id="allocationsList" class="max-h-96 overflow-y-auto space-y-3">
                 <div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
@@ -198,7 +205,7 @@ Example:
         </div>
     </div>
     
-    <!-- OTP Records Section - Similar to User Panel -->
+    <!-- OTP Records Section -->
     <div class="mt-8">
         <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
             <div class="p-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center">
@@ -247,12 +254,9 @@ document.getElementById('adminName').innerText = session.username;
 let usersList = [];
 let usedNumbersSet = new Set();
 let customRanges = [];
-let showDeleted = false;
 
 // Store for OTP records
 let allAllocatedNumbers = [];
-let allOtps = [];
-let matchedOtps = [];
 
 function getLast3Digits(number) {
     let cleaned = number.replace(/[^0-9]/g, '');
@@ -371,10 +375,6 @@ async function loadAllocatedNumbers() {
     const res = await fetch(url, { headers: { 'apikey': API_KEY } });
     let allocations = await res.json();
     allAllocatedNumbers = allocations;
-    
-    if (!showDeleted) {
-        allocations = allocations.filter(item => !item.is_deleted);
-    }
     
     const container = document.getElementById('allocationsList');
     
@@ -772,15 +772,6 @@ function setupDropdown() {
 
 document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); logout(); };
 document.getElementById('addBtn').onclick = addNumbers;
-
-const toggleBtn = document.getElementById('toggleDeletedBtn');
-if (toggleBtn) {
-    toggleBtn.onclick = () => {
-        showDeleted = !showDeleted;
-        toggleBtn.innerHTML = showDeleted ? '<i class="fas fa-eye mr-1"></i> Show Deleted' : '<i class="fas fa-eye-slash mr-1"></i> Hide Deleted';
-        loadAllocatedNumbers();
-    };
-}
 
 async function init() {
     setupDropdown();
