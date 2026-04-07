@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>ELITE Panel | Allocation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); min-height: 100vh; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 24px; box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1); }
+        .number-item { transition: all 0.2s ease; border-left: 3px solid #7c3aed; }
+        .number-item:hover { transform: translateX(5px); background-color: #f5f3ff; }
+        .custom-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%237c3aed' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E"); background-position: right 12px center; background-repeat: no-repeat; background-size: 20px; appearance: none; }
+        .hidden-dropdown { display: none !important; }
+        .nav-link { transition: all 0.2s; display: block; width: 100%; text-align: left; }
+        .nav-link:hover { background-color: #f5f3ff; color: #7c3aed; }
+        .dropdown-enter { animation: dropdownFade 0.2s ease; }
+        @keyframes dropdownFade { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: loading 1.5s infinite; border-radius: 8px; }
+        @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    </style>
+</head>
+<body>
+<div class="min-h-screen">
+    <nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3 cursor-pointer" onclick="goToPage('dashboard.html')">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-800 rounded-xl flex items-center justify-center shadow-md">
+                    <i class="fas fa-crown text-white text-sm"></i>
+                </div>
+                <div><span class="text-xl font-bold text-gray-800">ELITE<span class="text-purple-600">Panel</span></span>
+                <span class="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">User</span></div>
+            </div>
+            <div class="relative">
+                <button id="menuBtn" class="bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition cursor-pointer flex items-center gap-2">
+                    <i class="fas fa-user-circle text-purple-600 text-lg"></i>
+                    <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
+                </button>
+                <div id="dropdown" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden dropdown-enter">
+                    <a href="dashboard.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-user w-5 text-purple-500 mr-2"></i> Profile</a>
+                    <a href="allocation.html" class="nav-link px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-phone-alt w-5 text-purple-500 mr-2"></i> Allocation</a>
+                    <a href="today_stat.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-chart-bar w-5 text-purple-500 mr-2"></i> Today's Stat</a>
+                    <a href="today_otp.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-dollar-sign w-5 text-purple-500 mr-2"></i> Today's OTP</a>
+                    <a href="past_records.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-history w-5 text-purple-500 mr-2"></i> Past Records</a>
+                    <div class="border-t border-gray-100 my-1"></div>
+                    <a href="#" id="supportBtn" class="nav-link px-4 py-2.5 text-purple-600"><i class="fab fa-whatsapp w-5 text-purple-500 mr-2"></i> Contact Support</a>
+                    <a href="#" id="logoutBtn" class="nav-link px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <div id="content" class="max-w-4xl mx-auto p-4"></div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
+const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
+
+let currentUser = null;
+let userNumbersForDisplay = [];
+let allOtps = [];
+
+function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); }
+function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
+function getPanelDate(o) {
+    let t = new Date(o.message_time || o.created_at || new Date());
+    t.setHours(t.getHours() - 1);
+    return t.toISOString().slice(0, 10);
+}
+
+async function loadData(userId) {
+    const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&id=eq.${encodeURIComponent(userId)}`, {
+        headers: { 'apikey': SUPABASE_API_KEY }
+    });
+    const users = await userRes.json();
+    if (!users.length) throw new Error('User not found');
+    currentUser = users[0];
+    
+    const displayNumbersRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}&is_deleted=eq.false`, {
+        headers: { 'apikey': SUPABASE_API_KEY }
+    });
+    userNumbersForDisplay = await displayNumbersRes.json();
+    
+    const userLast3s = [...new Set(userNumbersForDisplay.map(n => getLast3Digits(n.number)))];
+    const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=2000`, {
+        headers: { 'apikey': SUPABASE_API_KEY }
+    });
+    const allOtpsRaw = await otpRes.json();
+    allOtps = allOtpsRaw.filter(otp => userLast3s.includes(otp.phone_last3));
+}
+
+function displayAllocation() {
+    let ranges = [...new Set(userNumbersForDisplay.map(n => n.range_name))];
+    if (ranges.length === 0) {
+        document.getElementById('content').innerHTML = `<div class="glass-card p-8 text-center text-gray-500">No numbers allocated yet. Contact admin.</div>`;
+        return;
+    }
+    document.getElementById('content').innerHTML = `<div class="glass-card p-6 fade-in"><h2 class="text-xl font-bold mb-4">📌 Number Allocation</h2><select id="rangeSelect" class="custom-select w-full border border-purple-200 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none mb-4">${ranges.map(r => `<option value="${escapeHtml(r)}">📌 ${escapeHtml(r)}</option>`).join('')}</select><div id="numBox" class="space-y-2"></div><div class="mt-4 text-xs text-gray-400 text-center">⚠️ Numbers that have received OTP today are hidden</div></div>`;
+    
+    setTimeout(() => {
+        const rangeSelect = document.getElementById('rangeSelect');
+        if (rangeSelect && ranges.length) {
+            displayNumbers(rangeSelect.value);
+            rangeSelect.onchange = () => displayNumbers(rangeSelect.value);
+        }
+    }, 50);
+}
+
+function displayNumbers(r) {
+    let numbers = userNumbersForDisplay.filter(n => n.range_name === r);
+    let today = getPanelDate({message_time: new Date()});
+    let todayOtpCount = new Map();
+    allOtps.forEach(o => { if (getPanelDate(o) === today) { todayOtpCount.set(o.phone_last3, (todayOtpCount.get(o.phone_last3) || 0) + 1); } });
+    let availableNumbers = numbers.filter(n => (todayOtpCount.get(n.last3) || 0) === 0);
+    let html = availableNumbers.map(n => `<div class="number-item bg-gray-50 rounded-xl p-3 flex justify-between items-center"><span class="font-mono text-sm">📞 ${escapeHtml(n.number)}</span><span class="text-xs text-gray-400">last3: ${n.last3}</span></div>`).join('');
+    if (!availableNumbers.length) html = '<p class="text-gray-400 text-center py-4">⚠️ No available numbers in this range today.</p>';
+    document.getElementById('numBox').innerHTML = html;
+}
+
+function setupDropdown() {
+    const menuBtn = document.getElementById('menuBtn');
+    const dropdown = document.getElementById('dropdown');
+    if (menuBtn) {
+        menuBtn.addEventListener('click', function(e) { e.stopPropagation(); dropdown.classList.toggle('hidden-dropdown'); });
+    }
+    document.addEventListener('click', function(e) {
+        if (!menuBtn.contains(e.target) && !dropdown.contains(e.target)) dropdown.classList.add('hidden-dropdown');
+    });
+}
+
+function goToPage(page) {
+    const userId = new URLSearchParams(window.location.search).get('id');
+    window.location.href = `${page}?id=${userId}`;
+}
+
+async function init() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
+    if (!userId) { window.location.href = '../index.html'; return; }
+    document.getElementById('content').innerHTML = `<div class="glass-card p-6"><div class="skeleton h-32 w-full mb-3"></div></div>`;
+    await loadData(userId);
+    displayAllocation();
+    setupDropdown();
+    document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); localStorage.removeItem('elite_session'); window.location.href = '../index.html'; };
+    document.getElementById('supportBtn').onclick = (e) => { e.preventDefault(); window.open('https://wa.me/2348113903584', '_blank'); };
+}
+
+window.displayNumbers = displayNumbers;
+window.goToPage = goToPage;
+init();
+</script>
+</body>
+</html>
