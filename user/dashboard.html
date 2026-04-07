@@ -44,11 +44,6 @@
             background-color: #f5f3ff;
         }
         
-        /* No hidden state anymore - all numbers always visible */
-        .number-item-hidden {
-            display: none; /* Not used but kept for compatibility */
-        }
-        
         .otp-badge {
             background: linear-gradient(135deg, #7c3aed, #6d28d9);
             color: white;
@@ -111,15 +106,6 @@
             box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
         }
         
-        .otp-entry-deleted {
-            background: #fef2f2;
-            border-color: #fecaca;
-            opacity: 0.8;
-        }
-        .otp-entry-deleted:hover {
-            border-color: #ef4444;
-        }
-        
         .hidden-dropdown { display: none !important; }
         
         .unlimited-badge {
@@ -171,10 +157,9 @@ const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
 const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
 
 let currentUser = null;
-let userNumbers = [];
-let allOtps = [];
-let userLast3s = [];
-let deletedNumbersMap = new Map(); // Store deleted numbers info for earnings reference
+let userNumbers = [];      // All user numbers (including those that have received OTP)
+let allOtps = [];          // All OTPs for this user
+let numbersWithOtp = new Set(); // Track which last3 have received OTP
 
 // Helper Functions
 function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
@@ -196,7 +181,7 @@ async function initFromUrl() {
     const userId = urlParams.get('id');
     
     if (!userId) {
-        window.location.href = '../index.html';
+        document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;'>Invalid access</h2>";
         return;
     }
     
@@ -207,7 +192,7 @@ async function initFromUrl() {
         const users = await res.json();
         
         if (!users.length) {
-            window.location.href = '../index.html';
+            document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;'>User not found</h2>";
             return;
         }
         
@@ -229,44 +214,48 @@ async function initFromUrl() {
         
     } catch (err) {
         console.error('Init error:', err);
-        window.location.href = '../index.html';
+        document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;'>Error loading dashboard</h2>";
     }
 }
 
-// Load User Data - Store both current and historical numbers (NO LIMIT applied)
+// Load User Data - Track which numbers have received OTP
 async function loadUserData() {
-    // Fetch current allocated numbers
+    // Fetch all allocated numbers for this user (including deleted ones for earnings)
     const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
-    userNumbers = await numRes.json();
+    const allNumbers = await numRes.json();
+    userNumbers = allNumbers;
     
-    // Get last3 digits from current numbers
-    userLast3s = [...new Set(userNumbers.map(n => getLast3Digits(n.number)))];
+    // Get all last3 digits from user numbers
+    const userLast3s = [...new Set(userNumbers.map(n => n.last3))];
     
-    // Fetch all OTPs for this user (including those from deleted numbers)
-    const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=2000`, {
-        headers: { 'apikey': SUPABASE_API_KEY }
-    });
-    const allOtpsRaw = await otpRes.json();
+    // Fetch all OTPs for this user
+    if (userLast3s.length > 0) {
+        const last3Filter = userLast3s.map(l3 => `phone_last3=eq.${l3}`).join(',');
+        const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&or=(${last3Filter})&order=date.desc&limit=2000`, {
+            headers: { 'apikey': SUPABASE_API_KEY }
+        });
+        allOtps = await otpRes.json();
+    } else {
+        allOtps = [];
+    }
     
-    // Get ALL last3 digits that ever had OTPs for this user
-    allOtps = allOtpsRaw.filter(otp => userLast3s.includes(otp.phone_last3));
-    
-    // Store map of numbers that have been deleted
-    const currentLast3s = new Set(userNumbers.map(n => n.last3));
+    // Track which numbers have received at least one OTP
+    numbersWithOtp.clear();
     allOtps.forEach(otp => {
-        if (!currentLast3s.has(otp.phone_last3)) {
-            deletedNumbersMap.set(otp.phone_last3, true);
-        }
+        numbersWithOtp.add(otp.phone_last3);
     });
+    
+    console.log(`Numbers with OTP: ${numbersWithOtp.size}`);
+    console.log(`Total numbers: ${userNumbers.length}`);
 }
 
 // Handle Menu Navigation
 function handleMenu(value) {
     if (value === 'logout') {
         localStorage.removeItem('elite_current_page');
-        window.location.href = '../index.html';
+        document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;'>Logged out</h2>";
     } else if (value === 'support') {
         window.open('https://wa.me/2348113903584', '_blank');
         const savedPage = localStorage.getItem('elite_current_page') || 'profile';
@@ -278,15 +267,9 @@ function handleMenu(value) {
     }
 }
 
-// PROFILE PAGE - Earnings calculated without daily limit
+// PROFILE PAGE - Shows earnings from ALL OTPs
 function profilePage() {
-    // Count ALL OTPs without any daily limit per number
-    let totalOtps = 0;
-    // Each OTP earns $0.005 regardless of how many per number per day
-    allOtps.forEach(() => {
-        totalOtps++;
-    });
-    
+    let totalOtps = allOtps.length;
     let earned = (totalOtps * 0.005).toFixed(2);
     let avatar = localStorage.getItem("avatar") || "";
 
@@ -327,24 +310,29 @@ function uploadPic(e) {
     reader.readAsDataURL(file);
 }
 
-// ALLOCATION PAGE - Shows ONLY active numbers that haven't received OTP yet
+// ALLOCATION PAGE - Shows ONLY numbers that have NOT received any OTP yet
 function allocationPage() {
-    // Filter to show: not deleted AND has NOT received OTP yet
-    let activeNumbersList = userNumbers.filter(n => n.is_deleted !== true && n.has_received_otp !== true);
-    let ranges = [...new Set(activeNumbersList.map(n => n.range_name))];
+    // Filter numbers: not deleted AND has NOT received any OTP yet
+    let availableNumbers = userNumbers.filter(n => {
+        const hasOtp = numbersWithOtp.has(n.last3);
+        return n.is_deleted !== true && !hasOtp;
+    });
+    
+    let ranges = [...new Set(availableNumbers.map(n => n.range_name))];
     
     if (ranges.length === 0) {
-        return `<div class="glass-card p-8 text-center text-gray-500">No active numbers available. Contact admin.</div>`;
+        return `<div class="glass-card p-8 text-center text-gray-500">✅ All your numbers have received OTPs! Contact admin for more numbers.</div>`;
     }
     
     let html = `
     <div class="glass-card p-6 fade-in">
-        <h2 class="text-xl font-bold mb-4">📌 Number Allocation <span class="unlimited-badge"><i class="fas fa-infinity mr-1"></i>no earning limit</span></h2>
+        <h2 class="text-xl font-bold mb-4">📌 Available Numbers <span class="unlimited-badge"><i class="fas fa-infinity mr-1"></i>No earning limit</span></h2>
+        <p class="text-sm text-gray-500 mb-3">⚠️ Numbers hide automatically after receiving 1st OTP</p>
         <select id="rangeSelect" class="custom-select w-full border border-purple-200 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none mb-4">
             ${ranges.map(r => `<option value="${escapeHtml(r)}">📌 ${escapeHtml(r)}</option>`).join('')}
         </select>
         <div id="numBox" class="space-y-2"></div>
-        <div class="mt-4 text-xs text-gray-400 text-center">✅ Numbers hide automatically after receiving 1st OTP</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">✅ Numbers disappear once they receive an OTP</div>
     </div>`;
     
     setTimeout(() => {
@@ -360,8 +348,11 @@ function allocationPage() {
 
 // DISPLAY NUMBERS - Shows ONLY numbers that haven't received OTP yet
 function displayNumbers(r) {
-    // Filter: in this range, not deleted, and has NOT received OTP yet
-    let numbers = userNumbers.filter(n => n.range_name === r && n.is_deleted !== true && n.has_received_otp !== true);
+    // Filter: in this range, not deleted, and has NOT received any OTP
+    let numbers = userNumbers.filter(n => {
+        const hasOtp = numbersWithOtp.has(n.last3);
+        return n.range_name === r && n.is_deleted !== true && !hasOtp;
+    });
     
     let html = numbers.map(n => `
         <div class="number-item bg-gray-50 rounded-xl p-3 flex justify-between items-center">
@@ -371,71 +362,48 @@ function displayNumbers(r) {
     `).join('');
     
     if (numbers.length === 0) {
-        html = '<p class="text-gray-400 text-center py-4">⚠️ No fresh numbers in this range.</p>';
+        html = '<p class="text-gray-400 text-center py-4">✨ No fresh numbers in this range. Try another range or contact admin.</p>';
     } else {
-        html += `<div class="mt-3 text-xs text-green-600 text-center">✨ ${numbers.length} available number(s)</div>`;
+        html += `<div class="mt-3 text-xs text-green-600 text-center">✨ ${numbers.length} available number(s) - will hide after 1st OTP</div>`;
     }
     
     const numBox = document.getElementById('numBox');
     if (numBox) numBox.innerHTML = html;
 }
 
-// Call this function whenever an OTP is received for a number
-function markNumberAsReceivedOTP(numberId) {
-    const numberIndex = userNumbers.findIndex(n => n.id === numberId);
-    
-    if (numberIndex !== -1 && !userNumbers[numberIndex].has_received_otp) {
-        // Mark as received OTP
-        userNumbers[numberIndex].has_received_otp = true;
-        
-        // Refresh the display to hide this number
-        const rangeSelect = document.getElementById('rangeSelect');
-        if (rangeSelect && rangeSelect.value) {
-            displayNumbers(rangeSelect.value);
-        }
-        
-        // Also refresh allocation page if it's currently showing
-        const mainContent = document.getElementById('mainContent');
-        if (mainContent && window.currentPage === 'allocation') {
-            mainContent.innerHTML = allocationPage();
-        }
-        
-        console.log(`Number ${userNumbers[numberIndex].number} marked as received OTP and hidden from allocation`);
-    }
-}
-
-// TODAY PAGE - Show ALL OTPs received today (no limit)
+// TODAY PAGE - Shows ALL OTPs from today
 function todayPage() {
     let today = getPanelDate({message_time: new Date()});
     let html = "";
     
-    // Filter OTPs for today only - NO LIMIT on how many per number
     const todayOtps = allOtps.filter(o => getPanelDate(o) === today);
     
     if (todayOtps.length === 0) {
         return `<div class="glass-card p-8 text-center text-gray-500">📭 No OTPs received today</div>`;
-}
+    }
     
-    // Display ALL OTPs without any count restriction
+    // Create a map of numbers for display
+    const numberMap = new Map();
+    userNumbers.forEach(n => {
+        numberMap.set(n.last3, n);
+    });
+    
     todayOtps.forEach(o => {
-        let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-        let isFromDeleted = !match && deletedNumbersMap.has(o.phone_last3);
-        let deletedClass = isFromDeleted ? 'otp-entry-deleted' : '';
-        let deletedBadge = isFromDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
-        let phoneDisplay = match ? match.number : (isFromDeleted ? 'Deleted Number' : '***' + o.phone_last3);
+        let match = numberMap.get(o.phone_last3);
+        let phoneDisplay = match ? match.number : `***${o.phone_last3}`;
+        let rangeDisplay = o.range || match?.range_name || '-';
         
         html += `
-        <div class="otp-entry ${deletedClass}">
+        <div class="otp-entry">
             <div class="flex justify-between items-start flex-wrap gap-2">
                 <div class="flex-1">
                     <div class="flex items-center gap-2 mb-2 flex-wrap">
                         <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
                         <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
-                        ${deletedBadge}
                     </div>
                     <div class="text-sm">
                         <div>📞 ${escapeHtml(phoneDisplay)}</div>
-                        <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(o.range || match?.range_name || '-')}</div>
+                        <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(rangeDisplay)}</div>
                     </div>
                 </div>
                 <div class="text-xs text-gray-400">${formatTime(o)}</div>
@@ -456,13 +424,11 @@ function todayPage() {
     </div>`;
 }
 
-// TOTAL OTP PAGE - Count ALL OTPs without limits
+// TOTAL OTP PAGE
 function totalPage() {
     let today = getPanelDate({message_time: new Date()});
-    // Count ALL OTPs from today without any per-number limit
     let todayOtps = allOtps.filter(o => getPanelDate(o) === today);
     let count = todayOtps.length;
-    
     let earn = (count * 0.005).toFixed(2);
     
     return `
@@ -483,7 +449,7 @@ function totalPage() {
     </div>`;
 }
 
-// COUNTDOWN TO 1AM (still shows reset time but no functional limit)
+// COUNTDOWN TO 1AM
 setInterval(() => {
     let now = new Date();
     let next = new Date();
@@ -496,10 +462,10 @@ setInterval(() => {
     let s = Math.floor((diff % 60000) / 1000);
     
     let el = document.getElementById("countdown");
-    if (el) el.innerHTML = `<i class="fas fa-clock mr-1"></i> Day resets in ${h}h ${m}m ${s}s (Note)`;
+    if (el) el.innerHTML = `<i class="fas fa-clock mr-1"></i> Day resets in ${h}h ${m}m ${s}s`;
 }, 1000);
 
-// PAST RECORDS PAGE - Show ALL OTPs without daily limit
+// PAST RECORDS PAGE
 function pastPage() {
     return `
     <div class="glass-card p-6 fade-in">
@@ -515,39 +481,37 @@ function pastPage() {
     </div>`;
 }
 
-// FILTER PAST - Show ALL matching OTPs (no limit per number per day)
+// FILTER PAST - Shows ALL matching OTPs
 function filterPast() {
     let s = document.getElementById('start').value;
     let e = document.getElementById('end').value;
     let html = "";
     let total = 0;
     
-    // Filter all OTPs in date range - NO per-number daily limit applied
+    const numberMap = new Map();
+    userNumbers.forEach(n => {
+        numberMap.set(n.last3, n);
+    });
+    
     const filteredOtps = allOtps.filter(o => {
         let d = getPanelDate(o);
         return d >= s && d <= e;
     });
     
-    // Display EVERY OTP in the date range without any capping
     filteredOtps.forEach(o => {
-        let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-        let isFromDeleted = !match && deletedNumbersMap.has(o.phone_last3);
+        let match = numberMap.get(o.phone_last3);
         total++;
-        
-        let deletedClass = isFromDeleted ? 'otp-entry-deleted' : '';
-        let deletedBadge = isFromDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
-        let phoneDisplay = match ? match.number : (isFromDeleted ? 'Deleted Number' : '***' + o.phone_last3);
+        let phoneDisplay = match ? match.number : `***${o.phone_last3}`;
         let rangeDisplay = o.range || match?.range_name || '-';
         
         html += `
-        <div class="otp-entry ${deletedClass}">
+        <div class="otp-entry">
             <div class="flex justify-between items-start flex-wrap gap-2">
                 <div class="flex-1">
                     <div class="text-xs text-gray-400 mb-1">📅 ${getPanelDate(o)}</div>
                     <div class="flex items-center gap-2 mb-2 flex-wrap">
                         <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
                         <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
-                        ${deletedBadge}
                     </div>
                     <div class="text-sm">
                         <div>📞 ${escapeHtml(phoneDisplay)}</div>
