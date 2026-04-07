@@ -76,11 +76,6 @@ let deletedNumbersSet = new Set();
 let matchedOtpIds = new Set();
 
 function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
-function getPanelDate(o) {
-    let t = new Date(o.message_time || o.created_at || new Date());
-    t.setHours(t.getHours() - 1);
-    return t.toISOString().slice(0, 10);
-}
 function formatTime(o) {
     if (o.message_time) return new Date(o.message_time).toLocaleTimeString();
     if (o.created_at) return new Date(o.created_at).toLocaleTimeString();
@@ -188,8 +183,8 @@ async function loadPageContent(pageName) {
         }
     }
     else if (pageName === 'today') {
-        let today = getPanelDate({message_time: new Date()});
-        let todayOtps = allOtps.filter(o => getPanelDate(o) === today);
+        let today = new Date().toISOString().slice(0, 10);
+        let todayOtps = allOtps.filter(o => (o.date || o.message_time?.slice(0, 10)) === today);
         if (todayOtps.length === 0) {
             pageCache.today = `<div class="glass-card p-8 text-center text-gray-500">📭 No OTPs received today</div>`;
         } else {
@@ -205,8 +200,8 @@ async function loadPageContent(pageName) {
         }
     }
     else if (pageName === 'total') {
-        let today = getPanelDate({message_time: new Date()});
-        let todayCount = allOtps.filter(o => getPanelDate(o) === today).length;
+        let today = new Date().toISOString().slice(0, 10);
+        let todayCount = allOtps.filter(o => (o.date || o.message_time?.slice(0, 10)) === today).length;
         let earn = (todayCount * 0.005).toFixed(2);
         pageCache.total = `<div class="glass-card p-6 fade-in"><div class="text-center"><div class="stat-card rounded-2xl p-6 text-white mb-4"><p class="text-purple-100 text-sm">Total OTP Today</p><p class="text-5xl font-bold mt-2">${todayCount}</p></div><div class="stat-card rounded-2xl p-6 text-white"><p class="text-purple-100 text-sm">Today's Earnings</p><p class="text-4xl font-bold mt-2">$${earn}</p><p class="text-purple-100 text-xs mt-2">($0.005 per OTP)</p></div><p id="countdown" class="mt-4 text-sm text-gray-500"></p></div></div>`;
     }
@@ -216,7 +211,7 @@ async function loadPageContent(pageName) {
     return pageCache[pageName];
 }
 
-// ================= FIXED: WORKING DATE FILTER FOR PAST RECORDS =================
+// ================= FIXED: Filter by OTP DATE =================
 function filterPastRecords() {
     let startDate = document.getElementById('pastStartDate').value;
     let endDate = document.getElementById('pastEndDate').value;
@@ -233,7 +228,7 @@ function filterPastRecords() {
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999); // Include entire end day
     
-    // Sort OTPs by date (newest first for display)
+    // Sort OTPs by date (newest first)
     const sortedOtps = [...allOtps].sort((a, b) => {
         const dateA = new Date(a.date || a.message_time);
         const dateB = new Date(b.date || b.message_time);
@@ -241,11 +236,13 @@ function filterPastRecords() {
     });
     
     for (const otp of sortedOtps) {
+        // Use the date field from otp_logs (when the OTP arrived)
         const otpDateStr = otp.date || otp.message_time?.slice(0, 10);
         if (!otpDateStr) continue;
         
         const otpDate = new Date(otpDateStr);
         
+        // Filter by the OTP's date
         if (otpDate >= start && otpDate <= end) {
             let match = userNumbersForDisplay.find(n => getLast3Digits(n.number) === otp.phone_last3);
             let phoneDisplay = match ? match.number : (deletedNumbersSet.has(otp.phone_last3) ? 'Deleted Number' : '***' + otp.phone_last3);
@@ -289,9 +286,15 @@ function filterPastRecords() {
 
 function displayNumbers(r) {
     let numbers = userNumbersForDisplay.filter(n => n.range_name === r);
-    let today = getPanelDate({message_time: new Date()});
+    let today = new Date().toISOString().slice(0, 10);
     let todayOtpCount = new Map();
-    allOtps.forEach(o => { if (getPanelDate(o) === today) { let last3 = o.phone_last3; todayOtpCount.set(last3, (todayOtpCount.get(last3) || 0) + 1); } });
+    allOtps.forEach(o => { 
+        let otpDate = o.date || o.message_time?.slice(0, 10);
+        if (otpDate === today) { 
+            let last3 = o.phone_last3; 
+            todayOtpCount.set(last3, (todayOtpCount.get(last3) || 0) + 1); 
+        } 
+    });
     let availableNumbers = numbers.filter(n => { let count = todayOtpCount.get(n.last3) || 0; return count === 0; });
     let hiddenCount = numbers.length - availableNumbers.length;
     let html = availableNumbers.map(n => `<div class="number-item bg-gray-50 rounded-xl p-3 flex justify-between items-center"><span class="font-mono text-sm">📞 ${escapeHtml(n.number)}</span><span class="text-xs text-gray-400">last3: ${n.last3}</span></div>`).join('');
