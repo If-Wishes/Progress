@@ -3,32 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>ELITE Panel | Dashboard</title>
+    <title>ELITE Panel | User Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); min-height: 100vh; }
-        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 24px; box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1); }
-        .fade-in { animation: fadeIn 0.2s ease-in-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 10px; }
-        .avatar-preview { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #7c3aed; box-shadow: 0 4px 15px rgba(0,0,0,0.1); transition: all 0.3s; }
-        .avatar-preview:hover { transform: scale(1.05); }
-        .nav-link { transition: all 0.2s; display: block; width: 100%; text-align: left; }
-        .nav-link:hover { background-color: #f5f3ff; color: #7c3aed; }
+        
+        .number-item {
+            transition: all 0.2s ease;
+            border-left: 3px solid #7c3aed;
+        }
+        .number-item:hover {
+            transform: translateX(5px);
+            background-color: #f5f3ff;
+        }
+        
+        .otp-badge {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+        
+        .stat-card {
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.4);
+        }
+        
+        .custom-select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%237c3aed' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
+            background-position: right 12px center;
+            background-repeat: no-repeat;
+            background-size: 20px;
+            appearance: none;
+        }
+        
+        .avatar-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #7c3aed;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+        .avatar-preview:hover {
+            transform: scale(1.05);
+        }
+        
+        .btn-purple {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            transition: all 0.2s;
+        }
+        .btn-purple:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
+        }
+        
+        .otp-entry {
+            background: white;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 10px;
+            border: 1px solid #e9d5ff;
+            transition: all 0.2s;
+        }
+        .otp-entry:hover {
+            border-color: #7c3aed;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+        }
+        
+        .otp-entry-deleted {
+            background: #fef2f2;
+            border-color: #fecaca;
+            opacity: 0.8;
+        }
+        .otp-entry-deleted:hover {
+            border-color: #ef4444;
+        }
+        
         .hidden-dropdown { display: none !important; }
-        .dropdown-enter { animation: dropdownFade 0.2s ease; }
-        @keyframes dropdownFade { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: loading 1.5s infinite; border-radius: 8px; }
-        @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     </style>
 </head>
 <body>
+
+<!-- DASHBOARD SECTION -->
 <div id="dashboard" class="min-h-screen">
+    
+    <!-- Navigation Bar -->
     <nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -40,25 +135,21 @@
                     <span class="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">User</span>
                 </div>
             </div>
-            <div class="relative">
-                <button id="menuBtn" class="bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition cursor-pointer flex items-center gap-2">
-                    <i class="fas fa-user-circle text-purple-600 text-lg"></i>
-                    <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
-                </button>
-                <div id="dropdown" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden dropdown-enter">
-                    <a href="#" data-page="dashboard" class="nav-link px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-user w-5 text-purple-500 mr-2"></i> Profile</a>
-                    <a href="#" data-page="allocation" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-phone-alt w-5 text-purple-500 mr-2"></i> Allocation</a>
-                    <a href="#" data-page="today_stat" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-chart-bar w-5 text-purple-500 mr-2"></i> Today's Stat</a>
-                    <a href="#" data-page="today_otp" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-dollar-sign w-5 text-purple-500 mr-2"></i> Today's OTP</a>
-                    <a href="#" data-page="past_records" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-history w-5 text-purple-500 mr-2"></i> Past Records</a>
-                    <div class="border-t border-gray-100 my-1"></div>
-                    <a href="#" id="supportBtn" class="nav-link px-4 py-2.5 text-purple-600"><i class="fab fa-whatsapp w-5 text-purple-500 mr-2"></i> Contact Support</a>
-                    <a href="#" id="logoutBtn" class="nav-link px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
-                </div>
-            </div>
+            
+            <select id="menu" class="custom-select border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                <option value="profile">👤 Profile</option>
+                <option value="allocation">📌 Allocation</option>
+                <option value="today">📊 Today's Stat</option>
+                <option value="total">💰 Total OTP</option>
+                <option value="past">📋 Past Records</option>
+                <option value="support">📞 Contact Support</option>
+                <option value="logout">🚪 Logout</option>
+            </select>
         </div>
     </nav>
-    <div id="content" class="max-w-4xl mx-auto p-4"></div>
+    
+    <!-- Main Content -->
+    <div id="content" class="max-w-4xl mx-auto p-4 fade-in"></div>
 </div>
 
 <script>
@@ -66,47 +157,119 @@ const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
 const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
 
 let currentUser = null;
-let allUserNumbers = [];
+let userNumbers = [];
 let allOtps = [];
-let userLast3sAll = [];
-let currentUserId = null;
+let userLast3s = [];
+let deletedNumbersMap = new Map();
 
-function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); }
+// Helper Functions
 function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
+function getPanelDate(o) {
+    // Use the date directly from OTP record
+    return o.date || o.message_time?.slice(0, 10) || new Date().toISOString().slice(0, 10);
+}
 function formatTime(o) {
     if (o.message_time) return new Date(o.message_time).toLocaleTimeString();
     if (o.created_at) return new Date(o.created_at).toLocaleTimeString();
     return '-';
 }
+function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); }
 
-async function loadUserData(userId) {
-    const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&id=eq.${encodeURIComponent(userId)}`, {
+// Get user from URL and load data
+async function initFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
+    
+    if (!userId) {
+        window.location.href = '../index.html';
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&id=eq.${encodeURIComponent(userId)}`, {
+            headers: { 'apikey': SUPABASE_API_KEY }
+        });
+        const users = await res.json();
+        
+        if (!users.length) {
+            window.location.href = '../index.html';
+            return;
+        }
+        
+        currentUser = users[0];
+        
+        // Load user data
+        await loadUserData();
+        
+        // Setup menu
+        const menu = document.getElementById('menu');
+        menu.onchange = () => handleMenu(menu.value);
+        
+        // Get saved page from localStorage or default to profile
+        const savedPage = localStorage.getItem('elite_current_page');
+        const pageToShow = (savedPage && savedPage !== 'logout' && savedPage !== 'support') ? savedPage : 'profile';
+        
+        menu.value = pageToShow;
+        showPage(pageToShow);
+        
+    } catch (err) {
+        console.error('Init error:', err);
+        window.location.href = '../index.html';
+    }
+}
+
+// Load User Data
+async function loadUserData() {
+    // Fetch current allocated numbers
+    const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
-    const users = await userRes.json();
-    if (!users.length) throw new Error('User not found');
-    currentUser = users[0];
+    userNumbers = await numRes.json();
     
-    const allNumbersRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}`, {
-        headers: { 'apikey': SUPABASE_API_KEY }
-    });
-    allUserNumbers = await allNumbersRes.json();
+    // Get last3 digits from current numbers
+    userLast3s = [...new Set(userNumbers.map(n => getLast3Digits(n.number)))];
     
-    userLast3sAll = [...new Set(allUserNumbers.map(n => getLast3Digits(n.number)))];
-    
+    // Fetch all OTPs
     const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=2000`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
     const allOtpsRaw = await otpRes.json();
-    allOtps = allOtpsRaw.filter(otp => userLast3sAll.includes(otp.phone_last3));
+    
+    // Filter OTPs that match user's numbers
+    allOtps = allOtpsRaw.filter(otp => userLast3s.includes(otp.phone_last3));
+    
+    // Track deleted numbers for display
+    const currentLast3s = new Set(userNumbers.map(n => n.last3));
+    allOtps.forEach(otp => {
+        if (!currentLast3s.has(otp.phone_last3)) {
+            deletedNumbersMap.set(otp.phone_last3, true);
+        }
+    });
 }
 
-function displayProfile() {
+// Handle Menu Navigation
+function handleMenu(value) {
+    if (value === 'logout') {
+        localStorage.removeItem('elite_current_page');
+        window.location.href = '../index.html';
+    } else if (value === 'support') {
+        window.open('https://wa.me/2348113903584', '_blank');
+        const savedPage = localStorage.getItem('elite_current_page') || 'profile';
+        document.getElementById('menu').value = savedPage;
+        showPage(savedPage);
+    } else {
+        localStorage.setItem('elite_current_page', value);
+        showPage(value);
+    }
+}
+
+// PROFILE PAGE - NO LIMITS
+function profilePage() {
     let total = allOtps.length;
     let earned = (total * 0.005).toFixed(2);
     let avatar = localStorage.getItem("avatar") || "";
-    
-    document.getElementById('content').innerHTML = `
+
+    return `
     <div class="glass-card p-6 text-center fade-in">
         <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="uploadPic(event)">
         <div class="relative inline-block cursor-pointer" onclick="document.getElementById('avatarInput').click()">
@@ -115,86 +278,305 @@ function displayProfile() {
                 <i class="fas fa-camera text-xs"></i>
             </div>
         </div>
+
         <h2 class="text-xl font-bold mt-4">${escapeHtml(currentUser.username)}</h2>
         <p class="text-gray-500 text-sm">${escapeHtml(currentUser.email || 'No email')}</p>
+
         <div class="mt-6 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4">
             <p class="text-gray-600 text-sm">Total Lifetime Earnings</p>
             <h3 class="text-3xl font-bold text-purple-700">$${earned}</h3>
             <p class="text-xs text-gray-500 mt-1">${total} OTPs received</p>
         </div>
+        
         <div class="mt-4 text-sm text-gray-500">
             <i class="fas fa-calendar-alt mr-1"></i> Member since: ${currentUser.created_at?.slice(0,10) || 'N/A'}
         </div>
     </div>`;
 }
 
+// UPLOAD PROFILE PIC
 function uploadPic(e) {
     let file = e.target.files[0];
     let reader = new FileReader();
     reader.onload = () => {
         localStorage.setItem("avatar", reader.result);
-        displayProfile();
+        showPage("profile");
     };
     reader.readAsDataURL(file);
 }
 
-function setupDropdown() {
-    const menuBtn = document.getElementById('menuBtn');
-    const dropdown = document.getElementById('dropdown');
-    if (menuBtn) {
-        menuBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            dropdown.classList.toggle('hidden-dropdown');
-        });
+// ALLOCATION PAGE - Hide numbers after 1 OTP
+function allocationPage() {
+    let ranges = [...new Set(userNumbers.map(n => n.range_name))];
+    
+    if (ranges.length === 0) {
+        return `<div class="glass-card p-8 text-center text-gray-500">No numbers allocated yet. Contact admin.</div>`;
     }
-    document.addEventListener('click', function(e) {
-        if (!menuBtn.contains(e.target) && !dropdown.contains(e.target)) {
-            dropdown.classList.add('hidden-dropdown');
+    
+    let html = `
+    <div class="glass-card p-6 fade-in">
+        <h2 class="text-xl font-bold mb-4">📌 Number Allocation</h2>
+        <select id="rangeSelect" class="custom-select w-full border border-purple-200 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none mb-4">
+            ${ranges.map(r => `<option value="${escapeHtml(r)}">📌 ${escapeHtml(r)}</option>`).join('')}
+        </select>
+        <div id="numBox" class="space-y-2"></div>
+        <div class="mt-4 text-xs text-gray-400 text-center">⚠️ Numbers that have received OTP today are hidden</div>
+    </div>`;
+    
+    setTimeout(() => {
+        const rangeSelect = document.getElementById('rangeSelect');
+        if (rangeSelect && ranges.length > 0) {
+            displayNumbers(rangeSelect.value);
+            rangeSelect.onchange = () => displayNumbers(rangeSelect.value);
+        }
+    }, 50);
+    
+    return html;
+}
+
+function displayNumbers(r) {
+    let numbers = userNumbers.filter(n => n.range_name === r);
+    let today = new Date().toISOString().slice(0, 10);
+    
+    let todayOtpCount = new Map();
+    allOtps.forEach(o => {
+        let otpDate = getPanelDate(o);
+        if (otpDate === today) {
+            let last3 = o.phone_last3;
+            todayOtpCount.set(last3, (todayOtpCount.get(last3) || 0) + 1);
         }
     });
     
-    // Setup navigation for dropdown links
-    const navLinks = document.querySelectorAll('[data-page]');
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const page = link.getAttribute('data-page');
-            const userId = currentUser.id;
-            if (page === 'dashboard') {
-                displayProfile();
-            } else {
-                window.location.href = `${page}.html?id=${userId}`;
-            }
-            dropdown.classList.add('hidden-dropdown');
-        });
+    // Hide numbers that have received ANY OTP today (after 1 OTP)
+    let availableNumbers = numbers.filter(n => {
+        let count = todayOtpCount.get(n.last3) || 0;
+        return count === 0;
     });
+    
+    let hiddenCount = numbers.length - availableNumbers.length;
+    
+    let html = availableNumbers.map(n => `
+        <div class="number-item bg-gray-50 rounded-xl p-3 flex justify-between items-center">
+            <span class="font-mono text-sm">📞 ${escapeHtml(n.number)}</span>
+            <span class="text-xs text-gray-400">last3: ${n.last3}</span>
+        </div>
+    `).join('');
+    
+    if (availableNumbers.length === 0) {
+        html = '<p class="text-gray-400 text-center py-4">⚠️ No available numbers in this range today.</p>';
+    } else if (hiddenCount > 0) {
+        html += `<div class="mt-3 text-xs text-gray-400 text-center">🔒 ${hiddenCount} number(s) hidden (received OTP today)</div>`;
+    }
+    
+    document.getElementById('numBox').innerHTML = html;
 }
 
-async function init() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('id');
-    if (!userId) { window.location.href = '../index.html'; return; }
-    currentUserId = userId;
+// TODAY PAGE - NO LIMITS
+function todayPage() {
+    let today = new Date().toISOString().slice(0, 10);
+    let html = "";
     
-    document.getElementById('content').innerHTML = `<div class="glass-card p-6"><div class="skeleton h-32 w-full mb-3"></div><div class="skeleton h-24 w-full mb-3"></div><div class="skeleton h-24 w-full"></div></div>`;
+    // Get today's OTPs (all of them, no limits)
+    const todayOtps = allOtps.filter(o => getPanelDate(o) === today);
     
-    await loadUserData(userId);
-    displayProfile();
-    setupDropdown();
+    if (todayOtps.length === 0) {
+        return `<div class="glass-card p-8 text-center text-gray-500">📭 No OTPs received today</div>`;
+    }
     
-    document.getElementById('logoutBtn').onclick = (e) => {
-        e.preventDefault();
-        localStorage.removeItem('elite_session');
-        window.location.href = '../index.html';
-    };
-    document.getElementById('supportBtn').onclick = (e) => {
-        e.preventDefault();
-        window.open('https://wa.me/2348113903584', '_blank');
-    };
+    for (const otp of todayOtps) {
+        let match = userNumbers.find(n => getLast3Digits(n.number) === otp.phone_last3);
+        let isFromDeleted = !match && deletedNumbersMap.has(otp.phone_last3);
+        let phoneDisplay = match ? match.number : (isFromDeleted ? 'Deleted Number' : '***' + otp.phone_last3);
+        let rangeName = otp.range || match?.range_name || (isFromDeleted ? 'Deleted' : '-');
+        let deletedBadge = isFromDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
+        
+        html += `
+        <div class="otp-entry ${isFromDeleted ? 'otp-entry-deleted' : ''}">
+            <div class="flex justify-between items-start flex-wrap gap-2">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2 flex-wrap">
+                        <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country || '-')}</span>
+                        <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
+                        ${deletedBadge}
+                    </div>
+                    <div class="text-sm">
+                        <div>📞 ${escapeHtml(phoneDisplay)}</div>
+                        <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(otp.sender || '-')} | 📌 ${escapeHtml(rangeName)}</div>
+                    </div>
+                </div>
+                <div class="text-xs text-gray-400">${formatTime(otp)}</div>
+            </div>
+        </div>`;
+    }
+    
+    return `
+    <div class="glass-card p-6 fade-in">
+        <h2 class="text-xl font-bold mb-4">📊 Today's OTP Statistics</h2>
+        <div class="space-y-3">${html}</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">Total: ${todayOtps.length} OTPs</div>
+    </div>`;
 }
 
+// TOTAL OTP PAGE - NO LIMITS
+function totalPage() {
+    let today = new Date().toISOString().slice(0, 10);
+    let count = allOtps.filter(o => getPanelDate(o) === today).length;
+    let earn = (count * 0.005).toFixed(2);
+    
+    return `
+    <div class="glass-card p-6 fade-in">
+        <div class="text-center">
+            <div class="stat-card rounded-2xl p-6 text-white mb-4">
+                <p class="text-purple-100 text-sm">Total OTP Today</p>
+                <p class="text-5xl font-bold mt-2">${count}</p>
+                <p class="text-purple-100 text-xs mt-1">(All OTPs count - no limits)</p>
+            </div>
+            <div class="stat-card rounded-2xl p-6 text-white">
+                <p class="text-purple-100 text-sm">Today's Earnings</p>
+                <p class="text-4xl font-bold mt-2">$${earn}</p>
+                <p class="text-purple-100 text-xs mt-2">($0.005 per OTP)</p>
+            </div>
+            <p id="countdown" class="mt-4 text-sm text-gray-500"></p>
+        </div>
+    </div>`;
+}
+
+// COUNTDOWN TO 1AM
+setInterval(() => {
+    let now = new Date();
+    let next = new Date();
+    next.setHours(1, 0, 0, 0);
+    if (now >= next) next.setDate(next.getDate() + 1);
+    
+    let diff = next - now;
+    let h = Math.floor(diff / 3600000);
+    let m = Math.floor((diff % 3600000) / 60000);
+    let s = Math.floor((diff % 60000) / 1000);
+    
+    let el = document.getElementById("countdown");
+    if (el) el.innerHTML = `<i class="fas fa-clock mr-1"></i> Resets in ${h}h ${m}m ${s}s`;
+}, 1000);
+
+// PAST RECORDS PAGE - NO LIMITS
+function pastPage() {
+    return `
+    <div class="glass-card p-6 fade-in">
+        <h2 class="text-xl font-bold mb-4">📋 Past OTP Records</h2>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+            <input type="date" id="start" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+            <input type="date" id="end" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+        </div>
+        <button onclick="filterPast()" class="btn-purple w-full text-white py-2 rounded-xl font-semibold shadow-md mb-4">
+            <i class="fas fa-search mr-2"></i> Filter
+        </button>
+        <div id="pastBox" class="space-y-3"></div>
+    </div>`;
+}
+
+function filterPast() {
+    let s = document.getElementById('start').value;
+    let e = document.getElementById('end').value;
+    let html = "";
+    let total = 0;
+    
+    if (!s || !e) {
+        document.getElementById('pastBox').innerHTML = '<p class="text-center text-red-400 py-4">Please select both dates</p>';
+        return;
+    }
+    
+    const start = new Date(s);
+    const end = new Date(e);
+    end.setHours(23, 59, 59, 999);
+    
+    // Sort OTPs by date (newest first)
+    const sortedOtps = [...allOtps].sort((a, b) => {
+        const dateA = new Date(a.date || a.message_time);
+        const dateB = new Date(b.date || b.message_time);
+        return dateB - dateA;
+    });
+    
+    for (const otp of sortedOtps) {
+        const otpDate = new Date(otp.date || otp.message_time);
+        if (otpDate >= start && otpDate <= end) {
+            let match = userNumbers.find(n => getLast3Digits(n.number) === otp.phone_last3);
+            let isFromDeleted = !match && deletedNumbersMap.has(otp.phone_last3);
+            let phoneDisplay = match ? match.number : (isFromDeleted ? 'Deleted Number' : '***' + otp.phone_last3);
+            let rangeDisplay = otp.range || match?.range_name || (isFromDeleted ? 'Deleted' : '-');
+            let deletedBadge = isFromDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
+            total++;
+            html += `
+            <div class="otp-entry ${isFromDeleted ? 'otp-entry-deleted' : ''}">
+                <div class="flex justify-between items-start flex-wrap gap-2">
+                    <div class="flex-1">
+                        <div class="text-xs text-gray-400 mb-1">📅 ${otp.date || otp.message_time?.slice(0, 10)}</div>
+                        <div class="flex items-center gap-2 mb-2 flex-wrap">
+                            <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country || '-')}</span>
+                            <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
+                            ${deletedBadge}
+                        </div>
+                        <div class="text-sm">
+                            <div>📞 ${escapeHtml(phoneDisplay)}</div>
+                            <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(otp.sender || '-')} | 📌 ${escapeHtml(rangeDisplay)}</div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-400">${formatTime(otp)}</div>
+                </div>
+                <div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>
+            </div>`;
+        }
+    }
+    
+    let earn = (total * 0.005).toFixed(2);
+    
+    if (!html) {
+        document.getElementById('pastBox').innerHTML = '<p class="text-center text-gray-400 py-4">No OTPs in this date range</p>';
+        return;
+    }
+    
+    document.getElementById('pastBox').innerHTML = html + `
+    <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
+        <span class="font-semibold">Total: ${total} OTPs</span>
+        <span class="mx-2">|</span>
+        <span class="font-bold text-purple-700">$${earn}</span>
+    </div>`;
+}
+
+// PAGE ROUTER
+function showPage(p) {
+    const content = document.getElementById('content');
+    
+    if (p !== 'support') {
+        localStorage.setItem('elite_current_page', p);
+        const menu = document.getElementById('menu');
+        if (menu) menu.value = p;
+    }
+    
+    if (p === "profile") content.innerHTML = profilePage();
+    if (p === "allocation") content.innerHTML = allocationPage();
+    if (p === "today") content.innerHTML = todayPage();
+    if (p === "total") content.innerHTML = totalPage();
+    if (p === "past") {
+        const today = new Date();
+        const weekAgo = new Date();
+        weekAgo.setDate(today.getDate() - 7);
+        setTimeout(() => {
+            const startInput = document.getElementById('start');
+            const endInput = document.getElementById('end');
+            if (startInput) startInput.value = weekAgo.toISOString().slice(0, 10);
+            if (endInput) endInput.value = today.toISOString().slice(0, 10);
+        }, 50);
+        content.innerHTML = pastPage();
+    }
+}
+
+// Make functions global
 window.uploadPic = uploadPic;
-init();
+window.displayNumbers = displayNumbers;
+window.filterPast = filterPast;
+window.showPage = showPage;
+
+// Start app
+initFromUrl();
 </script>
 </body>
 </html>
