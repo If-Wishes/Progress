@@ -367,8 +367,8 @@ async function loadPageContent(pageName) {
         <div class="glass-card p-6 fade-in">
             <h2 class="text-xl font-bold mb-4">📋 Past OTP Records</h2>
             <div class="grid grid-cols-2 gap-3 mb-4">
-                <input type="date" id="startDate" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
-                <input type="date" id="endDate" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                <input type="date" id="pastStartDate" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                <input type="date" id="pastEndDate" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
             </div>
             <button onclick="filterPastRecords()" class="btn-purple w-full text-white py-2 rounded-xl font-semibold shadow-md mb-4">
                 <i class="fas fa-search mr-2"></i> Filter
@@ -381,8 +381,8 @@ async function loadPageContent(pageName) {
 
 // FIXED: Working date filter for past records
 function filterPastRecords() {
-    let startDate = document.getElementById('startDate').value;
-    let endDate = document.getElementById('endDate').value;
+    let startDate = document.getElementById('pastStartDate').value;
+    let endDate = document.getElementById('pastEndDate').value;
     let html = "";
     let total = 0;
     
@@ -391,10 +391,10 @@ function filterPastRecords() {
         return;
     }
     
-    // Convert to Date objects for proper comparison
+    // Create date objects for proper comparison
     const start = new Date(startDate);
     const end = new Date(endDate);
-    end.setHours(23, 59, 59, 999); // Include the entire end date
+    end.setHours(23, 59, 59, 999); // Include entire end day
     
     for (const otp of allOtps) {
         const otpDateStr = otp.date || otp.message_time?.slice(0, 10);
@@ -534,8 +534,8 @@ async function showPage(p) {
         const weekAgo = new Date();
         weekAgo.setDate(today.getDate() - 7);
         setTimeout(() => {
-            const startInput = document.getElementById('startDate');
-            const endInput = document.getElementById('endDate');
+            const startInput = document.getElementById('pastStartDate');
+            const endInput = document.getElementById('pastEndDate');
             if (startInput) startInput.value = weekAgo.toISOString().slice(0, 10);
             if (endInput) endInput.value = today.toISOString().slice(0, 10);
         }, 50);
