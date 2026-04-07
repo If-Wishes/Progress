@@ -71,7 +71,6 @@
             box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1);
         }
         
-        /* Table styles for allocations */
         .allocations-table-wrapper {
             overflow-x: auto;
             margin-top: 20px;
@@ -90,12 +89,11 @@
         .alloc-table th {
             background: #f5f3ff;
             padding: 12px 15px;
-            text-align: left;
+            text-align: center;
             font-weight: 800;
             border: 1px solid #e9d5ff;
             border-bottom: 2px solid #c4b5fd;
             font-size: 13px;
-            white-space: nowrap;
             color: #5b21b6;
         }
         
@@ -103,28 +101,27 @@
             padding: 8px 12px;
             border: 1px solid #f0e6ff;
             vertical-align: top;
+            text-align: center;
             font-size: 12px;
             font-weight: 500;
             color: #1a1a2e;
         }
         
-        .range-header td {
+        .range-header {
             background: #faf5ff;
-            font-weight: 800;
-            border-top: 2px solid #c4b5fd;
-            border-bottom: 2px solid #c4b5fd;
         }
         
         .delete-range-btn {
             background: #dc2626;
             color: white;
-            padding: 4px 10px;
+            padding: 6px 12px;
             border-radius: 8px;
             font-size: 11px;
             font-weight: 600;
             border: none;
             cursor: pointer;
             transition: all 0.2s;
+            margin-top: 5px;
         }
         .delete-range-btn:hover {
             background: #b91c1c;
@@ -151,12 +148,27 @@
             font-family: 'Courier New', monospace;
             font-size: 12px;
             padding: 4px 0;
-            display: inline-block;
-            width: 100%;
+            display: block;
         }
         
-        .number-column {
-            vertical-align: top;
+        .user-section {
+            margin-bottom: 30px;
+            border: 1px solid #e9d5ff;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        .user-title {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            padding: 12px 16px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .totals-row {
+            background: #f0fdf4;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -212,11 +224,7 @@
     </div>
     
     <!-- Stats Overview -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div class="stat-card rounded-2xl p-4 text-white">
-            <p class="text-purple-100 text-xs font-medium">Total Numbers</p>
-            <p class="text-2xl font-bold" id="totalNumbers">0</p>
-        </div>
+    <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #059669, #047857);">
             <p class="text-emerald-100 text-xs font-medium">Active Numbers</p>
             <p class="text-2xl font-bold" id="activeNumbers">0</p>
@@ -284,15 +292,8 @@ Example:
                 <option value="">-- All Users --</option>
             </select>
             
-            <div class="allocations-table-wrapper">
-                <table class="alloc-table" id="allocationsTable">
-                    <thead>
-                        <tr><th>User / Range</th><th>Numbers</th><th>Action</th></tr>
-                    </thead>
-                    <tbody id="allocationsBody">
-                        <tr><td colspan="3" class="text-center py-8 text-gray-400">Loading...</td></tr>
-                    </tbody>
-                </table>
+            <div id="allocationsContainer">
+                <div class="text-center py-8 text-gray-400">Loading...</div>
             </div>
         </div>
     </div>
@@ -329,7 +330,6 @@ document.getElementById('adminName').innerText = session.username || 'Administra
 
 let usersList = [];
 let customRanges = ['Carmine', 'Carrot'];
-let allAllocations = [];
 
 function getLast3Digits(number) {
     let cleaned = number.toString().replace(/[^0-9]/g, '');
@@ -415,82 +415,118 @@ async function loadUsers() {
 
 async function loadAllocatedNumbers() {
     const filterUserId = document.getElementById('filterSelect').value;
-    let url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&order=allocated_at.desc`;
-    if (filterUserId) {
-        url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&user_id=eq.${filterUserId}&order=allocated_at.desc`;
-    }
     
-    const res = await fetch(url, { headers: { 'apikey': API_KEY } });
-    let allocations = await res.json();
-    allAllocations = allocations;
-    
-    // Only show active numbers (not deleted)
-    const activeAllocations = allocations.filter(a => a.is_deleted !== true);
-    
-    // Update stats
-    const totalNums = allocations.length;
-    const activeNums = activeAllocations.length;
-    const uniqueRanges = [...new Set(allocations.map(a => a.range_name).filter(r => r))];
-    
-    document.getElementById('totalNumbers').textContent = totalNums;
-    document.getElementById('activeNumbers').textContent = activeNums;
-    document.getElementById('totalRanges').textContent = uniqueRanges.length;
-    
-    // Group by user and range
-    const grouped = {};
-    for (const item of activeAllocations) {
-        const userName = item.users?.username || 'Unknown';
-        const rangeName = item.range_name || 'Unknown';
-        const key = `${userName}_${rangeName}`;
-        if (!grouped[key]) {
-            grouped[key] = {
-                userName: userName,
-                userId: item.user_id,
-                range: rangeName,
-                numbers: []
-            };
+    try {
+        let url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&order=allocated_at.desc`;
+        if (filterUserId) {
+            url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&user_id=eq.${filterUserId}&order=allocated_at.desc`;
         }
-        grouped[key].numbers.push(item.number);
-    }
-    
-    const container = document.getElementById('allocationsBody');
-    
-    if (Object.keys(grouped).length === 0) {
-        container.innerHTML = '<tr><td colspan="3" class="text-center py-8 text-gray-400">📭 No active numbers allocated</td></tr>';
-        return;
-    }
-    
-    // Find max numbers in any group for column sizing
-    let maxNumbers = 0;
-    for (const key in grouped) {
-        if (grouped[key].numbers.length > maxNumbers) {
-            maxNumbers = grouped[key].numbers.length;
-        }
-    }
-    
-    // Build table with ranges as rows, numbers as columns
-    let html = '';
-    for (const key in grouped) {
-        const g = grouped[key];
-        html += `<tr class="range-header"><td colspan="3"><div class="flex justify-between items-center w-full">
-            <div><span class="font-bold">👤 ${escapeHtml(g.userName)}</span> <span class="ml-3 text-purple-600">📌 ${escapeHtml(g.range)}</span> <span class="ml-2 text-gray-500 text-xs">(${g.numbers.length} numbers)</span></div>
-            <button class="delete-range-btn" onclick="deleteRange('${g.userId}', '${escapeHtml(g.range).replace(/'/g, "\\'")}')"><i class="fas fa-trash-alt mr-1"></i>Delete All</button>
-        </div></td></tr>`;
         
-        // Create number columns
-        html += '<tr>';
-        for (let i = 0; i < maxNumbers; i++) {
-            const number = g.numbers[i] || '';
-            html += `<td class="number-column">${number ? `<div class="number-cell">📞 ${escapeHtml(number)}</div>` : ''}</td>`;
+        const res = await fetch(url, { headers: { 'apikey': API_KEY } });
+        let allocations = await res.json();
+        
+        // Only show active numbers (not deleted)
+        const activeAllocations = allocations.filter(a => a.is_deleted !== true);
+        
+        // Update stats
+        const activeNums = activeAllocations.length;
+        const uniqueRanges = [...new Set(allocations.map(a => a.range_name).filter(r => r))];
+        
+        document.getElementById('activeNumbers').textContent = activeNums;
+        document.getElementById('totalRanges').textContent = uniqueRanges.length;
+        
+        // Group by user first, then by range
+        const usersData = {};
+        for (const item of activeAllocations) {
+            const userName = item.users?.username || 'Unknown';
+            const userId = item.user_id;
+            const rangeName = item.range_name || 'Unknown';
+            const number = item.number;
+            
+            if (!usersData[userId]) {
+                usersData[userId] = {
+                    userName: userName,
+                    ranges: {}
+                };
+            }
+            if (!usersData[userId].ranges[rangeName]) {
+                usersData[userId].ranges[rangeName] = [];
+            }
+            usersData[userId].ranges[rangeName].push(number);
         }
-        html += '</tr>';
+        
+        const container = document.getElementById('allocationsContainer');
+        
+        if (Object.keys(usersData).length === 0) {
+            container.innerHTML = '<div class="text-center py-8 text-gray-400">📭 No active numbers allocated</div>';
+            return;
+        }
+        
+        let html = '';
+        
+        for (const userId in usersData) {
+            const user = usersData[userId];
+            const ranges = Object.keys(user.ranges);
+            
+            // Find max numbers in any range for this user
+            let maxNumbers = 0;
+            for (const range of ranges) {
+                if (user.ranges[range].length > maxNumbers) {
+                    maxNumbers = user.ranges[range].length;
+                }
+            }
+            
+            // Build table for this user
+            html += `<div class="user-section">
+                <div class="user-title">
+                    <i class="fas fa-user mr-2"></i>${escapeHtml(user.userName)}
+                </div>
+                <table class="alloc-table">
+                    <thead>
+                        <tr>`;
+            
+            // Range headers with delete buttons
+            for (const range of ranges) {
+                html += `<th>
+                    📌 ${escapeHtml(range)}<br>
+                    <button class="delete-range-btn" onclick="deleteRange('${userId}', '${escapeHtml(range).replace(/'/g, "\\'")}')">
+                        <i class="fas fa-trash-alt mr-1"></i>Delete
+                    </button>
+                </th>`;
+            }
+            
+            html += `</tr></thead><tbody>`;
+            
+            // Number rows
+            for (let i = 0; i < maxNumbers; i++) {
+                html += '<tr>';
+                for (const range of ranges) {
+                    const number = user.ranges[range][i] || '';
+                    html += `<td>${number ? `<div class="number-cell">📞 ${escapeHtml(number)}</div>` : ''}</td>`;
+                }
+                html += '</tr>';
+            }
+            
+            // Totals row
+            html += `<tr class="totals-row">`;
+            for (const range of ranges) {
+                html += `<td><strong>Total: ${user.ranges[range].length}</strong></td>`;
+            }
+            html += `</tr>`;
+            
+            html += `</tbody></table></div><br>`;
+        }
+        
+        container.innerHTML = html;
+        
+    } catch (err) {
+        console.error('Error loading allocations:', err);
+        document.getElementById('allocationsContainer').innerHTML = '<div class="error-box text-center py-8 text-red-500">Error loading data</div>';
     }
-    
-    container.innerHTML = html;
 }
 
-// Delete all numbers in a range for a user (soft delete - hide from users)
-async function deleteRange(userId, range) {
+// Delete all numbers in a range for a user
+window.deleteRange = async function(userId, range) {
     if (!confirm(`⚠️ Delete ALL numbers in "${range}" for this user?\n\nNumbers will be hidden from users but remain in database. You can add the same numbers again later.`)) return;
     
     try {
@@ -501,13 +537,12 @@ async function deleteRange(userId, range) {
         });
         
         await loadAllocatedNumbers();
-        showToast(`✅ All numbers in "${range}" deleted (hidden from user)`, 'success');
+        showToast(`✅ All numbers in "${range}" deleted`, 'success');
     } catch (err) {
         showToast('Error deleting numbers', 'error');
     }
-}
+};
 
-// Add numbers - checks if number exists but NOT deleted, allows re-adding deleted numbers
 async function addNumbers() {
     const userId = document.getElementById('userSelect').value;
     const rangeName = document.getElementById('rangeSelect').value;
@@ -520,97 +555,59 @@ async function addNumbers() {
     let numbers = numbersInput.split(/[,\n]/).map(n => n.trim()).filter(n => n.length > 0);
     if (numbers.length === 0) { showToast('No valid numbers found', 'error'); return; }
     
-    // First, fetch existing numbers for this user to check duplicates
-    const existingRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&select=number,is_deleted`, {
-        headers: { 'apikey': API_KEY }
-    });
-    const existingNumbers = await existingRes.json();
-    
-    // Create maps for quick lookup
-    const activeNumbersMap = new Map(); // numbers that are active (not deleted)
-    const deletedNumbersMap = new Map(); // numbers that are deleted
-    
-    existingNumbers.forEach(item => {
-        if (item.is_deleted === true) {
-            deletedNumbersMap.set(item.number, item);
-        } else {
-            activeNumbersMap.set(item.number, item);
-        }
-    });
-    
-    let successCount = 0;
-    let duplicateCount = 0;
-    let errorCount = 0;
-    
-    for (const number of numbers) {
-        const last3 = getLast3Digits(number);
-        if (last3.length < 3) {
-            errorCount++;
-            continue;
+    try {
+        const existingRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&select=number,is_deleted`, {
+            headers: { 'apikey': API_KEY }
+        });
+        const existingNumbers = await existingRes.json();
+        
+        const activeNumbersMap = new Map();
+        existingNumbers.forEach(item => {
+            if (item.is_deleted !== true) {
+                activeNumbersMap.set(item.number, item);
+            }
+        });
+        
+        let successCount = 0;
+        let duplicateCount = 0;
+        
+        for (const number of numbers) {
+            const last3 = getLast3Digits(number);
+            if (last3.length < 3) continue;
+            
+            if (activeNumbersMap.has(number)) {
+                duplicateCount++;
+                continue;
+            }
+            
+            const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
+                method: 'POST',
+                headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    user_id: userId,
+                    number: number,
+                    last3: last3,
+                    range_name: rangeName,
+                    is_deleted: false
+                })
+            });
+            
+            if (res.ok) successCount++;
         }
         
-        // Check if number is already active (not deleted)
-        if (activeNumbersMap.has(number)) {
-            duplicateCount++;
-            continue;
-        }
-        
-        // Check if number was deleted - if yes, we can re-add it as new
-        if (deletedNumbersMap.has(number)) {
-            // Add as a new entry (keep old deleted one, create new active one)
-            try {
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
-                    method: 'POST',
-                    headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: userId,
-                        number: number,
-                        last3: last3,
-                        range_name: rangeName,
-                        is_deleted: false
-                    })
-                });
-                
-                if (res.ok) successCount++;
-                else errorCount++;
-            } catch (err) {
-                errorCount++;
-            }
+        if (successCount > 0) {
+            let message = `✅ Added ${successCount} numbers!`;
+            if (duplicateCount > 0) message += ` ⚠️ ${duplicateCount} duplicates skipped`;
+            showToast(message, 'success');
+            document.getElementById('numbersInput').value = '';
+            await loadAllocatedNumbers();
+        } else if (duplicateCount > 0) {
+            showToast(`⚠️ ${duplicateCount} duplicate numbers skipped`, 'error');
         } else {
-            // Brand new number
-            try {
-                const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
-                    method: 'POST',
-                    headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: userId,
-                        number: number,
-                        last3: last3,
-                        range_name: rangeName,
-                        is_deleted: false
-                    })
-                });
-                
-                if (res.ok) successCount++;
-                else errorCount++;
-            } catch (err) {
-                errorCount++;
-            }
+            showToast(`❌ Failed to add numbers`, 'error');
         }
-    }
-    
-    let message = `✅ Added ${successCount} numbers!`;
-    if (duplicateCount > 0) message += ` ⚠️ ${duplicateCount} duplicates skipped`;
-    if (errorCount > 0) message += ` ❌ ${errorCount} errors`;
-    
-    if (successCount > 0) {
-        showToast(message, 'success');
-        document.getElementById('numbersInput').value = '';
-        await loadAllocatedNumbers();
-    } else if (duplicateCount > 0) {
-        showToast(message, 'error');
-    } else {
-        showToast(`❌ Failed to add numbers`, 'error');
+    } catch (err) {
+        showToast('Error adding numbers', 'error');
     }
 }
 
@@ -664,12 +661,11 @@ function setupDropdown() {
     });
 }
 
-// Make functions global
-window.deleteRange = deleteRange;
-
+// Event listeners
 document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); localStorage.removeItem('elite_session'); window.location.href = '../index.html'; };
 document.getElementById('addBtn').onclick = addNumbers;
 document.getElementById('totalStatsBtn').onclick = () => { window.location.href = 'total.html'; };
+document.getElementById('filterSelect').onchange = () => { loadAllocatedNumbers(); };
 
 async function init() {
     setupDropdown();
@@ -677,10 +673,6 @@ async function init() {
     await loadUsers();
     await loadAllocatedNumbers();
     setupModal();
-    
-    document.getElementById('filterSelect').addEventListener('change', () => {
-        loadAllocatedNumbers();
-    });
 }
 
 init();
