@@ -19,6 +19,15 @@
         .used-number:hover {
             background-color: #fecaca !important;
         }
+        .deleted-number {
+            background-color: #f3f4f6 !important;
+            border-left: 3px solid #9ca3af !important;
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+        .deleted-number:hover {
+            background-color: #e5e7eb !important;
+        }
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -90,6 +99,23 @@
             transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
         }
+        
+        .deleted-badge {
+            background: #9ca3af;
+            color: white;
+            font-size: 0.65rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-left: 8px;
+        }
+        
+        .toggle-deleted {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .toggle-deleted:hover {
+            background-color: #f3e8ff;
+        }
     </style>
 </head>
 <body class="bg-gradient-to-br from-purple-50 to-gray-100 min-h-screen">
@@ -130,8 +156,20 @@
 </nav>
 
 <main class="max-w-7xl mx-auto px-4 py-8">
-    <h1 class="text-2xl font-bold text-gray-800">📌 Range Allocation</h1>
-    <p class="text-gray-500 mb-6">Manage numbers - <span class="text-red-600">Red highlighted numbers</span> have received OTPs | Deleted numbers are hidden</p>
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">📌 Range Allocation</h1>
+            <p class="text-gray-500">Manage numbers - <span class="text-red-600">Red</span> = have OTPs | <span class="text-gray-400">Gray strikethrough</span> = deleted (hidden from users)</p>
+        </div>
+        <div class="flex gap-2">
+            <button id="showDeletedBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-2">
+                <i class="fas fa-eye-slash"></i> Hide Deleted
+            </button>
+            <button onclick="window.location.href='total.html'" class="btn-total text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md transition flex items-center gap-2">
+                <i class="fas fa-chart-line"></i> TOTAL
+            </button>
+        </div>
+    </div>
     
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Add Numbers Form -->
@@ -181,9 +219,6 @@ Example:
         <div class="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="font-semibold text-gray-800 flex items-center gap-2"><i class="fas fa-list-ul text-purple-500"></i> Allocated Numbers</h2>
-                <button onclick="window.location.href='total.html'" class="btn-total text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md transition flex items-center gap-2">
-                    <i class="fas fa-chart-line"></i> TOTAL
-                </button>
             </div>
             
             <select id="filterSelect" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 mb-4 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
@@ -202,7 +237,7 @@ Example:
             <div class="p-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center">
                 <h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>OTP Records</h3>
                 <div class="text-sm text-gray-500">
-                    <i class="fas fa-info-circle mr-1 text-purple-400"></i> Showing OTPs matched by last 3 digits
+                    <i class="fas fa-info-circle mr-1 text-purple-400"></i> Showing OTPs matched by last 3 digits (including from deleted numbers)
                 </div>
             </div>
             <div id="otpRecordsList" class="p-4 space-y-3 max-h-[500px] overflow-y-auto">
@@ -245,6 +280,7 @@ document.getElementById('adminName').innerText = session.username;
 let usersList = [];
 let usedNumbersSet = new Set();
 let customRanges = [];
+let showDeleted = false; // Toggle for showing deleted numbers in admin view
 
 function getLast3Digits(number) {
     let cleaned = number.replace(/[^0-9]/g, '');
@@ -355,13 +391,19 @@ async function loadUsers() {
 
 async function loadAllocatedNumbers() {
     const filterUserId = document.getElementById('filterSelect').value;
-    let url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&order=allocated_at.desc&is_deleted=eq.false`;
+    // Fetch ALL numbers (including deleted) for admin view, but we'll filter display based on toggle
+    let url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&order=allocated_at.desc`;
     if (filterUserId) {
-        url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&user_id=eq.${filterUserId}&is_deleted=eq.false&order=allocated_at.desc`;
+        url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&user_id=eq.${filterUserId}&order=allocated_at.desc`;
     }
     
     const res = await fetch(url, { headers: { 'apikey': API_KEY } });
     let allocations = await res.json();
+    
+    // Filter based on showDeleted toggle
+    if (!showDeleted) {
+        allocations = allocations.filter(a => a.is_deleted !== true);
+    }
     
     const container = document.getElementById('allocationsList');
     
@@ -389,17 +431,21 @@ async function loadAllocatedNumbers() {
     for (const key in grouped) {
         const g = grouped[key];
         const usedCount = g.numbers.filter(num => usedNumbersSet.has(num.last3)).length;
+        const deletedCount = g.numbers.filter(num => num.is_deleted === true).length;
+        const activeCount = g.numbers.filter(num => !num.is_deleted).length;
         const totalCount = g.numbers.length;
         
         html += `
             <div class="border border-purple-100 rounded-xl overflow-hidden shadow-sm">
-                <div class="bg-gradient-to-r from-purple-50 to-white px-4 py-3 flex justify-between items-center">
+                <div class="bg-gradient-to-r from-purple-50 to-white px-4 py-3 flex justify-between items-center flex-wrap gap-2">
                     <div>
                         <span class="font-semibold text-gray-800">👤 ${escapeHtml(g.userName)}</span>
                         <span class="ml-2 inline-flex items-center gap-1 text-sm font-medium text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
                             ${getRangeFlag(g.range)} ${escapeHtml(g.range)}
                         </span>
-                        ${usedCount > 0 ? `<span class="ml-2 text-xs text-red-600 bg-red-100 px-2 py-0.5 rounded-full">⚠️ ${usedCount}/${totalCount} used</span>` : `<span class="ml-2 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">✅ ${totalCount} active</span>`}
+                        ${usedCount > 0 ? `<span class="ml-2 text-xs text-red-600 bg-red-100 px-2 py-0.5 rounded-full">⚠️ ${usedCount} used</span>` : ''}
+                        ${deletedCount > 0 ? `<span class="ml-2 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">🗑️ ${deletedCount} deleted</span>` : ''}
+                        <span class="ml-2 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">✅ ${activeCount} active</span>
                     </div>
                     <button onclick="softDeleteRangeNumbers('${g.userId}', '${escapeHtml(g.range).replace(/'/g, "\\'")}')" class="text-red-500 text-sm hover:text-red-700 transition">
                         <i class="fas fa-trash-alt mr-1"></i>Delete All
@@ -408,24 +454,41 @@ async function loadAllocatedNumbers() {
                 <div class="p-3 flex flex-wrap gap-2 bg-white">
                     ${g.numbers.map(num => {
                         const isUsed = usedNumbersSet.has(num.last3);
-                        const usedClass = isUsed ? 'used-number' : '';
-                        const usedIcon = isUsed ? '<i class="fas fa-check-circle text-red-500 mr-1 text-xs"></i>' : '<i class="fas fa-circle text-green-500 mr-1 text-xs"></i>';
-                        const title = isUsed ? 'This number has received an OTP' : 'Active number - no OTP received yet';
+                        const isDeleted = num.is_deleted === true;
+                        let statusClass = '';
+                        let statusIcon = '';
+                        let title = '';
+                        
+                        if (isDeleted) {
+                            statusClass = 'deleted-number';
+                            statusIcon = '<i class="fas fa-ban text-gray-400 mr-1 text-xs"></i>';
+                            title = 'Deleted number - hidden from users, earnings preserved';
+                        } else if (isUsed) {
+                            statusClass = 'used-number';
+                            statusIcon = '<i class="fas fa-check-circle text-red-500 mr-1 text-xs"></i>';
+                            title = 'This number has received an OTP';
+                        } else {
+                            statusIcon = '<i class="fas fa-circle text-green-500 mr-1 text-xs"></i>';
+                            title = 'Active number - no OTP received yet';
+                        }
+                        
+                        const deletedBadge = isDeleted ? '<span class="deleted-badge">deleted</span>' : '';
                         
                         return `
-                            <div class="bg-gray-100 rounded-lg px-3 py-1.5 flex items-center gap-2 ${usedClass} transition" title="${title}">
-                                ${usedIcon}
-                                <span class="font-mono text-sm">${escapeHtml(num.number)}</span>
+                            <div class="bg-gray-100 rounded-lg px-3 py-1.5 flex items-center gap-2 ${statusClass} transition" title="${title}">
+                                ${statusIcon}
+                                <span class="font-mono text-sm ${isDeleted ? 'line-through text-gray-500' : ''}">${escapeHtml(num.number)}</span>
                                 <span class="text-xs text-gray-400">(last3: ${num.last3})</span>
-                                <button onclick="softDeleteNumber('${num.id}')" class="text-gray-400 hover:text-red-600 ml-1" title="Delete (hide number, preserve earnings)">
-                                    <i class="fas fa-trash-alt"></i>
+                                ${deletedBadge}
+                                <button onclick="${isDeleted ? `restoreNumber('${num.id}')` : `softDeleteNumber('${num.id}')`}" class="${isDeleted ? 'text-green-600 hover:text-green-800' : 'text-gray-400 hover:text-red-600'} ml-1" title="${isDeleted ? 'Restore number' : 'Delete number'}">
+                                    <i class="fas ${isDeleted ? 'fa-trash-restore' : 'fa-trash-alt'}"></i>
                                 </button>
                             </div>
                         `;
                     }).join('')}
                 </div>
                 <div class="bg-gray-50 px-4 py-2 text-xs text-gray-500 border-t border-purple-100">
-                    📊 Total: ${totalCount} numbers | Used: ${usedCount} | Active: ${totalCount - usedCount}
+                    📊 Total: ${totalCount} numbers | Used: ${usedCount} | Active: ${activeCount} | Deleted: ${deletedCount}
                 </div>
             </div>
         `;
@@ -433,125 +496,33 @@ async function loadAllocatedNumbers() {
     container.innerHTML = html;
 }
 
-// Load OTP records for selected user (includes OTPs from deleted numbers for earnings)
-async function loadUserOtps() {
-    const filterUserId = document.getElementById('filterSelect').value;
+// Restore a deleted number (set is_deleted back to false)
+async function restoreNumber(numberId) {
+    if (!confirm('Restore this number? It will become visible to the user again.')) return;
     
-    if (!filterUserId) {
-        document.getElementById('otpRecordsList').innerHTML = `
-            <div class="text-center py-12 text-gray-400">
-                <i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>
-                Select a user to view OTPs
-            </div>
-        `;
-        return;
-    }
-    
-    document.getElementById('otpRecordsList').innerHTML = `
-        <div class="text-center py-12">
-            <div class="loading-spinner inline-block w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-            <p class="mt-3 text-gray-500">Loading OTP records...</p>
-        </div>
-    `;
-    
-    // Get user's allocated numbers (including deleted ones for OTP matching - earnings preserved)
-    const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,last3,range_name&user_id=eq.${filterUserId}`, {
-        headers: { 'apikey': API_KEY }
-    });
-    const userNumbers = await numRes.json();
-    const userLast3s = userNumbers.map(n => n.last3);
-    
-    // Get OTPs for those numbers
-    if (userLast3s.length > 0) {
-        const last3Filter = userLast3s.map(l3 => `phone_last3=eq.${l3}`).join(',');
-        const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&or=(${last3Filter})&order=date.desc&limit=500`, {
-            headers: { 'apikey': API_KEY }
-        });
-        const userOtps = await otpRes.json();
-        
-        if (userOtps.length === 0) {
-            document.getElementById('otpRecordsList').innerHTML = `
-                <div class="text-center py-12 text-gray-400">
-                    <i class="fas fa-inbox text-4xl mb-3 opacity-40"></i><br/>
-                    📭 No OTPs found for this user
-                </div>
-            `;
-            return;
-        }
-        
-        // Create number map for display
-        const numberMap = new Map();
-        userNumbers.forEach(item => {
-            numberMap.set(item.last3, { number: item.number, range_name: item.range_name });
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?id=eq.${numberId}`, {
+            method: 'PATCH',
+            headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_deleted: false, deleted_at: null })
         });
         
-        let html = '';
-        for (const otp of userOtps) {
-            const numberInfo = numberMap.get(otp.phone_last3);
-            const phoneNumber = numberInfo?.number || otp.phone_last3;
-            const maskedNumber = phoneNumber.toString().replace(/\d(?=\d{4})/g, '*');
-            const rangeName = numberInfo?.range_name || otp.range || 'Unknown';
-            const timeStr = formatTime(otp.message_time);
-            
-            html += `
-                <div class="otp-entry">
-                    <div class="flex justify-between items-start flex-wrap gap-2">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-2 flex-wrap">
-                                <span class="text-xs text-gray-400">#${otp.id || ''}</span>
-                                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">📅 ${otp.date || 'N/A'}</span>
-                                <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
-                            </div>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                                <div>
-                                    <span class="text-gray-500 text-xs">📞 Phone</span>
-                                    <p class="font-mono font-medium">${escapeHtml(maskedNumber)}</p>
-                                </div>
-                                <div>
-                                    <span class="text-gray-500 text-xs">🔐 Last3</span>
-                                    <p class="font-mono">${escapeHtml(otp.phone_last3)}</p>
-                                </div>
-                                <div>
-                                    <span class="text-gray-500 text-xs">✉️ Sender</span>
-                                    <p>${escapeHtml(otp.sender || otp.service || 'Unknown')}</p>
-                                </div>
-                                <div>
-                                    <span class="text-gray-500 text-xs">📌 Range</span>
-                                    <p>${escapeHtml(rangeName)}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xs text-gray-400">${timeStr}</div>
-                            <div class="text-emerald-600 font-semibold text-sm mt-1">+$0.005</div>
-                        </div>
-                    </div>
-                </div>
-            `;
+        if (res.ok) {
+            await loadAllocatedNumbers();
+            await fetchUsedNumbers();
+            loadUserOtps();
+            showMessage('✅ Number restored and visible to user', 'success');
+        } else {
+            showMessage('❌ Error restoring number', 'error');
         }
-        
-        html += `
-            <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
-                <span class="font-semibold">Total: ${userOtps.length} OTPs</span>
-                <span class="mx-2">|</span>
-                <span class="font-bold text-purple-700">$${(userOtps.length * 0.005).toFixed(2)}</span>
-            </div>
-        `;
-        
-        document.getElementById('otpRecordsList').innerHTML = html;
-    } else {
-        document.getElementById('otpRecordsList').innerHTML = `
-            <div class="text-center py-12 text-gray-400">
-                <i class="fas fa-database text-4xl mb-3 opacity-40"></i><br/>
-                📭 No numbers allocated to this user
-            </div>
-        `;
+    } catch (err) {
+        showMessage('❌ Error: ' + err.message, 'error');
     }
 }
 
-// Soft delete single number (hide completely)
+// Soft delete single number (hide from users)
 async function softDeleteNumber(numberId) {
-    if (!confirm('Delete this number? It will be hidden from users and admin, but earnings will be preserved.')) return;
+    if (!confirm('Delete this number? It will be hidden from the user, but earnings will be preserved.')) return;
     
     try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?id=eq.${numberId}`, {
@@ -564,7 +535,7 @@ async function softDeleteNumber(numberId) {
             await loadAllocatedNumbers();
             await fetchUsedNumbers();
             loadUserOtps();
-            showMessage('✅ Number deleted (hidden from view, earnings preserved)', 'success');
+            showMessage('✅ Number deleted (hidden from user, earnings preserved)', 'success');
         } else {
             showMessage('❌ Error deleting number', 'error');
         }
@@ -573,12 +544,12 @@ async function softDeleteNumber(numberId) {
     }
 }
 
-// Soft delete all numbers in a range (hide completely)
+// Soft delete all numbers in a range
 async function softDeleteRangeNumbers(userId, range) {
-    if (!confirm(`Delete ALL numbers for this user in ${range}? They will be hidden from view, but earnings will be preserved.`)) return;
+    if (!confirm(`Delete ALL numbers for this user in ${range}? They will be hidden from users, but earnings will be preserved.`)) return;
     
     try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&range_name=eq.${encodeURIComponent(range)}`, {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&range_name=eq.${encodeURIComponent(range)}&is_deleted=eq.false`, {
             method: 'PATCH',
             headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({ is_deleted: true, deleted_at: new Date().toISOString() })
@@ -587,7 +558,7 @@ async function softDeleteRangeNumbers(userId, range) {
         if (res.ok) {
             await loadAllocatedNumbers();
             loadUserOtps();
-            showMessage('Numbers deleted successfully (hidden from view)', 'success');
+            showMessage('Numbers deleted successfully (hidden from users)', 'success');
         }
     } catch (err) {
         showMessage('Error deleting numbers', 'error');
@@ -698,8 +669,138 @@ function setupModal() {
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
 }
 
-window.softDeleteNumber = softDeleteNumber;
-window.softDeleteRangeNumbers = softDeleteRangeNumbers;
+// Toggle deleted numbers visibility
+function setupDeletedToggle() {
+    const btn = document.getElementById('showDeletedBtn');
+    btn.onclick = () => {
+        showDeleted = !showDeleted;
+        if (showDeleted) {
+            btn.innerHTML = '<i class="fas fa-eye"></i> Show Deleted';
+            btn.classList.remove('bg-gray-200', 'hover:bg-gray-300');
+            btn.classList.add('bg-purple-100', 'hover:bg-purple-200', 'text-purple-700');
+        } else {
+            btn.innerHTML = '<i class="fas fa-eye-slash"></i> Hide Deleted';
+            btn.classList.remove('bg-purple-100', 'hover:bg-purple-200', 'text-purple-700');
+            btn.classList.add('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
+        }
+        loadAllocatedNumbers();
+    };
+}
+
+// Load OTP records for selected user
+async function loadUserOtps() {
+    const filterUserId = document.getElementById('filterSelect').value;
+    
+    if (!filterUserId) {
+        document.getElementById('otpRecordsList').innerHTML = `
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>
+                Select a user to view OTPs
+            </div>
+        `;
+        return;
+    }
+    
+    document.getElementById('otpRecordsList').innerHTML = `
+        <div class="text-center py-12">
+            <div class="loading-spinner inline-block w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+            <p class="mt-3 text-gray-500">Loading OTP records...</p>
+        </div>
+    `;
+    
+    // Get ALL user's allocated numbers (including deleted for OTP matching - earnings preserved)
+    const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,last3,range_name&user_id=eq.${filterUserId}`, {
+        headers: { 'apikey': API_KEY }
+    });
+    const userNumbers = await numRes.json();
+    const userLast3s = userNumbers.map(n => n.last3);
+    
+    if (userLast3s.length > 0) {
+        const last3Filter = userLast3s.map(l3 => `phone_last3=eq.${l3}`).join(',');
+        const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&or=(${last3Filter})&order=date.desc&limit=500`, {
+            headers: { 'apikey': API_KEY }
+        });
+        const userOtps = await otpRes.json();
+        
+        if (userOtps.length === 0) {
+            document.getElementById('otpRecordsList').innerHTML = `
+                <div class="text-center py-12 text-gray-400">
+                    <i class="fas fa-inbox text-4xl mb-3 opacity-40"></i><br/>
+                    📭 No OTPs found for this user
+                </div>
+            `;
+            return;
+        }
+        
+        const numberMap = new Map();
+        userNumbers.forEach(item => {
+            numberMap.set(item.last3, { number: item.number, range_name: item.range_name });
+        });
+        
+        let html = '';
+        for (const otp of userOtps) {
+            const numberInfo = numberMap.get(otp.phone_last3);
+            const phoneNumber = numberInfo?.number || otp.phone_last3;
+            const maskedNumber = phoneNumber.toString().replace(/\d(?=\d{4})/g, '*');
+            const rangeName = numberInfo?.range_name || otp.range || 'Unknown';
+            const timeStr = formatTime(otp.message_time);
+            
+            html += `
+                <div class="otp-entry">
+                    <div class="flex justify-between items-start flex-wrap gap-2">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2 flex-wrap">
+                                <span class="text-xs text-gray-400">#${otp.id || ''}</span>
+                                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">📅 ${otp.date || 'N/A'}</span>
+                                <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
+                            </div>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                                <div>
+                                    <span class="text-gray-500 text-xs">📞 Phone</span>
+                                    <p class="font-mono font-medium">${escapeHtml(maskedNumber)}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500 text-xs">🔐 Last3</span>
+                                    <p class="font-mono">${escapeHtml(otp.phone_last3)}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500 text-xs">✉️ Sender</span>
+                                    <p>${escapeHtml(otp.sender || otp.service || 'Unknown')}</p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-500 text-xs">📌 Range</span>
+                                    <p>${escapeHtml(rangeName)}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xs text-gray-400">${timeStr}</div>
+                            <div class="text-emerald-600 font-semibold text-sm mt-1">+$0.005</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        html += `
+            <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
+                <span class="font-semibold">Total: ${userOtps.length} OTPs</span>
+                <span class="mx-2">|</span>
+                <span class="font-bold text-purple-700">$${(userOtps.length * 0.005).toFixed(2)}</span>
+                <p class="text-xs text-gray-400 mt-1">✅ Includes OTPs from deleted numbers (earnings preserved)</p>
+            </div>
+        `;
+        
+        document.getElementById('otpRecordsList').innerHTML = html;
+    } else {
+        document.getElementById('otpRecordsList').innerHTML = `
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-database text-4xl mb-3 opacity-40"></i><br/>
+                📭 No numbers allocated to this user
+            </div>
+        `;
+    }
+}
 
 function setupDropdown() {
     const menuBtn = document.getElementById('menuBtn');
@@ -718,6 +819,11 @@ function setupDropdown() {
     });
 }
 
+// Make functions global
+window.softDeleteNumber = softDeleteNumber;
+window.softDeleteRangeNumbers = softDeleteRangeNumbers;
+window.restoreNumber = restoreNumber;
+
 document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); logout(); };
 document.getElementById('addBtn').onclick = addNumbers;
 
@@ -728,8 +834,8 @@ async function init() {
     await loadUsers();
     await loadAllocatedNumbers();
     setupModal();
+    setupDeletedToggle();
     
-    // Load OTPs when user is selected
     document.getElementById('filterSelect').addEventListener('change', () => {
         loadUserOtps();
     });
