@@ -44,11 +44,6 @@
             background-color: #f5f3ff;
         }
         
-        /* Deleted numbers hidden ONLY in allocation - no labels anywhere */
-        .number-item-deleted {
-            display: none;
-        }
-        
         .otp-badge {
             background: linear-gradient(135deg, #7c3aed, #6d28d9);
             color: white;
@@ -121,6 +116,11 @@
             border-radius: 20px;
             margin-left: 8px;
         }
+
+        /* Deleted numbers are completely hidden from allocation view - no traces */
+        .deleted-number-hidden {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -162,23 +162,33 @@ const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
 const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
 
 let currentUser = null;
-let userNumbers = [];           // Currently allocated (active) numbers
-let allOtps = [];              // All OTPs for this user
-let deletedNumbersSet = new Set(); // Track which numbers were deleted by admin
+let activeNumbersOnly = [];      // ONLY non-deleted numbers (is_deleted = false) - shown in allocation
+let allNumbersEver = [];         // All numbers user ever had (including deleted) for OTP filtering
+let allOtps = [];                // All OTPs for this user (from both active & deleted numbers)
+let deletedLast3Set = new Set(); // Track last3 digits of deleted numbers (for internal use only, no UI labels)
 
 // Helper Functions
-function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
+function getLast3Digits(num) { 
+    const cleaned = num.toString().replace(/\D/g, ''); 
+    return cleaned.slice(-3); 
+}
+
 function getPanelDate(o) {
     let t = new Date(o.message_time || o.created_at || new Date());
     t.setHours(t.getHours() - 1);
     return t.toISOString().slice(0, 10);
 }
+
 function formatTime(o) {
     if (o.message_time) return new Date(o.message_time).toLocaleTimeString();
     if (o.created_at) return new Date(o.created_at).toLocaleTimeString();
     return '-';
 }
-function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); }
+
+function escapeHtml(str) { 
+    if (!str) return ''; 
+    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); 
+}
 
 // Get user from URL and load data
 async function initFromUrl() {
@@ -223,65 +233,50 @@ async function initFromUrl() {
     }
 }
 
-// Load User Data - Track active vs deleted numbers
+// CRITICAL FIX: Load data with proper separation - deleted numbers hidden from allocation but OTPs still counted
 async function loadUserData() {
-    // Fetch currently allocated numbers (active numbers from admin)
-    const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}`, {
+    // Fetch ALL numbers allocated to this user (including deleted ones marked is_deleted = true)
+    const allNumbersRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
-    const allAllocated = await numRes.json();
+    const rawNumbers = await allNumbersRes.json();
     
-    // IMPORTANT: For allocation page, we only show numbers that are currently in allocated_numbers table
-    // But for OTP history, we need to know which numbers were deleted (numbers that have OTPs but no longer in allocated_numbers)
-    userNumbers = allAllocated;
+    // Separate active (is_deleted = false) vs deleted (is_deleted = true)
+    // ACTIVE NUMBERS: Only those with is_deleted = false OR where is_deleted field doesn't exist (assume active)
+    activeNumbersOnly = rawNumbers.filter(num => num.is_deleted !== true);
+    // Keep all numbers for OTP history reference (including deleted ones)
+    allNumbersEver = rawNumbers;
     
-    // Get all last3 digits from CURRENTLY allocated numbers
-    const currentLast3s = new Set(userNumbers.map(n => n.last3));
-    
-    // Fetch all OTPs (history)
-    const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=2000`, {
-        headers: { 'apikey': SUPABASE_API_KEY }
-    });
-    const allOtpsRaw = await otpRes.json();
-    
-    // Filter OTPs that belong to this user's numbers (including deleted ones that have last3 matching ANY number ever allocated)
-    // We need to get ALL last3 that ever had allocation for this user
-    // Fetch allocation history (we'll get from allocated_numbers but since deleted numbers are removed, we need another approach)
-    // Alternative: Get all unique phone_last3 from OTPs that match ANY number that was ever allocated to this user
-    // Since we don't have historical allocation table, we'll use the fact that userNumbers contains only active numbers.
-    // For deleted numbers, we detect them by checking if an OTP's last3 exists in any number that is NOT currently active
-    // But to do that, we need to know what numbers were ever allocated. We'll store a separate set of "ever allocated" from localStorage or from a separate table.
-    // Simpler approach: For OTP history, show ALL OTPs where the phone_last3 matches any number that WAS allocated (we can track via a separate map)
-    
-    // Track which last3 are currently active
-    const activeLast3s = new Set(userNumbers.map(n => n.last3));
-    
-    // For OTP history, we want to show OTPs from both active AND previously deleted numbers
-    // We'll filter OTPs where phone_last3 appears in either active numbers OR in the set of numbers that were ever allocated
-    // But since we don't have "ever allocated" data, we'll use a different strategy:
-    // We'll store deleted numbers when we detect OTPs that come from numbers not currently active
-    // However, to properly load, we need to know which numbers were deleted. We'll fetch from a "deleted_numbers" table if exists, or rely on the fact that OTPs exist for numbers that are no longer allocated.
-    
-    // For now, we'll load all OTPs and then filter by: last3 matches any number that either (a) is currently active, OR (b) has any OTP record and the user once had that number.
-    // Since we don't have historical allocation, we'll simply include ALL OTPs that have phone_last3 matching any number that was ever in allocated_numbers for this user.
-    // To get "ever allocated", we would need a separate table. But for practical purposes, we'll assume that if an OTP exists and the number is not currently active, it was deleted.
-    // We'll track deleted numbers in a Set.
-    
-    // Initialize deletedNumbersSet by checking OTPs against current active numbers
-    allOtpsRaw.forEach(otp => {
-        if (!activeLast3s.has(otp.phone_last3)) {
-            // This OTP belongs to a number that is not currently allocated (deleted by admin)
-            deletedNumbersSet.add(otp.phone_last3);
+    // Build set of deleted last3 digits (for internal tracking only, never shown as label)
+    deletedLast3Set.clear();
+    rawNumbers.forEach(num => {
+        if (num.is_deleted === true && num.last3) {
+            deletedLast3Set.add(num.last3);
         }
     });
     
-    // Now filter OTPs: include if phone_last3 is either active OR deleted (has OTPs)
-    allOtps = allOtpsRaw.filter(otp => {
-        return activeLast3s.has(otp.phone_last3) || deletedNumbersSet.has(otp.phone_last3);
-    });
+    // Get all last3 digits from ALL numbers (active + deleted) to fetch OTPs
+    const allLast3s = [...new Set(rawNumbers.map(n => n.last3).filter(l3 => l3))];
     
-    // For allocation page, userNumbers already contains only active numbers (deleted numbers are NOT in this list)
-    // So allocation page will automatically show only active numbers.
+    // Fetch OTPs for all these last3 digits (including deleted numbers)
+    if (allLast3s.length > 0) {
+        const last3Filter = allLast3s.map(l3 => `phone_last3=eq.${l3}`).join(',');
+        const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&or=(${last3Filter})&order=date.desc&limit=3000`, {
+            headers: { 'apikey': SUPABASE_API_KEY }
+        });
+        allOtps = await otpRes.json();
+    } else {
+        allOtps = [];
+    }
+    
+    // Also fetch any OTPs that might have range info stored directly
+    // Ensure we have complete OTP set - filter by user's numbers only
+    const activeLast3Set = new Set(activeNumbersOnly.map(n => n.last3));
+    const deletedLast3SetFull = new Set(rawNumbers.filter(n => n.is_deleted === true).map(n => n.last3));
+    const validLast3s = new Set([...activeLast3Set, ...deletedLast3SetFull]);
+    
+    // Filter OTPs to only those belonging to this user's numbers (active OR deleted)
+    allOtps = allOtps.filter(otp => validLast3s.has(otp.phone_last3));
 }
 
 // Handle Menu Navigation
@@ -300,7 +295,7 @@ function handleMenu(value) {
     }
 }
 
-// PROFILE PAGE - Shows earnings from ALL OTPs (including from deleted numbers, no labels)
+// PROFILE PAGE - Shows earnings from ALL OTPs (including from deleted numbers, no mention of deletion)
 function profilePage() {
     let totalOtps = allOtps.length;
     let earned = (totalOtps * 0.005).toFixed(2);
@@ -343,41 +338,41 @@ function uploadPic(e) {
     reader.readAsDataURL(file);
 }
 
-// ALLOCATION PAGE - Shows ONLY active numbers (deleted numbers are completely hidden, no mention)
+// ALLOCATION PAGE - Shows ONLY active numbers (deleted numbers are completely hidden, no trace)
 function allocationPage() {
-    // Filter only currently active numbers (deleted numbers are not in userNumbers)
-    let activeNumbers = userNumbers.filter(n => n.is_active !== false); // all in userNumbers are active by definition
-    let ranges = [...new Set(activeNumbers.map(n => n.range_name))];
+    // activeNumbersOnly already contains only non-deleted numbers (is_deleted !== true)
+    // Group by range_name
+    let ranges = [...new Set(activeNumbersOnly.map(n => n.range_name).filter(r => r))];
     
     if (ranges.length === 0) {
-        return `<div class="glass-card p-8 text-center text-gray-500">No numbers allocated yet. Contact admin.</div>`;
+        return `<div class="glass-card p-8 text-center text-gray-500">✨ No active numbers allocated. Contact admin for allocation.</div>`;
     }
     
     let html = `
     <div class="glass-card p-6 fade-in">
-        <h2 class="text-xl font-bold mb-4">📌 Number Allocation <span class="unlimited-badge"><i class="fas fa-infinity mr-1"></i>No earning limit</span></h2>
+        <h2 class="text-xl font-bold mb-4">📌 Active Numbers <span class="unlimited-badge"><i class="fas fa-infinity mr-1"></i>No earning limit</span></h2>
         <select id="rangeSelect" class="custom-select w-full border border-purple-200 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none mb-4">
             ${ranges.map(r => `<option value="${escapeHtml(r)}">📌 ${escapeHtml(r)}</option>`).join('')}
         </select>
         <div id="numBox" class="space-y-2"></div>
-        <div class="mt-4 text-xs text-gray-400 text-center">✅ All numbers are always available - no daily limits applied</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">✅ Active numbers displayed only — deleted numbers are automatically hidden</div>
     </div>`;
     
     setTimeout(() => {
         const rangeSelect = document.getElementById('rangeSelect');
         if (rangeSelect && ranges.length > 0) {
-            displayNumbers(rangeSelect.value);
-            rangeSelect.onchange = () => displayNumbers(rangeSelect.value);
+            displayNumbersForRange(rangeSelect.value);
+            rangeSelect.onchange = () => displayNumbersForRange(rangeSelect.value);
         }
     }, 50);
     
     return html;
 }
 
-// DISPLAY NUMBERS - Shows ONLY active numbers (deleted are already filtered out of userNumbers)
-function displayNumbers(r) {
-    // userNumbers only contains active numbers (deleted numbers are NOT in this array)
-    let numbers = userNumbers.filter(n => n.range_name === r);
+// DISPLAY NUMBERS FOR SELECTED RANGE - Shows ONLY active numbers (deleted already filtered)
+function displayNumbersForRange(rangeName) {
+    // Filter active numbers only by range
+    let numbers = activeNumbersOnly.filter(n => n.range_name === rangeName);
     
     let html = numbers.map(n => `
         <div class="number-item bg-gray-50 rounded-xl p-3 flex justify-between items-center">
@@ -392,10 +387,11 @@ function displayNumbers(r) {
         html += `<div class="mt-3 text-xs text-green-600 text-center">✨ ${numbers.length} active number(s)</div>`;
     }
     
-    document.getElementById('numBox').innerHTML = html;
+    const numBox = document.getElementById('numBox');
+    if (numBox) numBox.innerHTML = html;
 }
 
-// TODAY PAGE - Shows ALL OTPs from today (including from deleted numbers, but no labels)
+// TODAY PAGE - Shows ALL OTPs from today (including from deleted numbers, but NO labels or mention of deletion)
 function todayPage() {
     let today = getPanelDate({message_time: new Date()});
     let html = "";
@@ -406,13 +402,18 @@ function todayPage() {
         return `<div class="glass-card p-8 text-center text-gray-500">📭 No OTPs received today</div>`;
     }
     
-    // Display all OTPs - no deleted labels, just normal display
+    // Build quick lookup map for active numbers (to show full number if active, else mask)
+    const activeNumberMap = new Map();
+    activeNumbersOnly.forEach(n => {
+        activeNumberMap.set(n.last3, n);
+    });
+    
     todayOtps.forEach(o => {
-        // Try to find matching active number
-        let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-        // If no active match, it's from a deleted number - but we show it normally without any label
-        let phoneDisplay = match ? match.number : `***${o.phone_last3}`;
-        let rangeDisplay = o.range || match?.range_name || '-';
+        // Check if this OTP belongs to an active number or deleted number
+        const activeMatch = activeNumberMap.get(o.phone_last3);
+        // For deleted numbers, just show masked version (no "deleted" label)
+        let phoneDisplay = activeMatch ? activeMatch.number : `***${o.phone_last3}`;
+        let rangeDisplay = o.range || activeMatch?.range_name || '-';
         
         html += `
         <div class="otp-entry">
@@ -441,11 +442,11 @@ function todayPage() {
             <span class="text-sm font-semibold text-purple-700">Earnings: $${(todayOtps.length * 0.005).toFixed(2)}</span>
         </div>
         <div class="space-y-3">${html}</div>
-        <div class="mt-4 text-xs text-gray-400 text-center">🎉 No daily limits - every OTP counts!</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">🎉 Every OTP counts — including past numbers</div>
     </div>`;
 }
 
-// TOTAL OTP PAGE - Counts all OTPs today without limits
+// TOTAL OTP PAGE - Counts all OTPs today
 function totalPage() {
     let today = getPanelDate({message_time: new Date()});
     let todayOtps = allOtps.filter(o => getPanelDate(o) === today);
@@ -486,7 +487,7 @@ setInterval(() => {
     if (el) el.innerHTML = `<i class="fas fa-clock mr-1"></i> Day resets in ${h}h ${m}m ${s}s`;
 }, 1000);
 
-// PAST RECORDS PAGE - Shows all OTPs in date range (including from deleted numbers, no labels)
+// PAST RECORDS PAGE - Shows all OTPs in date range (including from deleted numbers, no deletion labels)
 function pastPage() {
     return `
     <div class="glass-card p-6 fade-in">
@@ -502,12 +503,19 @@ function pastPage() {
     </div>`;
 }
 
-// FILTER PAST - Shows all OTPs without any labels for deleted numbers
+// FILTER PAST - Shows all OTPs without any "deleted" labels, counts all earnings
 function filterPast() {
     let s = document.getElementById('start').value;
     let e = document.getElementById('end').value;
     let html = "";
     let total = 0;
+    
+    if (!s || !e) return;
+    
+    const activeNumberMap = new Map();
+    activeNumbersOnly.forEach(n => {
+        activeNumberMap.set(n.last3, n);
+    });
     
     const filteredOtps = allOtps.filter(o => {
         let d = getPanelDate(o);
@@ -516,9 +524,10 @@ function filterPast() {
     
     filteredOtps.forEach(o => {
         total++;
-        let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-        let phoneDisplay = match ? match.number : `***${o.phone_last3}`;
-        let rangeDisplay = o.range || match?.range_name || '-';
+        const activeMatch = activeNumberMap.get(o.phone_last3);
+        // For deleted numbers, just show masked number — no "deleted" text or badge
+        let phoneDisplay = activeMatch ? activeMatch.number : `***${o.phone_last3}`;
+        let rangeDisplay = o.range || activeMatch?.range_name || '-';
         
         html += `
         <div class="otp-entry">
@@ -552,7 +561,7 @@ function filterPast() {
         <span class="font-semibold">Total OTPs: ${total}</span>
         <span class="mx-2">|</span>
         <span class="font-bold text-purple-700">$${earn}</span>
-        <p class="text-xs text-gray-400 mt-1">✅ Every OTP counted - no daily restrictions</p>
+        <p class="text-xs text-gray-400 mt-1">✅ Every OTP counted — numbers removed by admin still contribute</p>
     </div>`;
 }
 
@@ -586,7 +595,7 @@ function showPage(p) {
 
 // Make functions global
 window.uploadPic = uploadPic;
-window.displayNumbers = displayNumbers;
+window.displayNumbersForRange = displayNumbersForRange;
 window.filterPast = filterPast;
 window.showPage = showPage;
 
@@ -595,5 +604,3 @@ initFromUrl();
 </script>
 </body>
 </html>
-
-
