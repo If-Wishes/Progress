@@ -244,11 +244,20 @@ async function fetchAllOtps() {
     }
 }
 
-function filterOtpsByUserAndDate(otps, phoneLast3s, start, end) {
+// FIXED: Proper date filtering using Date objects
+function filterOtpsByUserAndDate(otps, phoneLast3s, startDateStr, endDateStr) {
     let filtered = otps.filter(otp => phoneLast3s.includes(otp.phone_last3));
-    if (start && end) {
+    
+    if (startDateStr && endDateStr) {
+        // Create date objects for comparison
+        const start = new Date(startDateStr);
+        const end = new Date(endDateStr);
+        end.setHours(23, 59, 59, 999); // Include entire end day
+        
         filtered = filtered.filter(otp => {
-            const otpDate = otp.date || otp.message_time?.slice(0, 10);
+            const otpDateStr = otp.date || otp.message_time?.slice(0, 10);
+            if (!otpDateStr) return false;
+            const otpDate = new Date(otpDateStr);
             return otpDate >= start && otpDate <= end;
         });
     }
@@ -306,7 +315,6 @@ async function loadUserData() {
     const allOtps = await fetchAllOtps();
     userOtps = filterOtpsByUserAndDate(allOtps, userPhoneLast3s, startDate, endDate);
     
-    // No limit - all OTPs count
     const totalOtps = userOtps.length;
     const totalEarnings = totalOtps * 0.005;
     const uniqueNumbers = [...new Set(userOtps.map(otp => otp.phone_last3))].length;
