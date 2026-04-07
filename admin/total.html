@@ -2,59 +2,174 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>ELITE Admin | Total Numbers</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+            min-height: 100vh;
+        }
+        
         .hidden-dropdown { display: none !important; }
-        .stat-card { transition: all 0.3s ease; }
-        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.25); }
-        .user-select { border: 2px solid #e5e7eb; transition: all 0.3s; }
-        .user-select:focus { border-color: #7c3aed; outline: none; ring: 2px solid #c4b5fd; }
-        .nav-link { transition: all 0.2s; display: block; width: 100%; text-align: left; }
-        .nav-link:hover { background-color: #f5f3ff; color: #7c3aed; }
-        .btn-primary-purple { background: #7c3aed; transition: all 0.2s ease; }
-        .btn-primary-purple:hover { background: #6d28d9; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3); }
-        .btn-all-time { background: linear-gradient(135deg, #10b981, #059669); transition: all 0.2s; }
-        .btn-all-time:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
-        .range-card { background: white; border-radius: 16px; border: 1px solid #e9d5ff; overflow: hidden; margin-bottom: 20px; transition: all 0.2s; }
-        .range-card:hover { box-shadow: 0 8px 25px -10px rgba(124, 58, 237, 0.2); }
-        .range-header { background: linear-gradient(135deg, #f5f3ff, #ede9fe); padding: 12px 20px; border-bottom: 1px solid #e9d5ff; }
-        .number-item { padding: 10px 16px; border-bottom: 1px solid #f3f4f6; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center; }
-        .number-item:hover { background-color: #faf5ff; }
-        .number-item-deleted { background-color: #fef2f2; opacity: 0.7; text-decoration: line-through; }
-        .loading-spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid #e9d5ff; border-radius: 50%; border-top-color: #7c3aed; animation: spin 0.8s linear infinite; }
+        
+        .stat-card {
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.4);
+        }
+        
+        .nav-link {
+            transition: all 0.2s;
+            display: block;
+            width: 100%;
+            text-align: left;
+        }
+        .nav-link:hover {
+            background-color: #f5f3ff;
+            color: #7c3aed;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .allocations-table-wrapper {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        .alloc-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .alloc-table th {
+            background: #f5f3ff;
+            padding: 12px 15px;
+            text-align: center;
+            font-weight: 800;
+            border: 1px solid #e9d5ff;
+            border-bottom: 2px solid #c4b5fd;
+            font-size: 13px;
+            color: #5b21b6;
+        }
+        
+        .alloc-table td {
+            padding: 8px 12px;
+            border: 1px solid #f0e6ff;
+            vertical-align: top;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 500;
+            color: #1a1a2e;
+        }
+        
+        .totals-row {
+            background: #f0fdf4;
+            font-weight: bold;
+        }
+        
+        .deleted-number {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        
+        .used-number {
+            color: #dc2626;
+        }
+        
+        .number-cell {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 4px 0;
+            display: block;
+        }
+        
+        .user-section {
+            margin-bottom: 30px;
+            border: 1px solid #e9d5ff;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        
+        .user-title {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            padding: 12px 16px;
+            font-weight: bold;
+            font-size: 16px;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid #e9d5ff;
+            border-radius: 50%;
+            border-top-color: #7c3aed;
+            animation: spin 0.8s linear infinite;
+        }
+        
         @keyframes spin { to { transform: rotate(360deg); } }
-        .stat-card-purple-1 { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
-        .stat-card-purple-2 { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
-        .stat-card-purple-3 { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-        .stat-card-purple-4 { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
     </style>
 </head>
-<body class="bg-gradient-to-br from-purple-50 to-gray-100 min-h-screen">
+<body>
 
 <nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
-            <div class="flex items-center">
-                <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center shadow-md">
+            <div class="flex items-center gap-4">
+                <a href="dashboard.html" class="text-gray-600 hover:text-purple-600"><i class="fas fa-arrow-left"></i></a>
+                <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center shadow-md">
                     <i class="fas fa-crown text-white text-sm"></i>
                 </div>
-                <span class="ml-2 text-xl font-bold text-gray-800">ELITE<span class="text-purple-600">Admin</span></span>
-                <span class="ml-3 text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">Total Numbers</span>
+                <span class="text-xl font-bold text-gray-800">ELITE<span class="text-purple-600">Admin</span></span>
+                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">Total Numbers</span>
             </div>
-            <div class="flex items-center gap-4">
-                <div class="text-right hidden sm:block"><p class="text-sm font-medium text-gray-800" id="adminName">Administrator</p><p class="text-xs text-gray-500">Total Numbers</p></div>
+            <div class="flex items-center gap-4 relative">
+                <div class="text-right hidden sm:block">
+                    <p class="text-sm font-medium text-gray-800" id="adminName">Admin</p>
+                    <p class="text-xs text-gray-500">Total Numbers</p>
+                </div>
                 <div class="relative">
-                    <button id="menuButton" class="flex items-center gap-2 bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition cursor-pointer">
-                        <i class="fas fa-user-circle text-purple-600 text-lg"></i><i class="fas fa-chevron-down text-gray-500 text-xs"></i>
+                    <button id="menuBtn" class="bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition cursor-pointer">
+                        <i class="fas fa-user-shield text-purple-600"></i>
+                        <i class="fas fa-chevron-down text-xs"></i>
                     </button>
-                    <div id="dropdownMenu" class="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden">
+                    <div id="dropdown" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden">
                         <a href="dashboard.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-tachometer-alt w-5 text-purple-500 mr-2"></i> Dashboard</a>
                         <a href="users.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-users w-5 text-purple-500 mr-2"></i> Users</a>
-                        <a href="analytics.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-phone-alt w-5 text-purple-500 mr-2"></i> Numbers Allocation</a>
-                        <a href="activities.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-history w-5 text-purple-500 mr-2"></i> User Activities</a>
+                        <a href="analytics.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-phone-alt w-5 text-purple-500 mr-2"></i> Number Manager</a>
+                        <a href="activities.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-history w-5 text-purple-500 mr-2"></i> Activities</a>
                         <div class="border-t border-gray-100 my-1"></div>
                         <a href="#" id="logoutBtn" class="nav-link px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
                     </div>
@@ -64,31 +179,38 @@
     </div>
 </nav>
 
-<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">📊 Total Allocated Numbers</h1>
-        <p class="text-gray-500 text-sm mt-1">View allocated numbers by user, date range, and range category (Deleted numbers shown in red with strikethrough - earnings preserved)</p>
+<main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-800">📊 Total Allocated Numbers</h1>
+            <p class="text-gray-500 text-sm mt-1">View allocated numbers by user, date range, and range category</p>
+        </div>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 mb-8">
+    <!-- Filter Section -->
+    <div class="glass-card p-6 mb-6">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">👤 Select User</label>
-                <select id="userSelect" class="user-select w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none transition">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">👤 Select User</label>
+                <select id="userSelect" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
                     <option value="">-- Select a User --</option>
                 </select>
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">📅 Start Date</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">📅 Start Date</label>
                 <input type="date" id="startDate" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">📅 End Date</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">📅 End Date</label>
                 <input type="date" id="endDate" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
             </div>
             <div class="flex gap-2">
-                <button id="applyFilterBtn" class="flex-1 btn-primary-purple text-white px-4 py-2.5 rounded-xl transition shadow-sm"><i class="fas fa-filter mr-2"></i>Filter</button>
-                <button id="allTimeBtn" class="flex-1 btn-all-time text-white px-4 py-2.5 rounded-xl transition shadow-sm"><i class="fas fa-infinity mr-2"></i>ALL TIME</button>
+                <button id="applyFilterBtn" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2.5 rounded-xl transition shadow-md font-semibold">
+                    <i class="fas fa-filter mr-2"></i>Filter
+                </button>
+                <button id="allTimeBtn" class="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white px-4 py-2.5 rounded-xl transition shadow-md font-semibold">
+                    <i class="fas fa-infinity mr-2"></i>ALL TIME
+                </button>
             </div>
         </div>
         <div id="filterInfo" class="mt-4 text-sm text-gray-500 hidden bg-purple-50 p-2 rounded-lg">
@@ -96,19 +218,50 @@
         </div>
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="stat-card stat-card-purple-1 rounded-2xl shadow-lg p-6 text-white"><p class="text-purple-100 text-sm font-medium">Total Numbers</p><p class="text-3xl font-bold mt-1" id="totalNumbers">0</p></div>
-        <div class="stat-card stat-card-purple-2 rounded-2xl shadow-lg p-6 text-white"><p class="text-amber-100 text-sm font-medium">Total Ranges</p><p class="text-3xl font-bold mt-1" id="totalRanges">0</p></div>
-        <div class="stat-card stat-card-purple-3 rounded-2xl shadow-lg p-6 text-white"><p class="text-emerald-100 text-sm font-medium">Active Numbers</p><p class="text-3xl font-bold mt-1" id="activeNumbers">0</p></div>
-        <div class="stat-card stat-card-purple-4 rounded-2xl shadow-lg p-6 text-white"><p class="text-red-100 text-sm font-medium">Used Numbers</p><p class="text-3xl font-bold mt-1" id="usedNumbers">0</p></div>
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="stat-card rounded-2xl p-4 text-white">
+            <p class="text-purple-100 text-xs font-medium">Total Numbers</p>
+            <p class="text-2xl font-bold" id="totalNumbers">0</p>
+        </div>
+        <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+            <p class="text-amber-100 text-xs font-medium">Total Ranges</p>
+            <p class="text-2xl font-bold" id="totalRanges">0</p>
+        </div>
+        <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #10b981, #059669);">
+            <p class="text-emerald-100 text-xs font-medium">Active Numbers</p>
+            <p class="text-2xl font-bold" id="activeNumbers">0</p>
+        </div>
+        <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #ef4444, #dc2626);">
+            <p class="text-red-100 text-xs font-medium">Used Numbers</p>
+            <p class="text-2xl font-bold" id="usedNumbers">0</p>
+        </div>
     </div>
 
-    <div id="numbersDisplay" class="space-y-4"><div class="text-center py-12 text-gray-400"><div class="loading-spinner mx-auto mb-3"></div><p>Select a user to view allocated numbers...</p></div></div>
+    <!-- Allocated Numbers Display - Table Format -->
+    <div id="numbersDisplay" class="glass-card p-6">
+        <h2 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg">
+            <i class="fas fa-table-list text-purple-500"></i> Allocated Numbers
+        </h2>
+        <div id="allocationsContainer">
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>
+                Select a user to view allocated numbers
+            </div>
+        </div>
+    </div>
 </main>
 
 <script>
 const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
-const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
+const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
+
+// Session check
+const session = JSON.parse(localStorage.getItem('elite_session') || 'null');
+if (!session || session.role !== 'admin') {
+    window.location.href = '../index.html';
+}
+document.getElementById('adminName').innerText = session.username || 'Administrator';
 
 let allUsers = [];
 let selectedUserId = null;
@@ -117,25 +270,48 @@ let endDate = '';
 let isAllTime = false;
 let usedNumbersSet = new Set();
 
-function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); }
-function getLast3Digits(number) { const digits = number.toString().replace(/\D/g, ''); if (digits.length >= 3) return digits.slice(-3); return digits; }
+function escapeHtml(str) { 
+    if (!str) return ''; 
+    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); 
+}
+
+function getLast3Digits(number) { 
+    const digits = number.toString().replace(/\D/g, ''); 
+    if (digits.length >= 3) return digits.slice(-3); 
+    return digits; 
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-4 py-2 rounded-lg shadow-lg text-sm`;
+    toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+}
 
 async function fetchUsedNumbers() {
     try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=phone_last3`, { headers: { 'apikey': SUPABASE_API_KEY } });
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=phone_last3`, { 
+            headers: { 'apikey': API_KEY } 
+        });
         const otps = await res.json();
         usedNumbersSet.clear();
         otps.forEach(otp => { if (otp.phone_last3) usedNumbersSet.add(otp.phone_last3); });
-    } catch (err) { console.error("Error fetching OTPs:", err); }
+    } catch (err) { 
+        console.error("Error fetching OTPs:", err); 
+    }
 }
 
 async function fetchAllUsers() {
     try {
         const url = `${SUPABASE_URL}/rest/v1/users?select=id,username,email,role&order=username.asc`;
-        const response = await fetch(url, { headers: { 'apikey': SUPABASE_API_KEY } });
+        const response = await fetch(url, { headers: { 'apikey': API_KEY } });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return await response.json() || [];
-    } catch (err) { console.error("Fetch users error:", err); return []; }
+    } catch (err) { 
+        console.error("Fetch users error:", err); 
+        return []; 
+    }
 }
 
 async function fetchUserAllocatedNumbers(userId, start, end, allTime) {
@@ -143,36 +319,48 @@ async function fetchUserAllocatedNumbers(userId, start, end, allTime) {
         let url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&user_id=eq.${encodeURIComponent(userId)}&order=allocated_at.desc`;
         
         if (!allTime && start && end) {
-            // Fix: Use date range properly - add one day to end date to include full day
-            // This ensures numbers allocated on the end date are included
             const endDatePlusOne = new Date(end);
             endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
             const endDateStr = endDatePlusOne.toISOString().slice(0, 10);
-            
             url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&user_id=eq.${encodeURIComponent(userId)}&allocated_at=gte.${start}&allocated_at=lt.${endDateStr}&order=allocated_at.desc`;
         }
         
-        const response = await fetch(url, { headers: { 'apikey': SUPABASE_API_KEY } });
+        const response = await fetch(url, { headers: { 'apikey': API_KEY } });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return await response.json() || [];
-    } catch (err) { console.error("Fetch numbers error:", err); return []; }
+    } catch (err) { 
+        console.error("Fetch numbers error:", err); 
+        return []; 
+    }
 }
 
 function updateUserDropdown() {
     const select = document.getElementById('userSelect');
     select.innerHTML = '<option value="">-- Select a User --</option>';
-    allUsers.forEach(user => { select.innerHTML += `<option value="${user.id}">${escapeHtml(user.username)} (${escapeHtml(user.email || 'No email')})</option>`; });
+    allUsers.forEach(user => { 
+        select.innerHTML += `<option value="${user.id}">👤 ${escapeHtml(user.username)}</option>`; 
+    });
 }
 
 async function loadNumbers() {
     if (!selectedUserId) {
-        document.getElementById('numbersDisplay').innerHTML = `<div class="text-center py-12 text-gray-400"><i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>Select a user to view allocated numbers</div>`;
-        document.getElementById('totalNumbers').textContent = '0'; document.getElementById('totalRanges').textContent = '0';
-        document.getElementById('activeNumbers').textContent = '0'; document.getElementById('usedNumbers').textContent = '0';
+        document.getElementById('allocationsContainer').innerHTML = `
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>
+                Select a user to view allocated numbers
+            </div>`;
+        document.getElementById('totalNumbers').textContent = '0';
+        document.getElementById('totalRanges').textContent = '0';
+        document.getElementById('activeNumbers').textContent = '0';
+        document.getElementById('usedNumbers').textContent = '0';
         return;
     }
     
-    document.getElementById('numbersDisplay').innerHTML = `<div class="text-center py-12"><div class="loading-spinner mx-auto"></div><p class="mt-3 text-gray-500">Loading allocated numbers...</p></div>`;
+    document.getElementById('allocationsContainer').innerHTML = `
+        <div class="text-center py-12">
+            <div class="loading-spinner mx-auto"></div>
+            <p class="mt-3 text-gray-500">Loading allocated numbers...</p>
+        </div>`;
     
     const numbers = await fetchUserAllocatedNumbers(selectedUserId, startDate, endDate, isAllTime);
     
@@ -187,74 +375,158 @@ async function loadNumbers() {
     // Calculate stats
     const totalNumbers = numbers.length;
     const totalRanges = Object.keys(grouped).length;
-    const usedNumbers = numbers.filter(n => usedNumbersSet.has(n.last3)).length;
-    const activeNumbers = numbers.filter(n => !usedNumbersSet.has(n.last3) && !n.is_deleted).length;
+    const usedNumbersCount = numbers.filter(n => usedNumbersSet.has(n.last3)).length;
+    const activeNumbersCount = numbers.filter(n => !usedNumbersSet.has(n.last3) && !n.is_deleted).length;
     
     document.getElementById('totalNumbers').textContent = totalNumbers;
     document.getElementById('totalRanges').textContent = totalRanges;
-    document.getElementById('activeNumbers').textContent = activeNumbers;
-    document.getElementById('usedNumbers').textContent = usedNumbers;
+    document.getElementById('activeNumbers').textContent = activeNumbersCount;
+    document.getElementById('usedNumbers').textContent = usedNumbersCount;
     
     if (totalNumbers === 0) {
-        document.getElementById('numbersDisplay').innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-8 text-center text-gray-400"><i class="fas fa-database text-4xl mb-3 opacity-40"></i><br/>📭 No numbers allocated to this user${!isAllTime && startDate && endDate ? ` in the selected date range` : ''}</div>`;
+        document.getElementById('allocationsContainer').innerHTML = `
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-database text-4xl mb-3 opacity-40"></i><br/>
+                📭 No numbers allocated to this user
+                ${!isAllTime && startDate && endDate ? ` in the selected date range` : ''}
+            </div>`;
         return;
     }
     
-    // Build HTML
-    let html = '';
-    const sortedRanges = Object.keys(grouped).sort();
+    // Get user name
+    const user = allUsers.find(u => u.id === selectedUserId);
+    const userName = user ? user.username : 'User';
     
-    for (const range of sortedRanges) {
-        const rangeNumbers = grouped[range];
-        const rangeUsedCount = rangeNumbers.filter(n => usedNumbersSet.has(n.last3)).length;
-        const rangeDeletedCount = rangeNumbers.filter(n => n.is_deleted).length;
-        const rangeTotal = rangeNumbers.length;
-        
-        html += `<div class="range-card"><div class="range-header flex justify-between items-center flex-wrap gap-2"><div><span class="font-semibold text-gray-800 text-lg">📌 ${escapeHtml(range)}</span><span class="ml-2 text-sm text-gray-500">(${rangeTotal} numbers)</span></div><div class="flex gap-2"><span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">✅ Active: ${rangeTotal - rangeUsedCount - rangeDeletedCount}</span><span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">⚠️ Used: ${rangeUsedCount}</span>${rangeDeletedCount > 0 ? `<span class="text-xs bg-gray-400 text-white px-2 py-1 rounded-full">🗑️ Deleted: ${rangeDeletedCount}</span>` : ''}</div></div><div class="divide-y divide-gray-100">`;
-        
-        for (const num of rangeNumbers) {
-            const isUsed = usedNumbersSet.has(num.last3);
-            const isDeleted = num.is_deleted;
-            const usedClass = isDeleted ? 'number-item-deleted' : (isUsed ? 'bg-red-50' : '');
-            const usedIcon = isUsed ? '<i class="fas fa-check-circle text-red-500 mr-2"></i>' : '<i class="fas fa-circle text-green-500 mr-2"></i>';
-            const deletedIcon = isDeleted ? '<i class="fas fa-trash-alt text-gray-500 mr-2"></i>' : '';
-            const statusText = isDeleted ? '<span class="text-xs text-gray-500 ml-2">(Deleted)</span>' : '';
-            const allocatedDate = num.allocated_at ? new Date(num.allocated_at).toLocaleDateString() : 'N/A';
-            
-            html += `<div class="number-item ${usedClass}"><div class="flex items-center gap-2 flex-wrap">${deletedIcon || usedIcon}<span class="font-mono text-sm ${isDeleted ? 'line-through' : ''}">📞 ${escapeHtml(num.number)}</span><span class="text-xs text-gray-400">(last3: ${num.last3})</span>${statusText}</div><div class="text-xs text-gray-400"><i class="far fa-calendar-alt mr-1"></i> ${allocatedDate}</div></div>`;
+    // Get all ranges
+    const ranges = Object.keys(grouped).sort();
+    
+    // Find max numbers in any range
+    let maxNumbers = 0;
+    for (const range of ranges) {
+        if (grouped[range].length > maxNumbers) {
+            maxNumbers = grouped[range].length;
         }
-        
-        html += `</div><div class="bg-gray-50 px-4 py-2 text-xs text-gray-500 border-t border-purple-100">📊 Total: ${rangeTotal} | Used: ${rangeUsedCount} | Active: ${rangeTotal - rangeUsedCount - rangeDeletedCount} | Deleted: ${rangeDeletedCount}</div></div>`;
     }
     
-    document.getElementById('numbersDisplay').innerHTML = html;
+    // Build table
+    let html = `<div class="user-section">
+        <div class="user-title">
+            <i class="fas fa-user mr-2"></i>${escapeHtml(userName)} - Total Numbers: ${totalNumbers}
+        </div>
+        <table class="alloc-table">
+            <thead>
+                <tr>`;
+    
+    // Range headers
+    for (const range of ranges) {
+        html += `<th>📌 ${escapeHtml(range)}<br><span class="text-xs font-normal">(${grouped[range].length} numbers)</span></th>`;
+    }
+    
+    html += `</thead><tbody>`;
+    
+    // Number rows
+    for (let i = 0; i < maxNumbers; i++) {
+        html += '<tr>';
+        for (const range of ranges) {
+            const item = grouped[range][i];
+            let number = '';
+            let additionalClass = '';
+            if (item) {
+                number = item.number;
+                const isUsed = usedNumbersSet.has(item.last3);
+                const isDeleted = item.is_deleted;
+                if (isDeleted) additionalClass = 'deleted-number';
+                else if (isUsed) additionalClass = 'used-number';
+            }
+            html += `<td class="number-column">${number ? `<div class="number-cell ${additionalClass}">📞 ${escapeHtml(number)}</div>` : ''}</td>`;
+        }
+        html += '</tr>';
+    }
+    
+    // Totals row
+    html += `<tr class="totals-row">`;
+    for (const range of ranges) {
+        html += `<td><strong>Total: ${grouped[range].length}</strong></td>`;
+    }
+    html += `</tr>`;
+    
+    // Used/Active row
+    html += `<tr style="background: #fef3c7;">`;
+    for (const range of ranges) {
+        const rangeNumbers = grouped[range];
+        const usedCount = rangeNumbers.filter(n => usedNumbersSet.has(n.last3)).length;
+        const deletedCount = rangeNumbers.filter(n => n.is_deleted).length;
+        const activeCount = rangeNumbers.length - usedCount - deletedCount;
+        html += `<td><span class="text-green-600">✅ Active: ${activeCount}</span><br><span class="text-red-600">⚠️ Used: ${usedCount}</span>${deletedCount > 0 ? `<br><span class="text-gray-500">🗑️ Deleted: ${deletedCount}</span>` : ''}</td>`;
+    }
+    html += `</tr>`;
+    
+    html += `</tbody></table></div>`;
+    
+    document.getElementById('allocationsContainer').innerHTML = html;
 }
 
-function saveState() { localStorage.setItem('elite_total_selected_user', selectedUserId); localStorage.setItem('elite_total_start_date', startDate); localStorage.setItem('elite_total_end_date', endDate); }
-function loadSavedState() { selectedUserId = localStorage.getItem('elite_total_selected_user') || ''; startDate = localStorage.getItem('elite_total_start_date') || ''; endDate = localStorage.getItem('elite_total_end_date') || ''; if (startDate) document.getElementById('startDate').value = startDate; if (endDate) document.getElementById('endDate').value = endDate; if (selectedUserId) document.getElementById('userSelect').value = selectedUserId; }
-function setDefaultDates() { const end = new Date(); const start = new Date(); start.setDate(end.getDate() - 30); if (!document.getElementById('startDate').value) { document.getElementById('startDate').value = start.toISOString().slice(0, 10); startDate = start.toISOString().slice(0, 10); } if (!document.getElementById('endDate').value) { document.getElementById('endDate').value = end.toISOString().slice(0, 10); endDate = end.toISOString().slice(0, 10); } }
+function saveState() { 
+    localStorage.setItem('elite_total_selected_user', selectedUserId); 
+    localStorage.setItem('elite_total_start_date', startDate); 
+    localStorage.setItem('elite_total_end_date', endDate); 
+}
+
+function loadSavedState() { 
+    selectedUserId = localStorage.getItem('elite_total_selected_user') || ''; 
+    startDate = localStorage.getItem('elite_total_start_date') || ''; 
+    endDate = localStorage.getItem('elite_total_end_date') || ''; 
+    if (startDate) document.getElementById('startDate').value = startDate; 
+    if (endDate) document.getElementById('endDate').value = endDate; 
+    if (selectedUserId) document.getElementById('userSelect').value = selectedUserId; 
+}
+
+function setDefaultDates() { 
+    const end = new Date(); 
+    const start = new Date(); 
+    start.setDate(end.getDate() - 30); 
+    if (!document.getElementById('startDate').value) { 
+        document.getElementById('startDate').value = start.toISOString().slice(0, 10); 
+        startDate = start.toISOString().slice(0, 10); 
+    } 
+    if (!document.getElementById('endDate').value) { 
+        document.getElementById('endDate').value = end.toISOString().slice(0, 10); 
+        endDate = end.toISOString().slice(0, 10); 
+    } 
+}
 
 function setupDropdown() {
-    const menuBtn = document.getElementById('menuButton'); const dropdown = document.getElementById('dropdownMenu');
-    if (menuBtn) { menuBtn.addEventListener('click', function(e) { e.stopPropagation(); dropdown.classList.toggle('hidden-dropdown'); }); }
-    document.addEventListener('click', function(e) { if (!menuBtn.contains(e.target) && !dropdown.contains(e.target)) { dropdown.classList.add('hidden-dropdown'); } });
+    const menuBtn = document.getElementById('menuBtn');
+    const dropdown = document.getElementById('dropdown');
+    if (menuBtn) {
+        menuBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdown.classList.toggle('hidden-dropdown');
+        });
+    }
+    document.addEventListener('click', function(e) {
+        if (!menuBtn?.contains(e.target) && !dropdown?.contains(e.target)) {
+            dropdown?.classList.add('hidden-dropdown');
+        }
+    });
 }
 
-function logout() { localStorage.removeItem('elite_session'); localStorage.removeItem('elite_total_selected_user'); localStorage.removeItem('elite_total_start_date'); localStorage.removeItem('elite_total_end_date'); window.location.href = '../index.html'; }
-
-async function initTotalPage() {
-    const session = JSON.parse(localStorage.getItem('elite_session') || '{}');
-    if (session.username) { document.getElementById('adminName').innerText = session.username; } else { window.location.href = '../index.html'; return; }
-    setupDropdown();
-    const logoutBtn = document.getElementById('logoutBtn'); if (logoutBtn) { logoutBtn.addEventListener('click', (e) => { e.preventDefault(); logout(); }); }
-    setDefaultDates(); loadSavedState();
-    await fetchUsedNumbers();
-    allUsers = await fetchAllUsers(); updateUserDropdown();
-    if (selectedUserId) { document.getElementById('userSelect').value = selectedUserId; await loadNumbers(); }
-    if (startDate && endDate && !isAllTime) { document.getElementById('filterStartDisplay').innerText = startDate; document.getElementById('filterEndDisplay').innerText = endDate; document.getElementById('filterInfo').classList.remove('hidden'); }
+function logout() { 
+    localStorage.removeItem('elite_session'); 
+    localStorage.removeItem('elite_total_selected_user'); 
+    localStorage.removeItem('elite_total_start_date'); 
+    localStorage.removeItem('elite_total_end_date'); 
+    window.location.href = '../index.html'; 
 }
 
-document.getElementById('userSelect').addEventListener('change', async (e) => { selectedUserId = e.target.value; isAllTime = false; saveState(); await loadNumbers(); });
+// Event listeners
+document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); logout(); };
+document.getElementById('userSelect').addEventListener('change', async (e) => { 
+    selectedUserId = e.target.value; 
+    isAllTime = false; 
+    saveState(); 
+    await loadNumbers(); 
+});
 document.getElementById('applyFilterBtn').addEventListener('click', async () => { 
     startDate = document.getElementById('startDate').value; 
     endDate = document.getElementById('endDate').value; 
@@ -279,7 +551,26 @@ document.getElementById('allTimeBtn').addEventListener('click', async () => {
     saveState(); 
     await loadNumbers(); 
 });
-document.addEventListener('DOMContentLoaded', async () => { await initTotalPage(); });
+
+async function init() {
+    setupDropdown();
+    setDefaultDates();
+    loadSavedState();
+    await fetchUsedNumbers();
+    allUsers = await fetchAllUsers();
+    updateUserDropdown();
+    if (selectedUserId) { 
+        document.getElementById('userSelect').value = selectedUserId; 
+        await loadNumbers(); 
+    }
+    if (startDate && endDate && !isAllTime) { 
+        document.getElementById('filterStartDisplay').innerText = startDate; 
+        document.getElementById('filterEndDisplay').innerText = endDate; 
+        document.getElementById('filterInfo').classList.remove('hidden'); 
+    }
+}
+
+init();
 </script>
 </body>
 </html>
