@@ -108,7 +108,6 @@
         
         .hidden-dropdown { display: none !important; }
         
-        /* Skeleton loading animation */
         .skeleton {
             background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
             background-size: 200% 100%;
@@ -123,10 +122,8 @@
 </head>
 <body>
 
-<!-- DASHBOARD SECTION -->
 <div id="dashboard" class="min-h-screen">
     
-    <!-- Navigation Bar -->
     <nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -151,7 +148,6 @@
         </div>
     </nav>
     
-    <!-- Main Content -->
     <div id="content" class="max-w-4xl mx-auto p-4"></div>
 </div>
 
@@ -159,7 +155,6 @@
 const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
 const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
 
-// Cache for faster loading
 let currentUser = null;
 let userNumbers = [];
 let allOtps = [];
@@ -168,21 +163,22 @@ let deletedNumbersMap = new Map();
 let matchedOtpIds = new Set();
 let dataLoaded = false;
 
-// Helper Functions
 function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
+
 function getPanelDate(o) {
     let t = new Date(o.message_time || o.created_at || new Date());
     t.setHours(t.getHours() - 1);
     return t.toISOString().slice(0, 10);
 }
+
 function formatTime(o) {
     if (o.message_time) return new Date(o.message_time).toLocaleTimeString();
     if (o.created_at) return new Date(o.created_at).toLocaleTimeString();
     return '-';
 }
+
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); }
 
-// Send matched OTP to match_otp table (async, non-blocking)
 async function sendToMatchOtp(otp, allocatedNumber) {
     try {
         const payload = {
@@ -217,9 +213,7 @@ async function sendToMatchOtp(otp, allocatedNumber) {
     }
 }
 
-// Parallel data loading for faster performance
 async function loadUserDataParallel(userId) {
-    // Load user info
     const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&id=eq.${encodeURIComponent(userId)}`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
@@ -227,12 +221,10 @@ async function loadUserDataParallel(userId) {
     if (!users.length) throw new Error('User not found');
     currentUser = users[0];
     
-    // Load allocated numbers (ONLY non-deleted ones for display)
     const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}&is_deleted=eq.false`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
     
-    // Load OTPs
     const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=2000`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
@@ -240,15 +232,10 @@ async function loadUserDataParallel(userId) {
     const [numbersData, allOtpsRaw] = await Promise.all([numRes.json(), otpRes.json()]);
     
     userNumbers = numbersData;
-    const allOtpsRawData = allOtpsRaw;
-    
-    // Process data
     userLast3s = [...new Set(userNumbers.map(n => getLast3Digits(n.number)))];
-    allOtps = allOtpsRawData.filter(otp => userLast3s.includes(otp.phone_last3));
+    allOtps = allOtpsRaw.filter(otp => userLast3s.includes(otp.phone_last3));
     
-    // Track deleted numbers for OTP display purposes (earnings preserved)
     const currentLast3s = new Set(userNumbers.map(n => n.last3));
-    // Also fetch ALL numbers (including deleted) for OTP matching to preserve earnings
     const allNumbersRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,last3,range_name&user_id=eq.${currentUser.id}`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
@@ -265,7 +252,6 @@ async function loadUserDataParallel(userId) {
     return true;
 }
 
-// Process unmatched OTPs in background
 async function processUnmatchedOtpsBackground() {
     try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/match_otp?select=otp_log_id&user_id=eq.${currentUser.id}`, {
@@ -280,7 +266,6 @@ async function processUnmatchedOtpsBackground() {
     
     for (const otp of allOtps) {
         if (matchedOtpIds.has(otp.id)) continue;
-        // Find matching number (including deleted ones for earnings)
         const allNumbersRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=id,number,last3,range_name&user_id=eq.${currentUser.id}&last3=eq.${otp.phone_last3}`, {
             headers: { 'apikey': SUPABASE_API_KEY }
         });
@@ -293,13 +278,10 @@ async function processUnmatchedOtpsBackground() {
     }
 }
 
-// Lazy load page content (only load when needed)
 const pageCache = {};
 
 async function loadPageContent(pageName) {
-    if (pageCache[pageName]) {
-        return pageCache[pageName];
-    }
+    if (pageCache[pageName]) return pageCache[pageName];
     
     if (pageName === 'profile') {
         let total = allOtps.length;
@@ -349,31 +331,12 @@ async function loadPageContent(pageName) {
         if (todayOtps.length === 0) {
             pageCache.today = `<div class="glass-card p-8 text-center text-gray-500">📭 No OTPs received today</div>`;
         } else {
-            let html = `
-            <div class="glass-card p-6 fade-in">
-                <h2 class="text-xl font-bold mb-4">📊 Today's OTP Statistics</h2>
-                <div class="space-y-3">
-            `;
+            let html = `<div class="glass-card p-6 fade-in"><h2 class="text-xl font-bold mb-4">📊 Today's OTP Statistics</h2><div class="space-y-3">`;
             for (const otp of todayOtps) {
                 let match = userNumbers.find(n => getLast3Digits(n.number) === otp.phone_last3);
                 let phoneDisplay = match ? match.number : (deletedNumbersMap.has(otp.phone_last3) ? 'Deleted Number' : '***' + otp.phone_last3);
                 let rangeName = otp.range || match?.range_name || (deletedNumbersMap.has(otp.phone_last3) ? 'Deleted' : '-');
-                html += `
-                <div class="otp-entry">
-                    <div class="flex justify-between items-start flex-wrap gap-2">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-2 flex-wrap">
-                                <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country || '-')}</span>
-                                <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
-                            </div>
-                            <div class="text-sm">
-                                <div>📞 ${escapeHtml(phoneDisplay)}</div>
-                                <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(otp.sender || '-')} | 📌 ${escapeHtml(rangeName)}</div>
-                            </div>
-                        </div>
-                        <div class="text-xs text-gray-400">${formatTime(otp)}</div>
-                    </div>
-                </div>`;
+                html += `<div class="otp-entry"><div class="flex justify-between items-start flex-wrap gap-2"><div class="flex-1"><div class="flex items-center gap-2 mb-2 flex-wrap"><span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country || '-')}</span><span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span></div><div class="text-sm"><div>📞 ${escapeHtml(phoneDisplay)}</div><div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(otp.sender || '-')} | 📌 ${escapeHtml(rangeName)}</div></div></div><div class="text-xs text-gray-400">${formatTime(otp)}</div></div></div>`;
             }
             html += `</div><div class="mt-4 text-xs text-gray-400 text-center">Total: ${todayOtps.length} OTPs</div></div>`;
             pageCache.today = html;
@@ -404,10 +367,10 @@ async function loadPageContent(pageName) {
         <div class="glass-card p-6 fade-in">
             <h2 class="text-xl font-bold mb-4">📋 Past OTP Records</h2>
             <div class="grid grid-cols-2 gap-3 mb-4">
-                <input type="date" id="start" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
-                <input type="date" id="end" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                <input type="date" id="startDate" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                <input type="date" id="endDate" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
             </div>
-            <button onclick="filterPast()" class="btn-purple w-full text-white py-2 rounded-xl font-semibold shadow-md mb-4">
+            <button onclick="filterPastRecords()" class="btn-purple w-full text-white py-2 rounded-xl font-semibold shadow-md mb-4">
                 <i class="fas fa-search mr-2"></i> Filter
             </button>
             <div id="pastBox" class="space-y-3"></div>
@@ -416,46 +379,68 @@ async function loadPageContent(pageName) {
     return pageCache[pageName];
 }
 
-async function showPage(p) {
-    const content = document.getElementById('content');
-    if (p === 'support') {
-        window.open('https://wa.me/2348113903584', '_blank');
+// FIXED: Working date filter for past records
+function filterPastRecords() {
+    let startDate = document.getElementById('startDate').value;
+    let endDate = document.getElementById('endDate').value;
+    let html = "";
+    let total = 0;
+    
+    if (!startDate || !endDate) {
+        document.getElementById('pastBox').innerHTML = '<p class="text-center text-red-400 py-4">Please select both start and end dates</p>';
         return;
     }
     
-    localStorage.setItem('elite_current_page', p);
-    const menu = document.getElementById('menu');
-    if (menu) menu.value = p;
+    // Convert to Date objects for proper comparison
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999); // Include the entire end date
     
-    // Show skeleton loader
-    content.innerHTML = `<div class="glass-card p-6"><div class="skeleton h-32 w-full mb-3"></div><div class="skeleton h-24 w-full mb-3"></div><div class="skeleton h-24 w-full"></div></div>`;
-    
-    // Load content asynchronously
-    const pageHtml = await loadPageContent(p);
-    content.innerHTML = pageHtml;
-    
-    // Handle page-specific post-load actions
-    if (p === 'allocation') {
-        setTimeout(() => {
-            const rangeSelect = document.getElementById('rangeSelect');
-            if (rangeSelect && userNumbers.length) {
-                displayNumbers(rangeSelect.value);
-                rangeSelect.onchange = () => displayNumbers(rangeSelect.value);
-            }
-        }, 50);
-    } else if (p === 'past') {
-        const today = new Date();
-        const weekAgo = new Date();
-        weekAgo.setDate(today.getDate() - 7);
-        setTimeout(() => {
-            const startInput = document.getElementById('start');
-            const endInput = document.getElementById('end');
-            if (startInput) startInput.value = weekAgo.toISOString().slice(0, 10);
-            if (endInput) endInput.value = today.toISOString().slice(0, 10);
-        }, 50);
-    } else if (p === 'total') {
-        updateCountdown();
+    for (const otp of allOtps) {
+        const otpDateStr = otp.date || otp.message_time?.slice(0, 10);
+        if (!otpDateStr) continue;
+        
+        const otpDate = new Date(otpDateStr);
+        
+        if (otpDate >= start && otpDate <= end) {
+            let match = userNumbers.find(n => getLast3Digits(n.number) === otp.phone_last3);
+            let phoneDisplay = match ? match.number : (deletedNumbersMap.has(otp.phone_last3) ? 'Deleted Number' : '***' + otp.phone_last3);
+            let rangeDisplay = otp.range || match?.range_name || (deletedNumbersMap.has(otp.phone_last3) ? 'Deleted' : '-');
+            total++;
+            html += `
+            <div class="otp-entry">
+                <div class="flex justify-between items-start flex-wrap gap-2">
+                    <div class="flex-1">
+                        <div class="text-xs text-gray-400 mb-1">📅 ${otpDateStr}</div>
+                        <div class="flex items-center gap-2 mb-2 flex-wrap">
+                            <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country || '-')}</span>
+                            <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
+                        </div>
+                        <div class="text-sm">
+                            <div>📞 ${escapeHtml(phoneDisplay)}</div>
+                            <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(otp.sender || '-')} | 📌 ${escapeHtml(rangeDisplay)}</div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-400">${formatTime(otp)}</div>
+                </div>
+                <div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>
+            </div>`;
+        }
     }
+    
+    let earn = (total * 0.005).toFixed(2);
+    
+    if (!html) {
+        document.getElementById('pastBox').innerHTML = '<p class="text-center text-gray-400 py-4">No OTPs in this date range</p>';
+        return;
+    }
+    
+    document.getElementById('pastBox').innerHTML = html + `
+    <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
+        <span class="font-semibold">Total: ${total} OTPs</span>
+        <span class="mx-2">|</span>
+        <span class="font-bold text-purple-700">$${earn}</span>
+    </div>`;
 }
 
 function displayNumbers(r) {
@@ -493,55 +478,6 @@ function displayNumbers(r) {
     document.getElementById('numBox').innerHTML = html;
 }
 
-function filterPast() {
-    let s = document.getElementById('start').value;
-    let e = document.getElementById('end').value;
-    let html = "";
-    let total = 0;
-    
-    allOtps.forEach(o => {
-        let d = getPanelDate(o);
-        if (d >= s && d <= e) {
-            let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-            let phoneDisplay = match ? match.number : (deletedNumbersMap.has(o.phone_last3) ? 'Deleted Number' : '***' + o.phone_last3);
-            let rangeDisplay = o.range || match?.range_name || (deletedNumbersMap.has(o.phone_last3) ? 'Deleted' : '-');
-            total++;
-            html += `
-            <div class="otp-entry">
-                <div class="flex justify-between items-start flex-wrap gap-2">
-                    <div class="flex-1">
-                        <div class="text-xs text-gray-400 mb-1">📅 ${d}</div>
-                        <div class="flex items-center gap-2 mb-2 flex-wrap">
-                            <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
-                            <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
-                        </div>
-                        <div class="text-sm">
-                            <div>📞 ${escapeHtml(phoneDisplay)}</div>
-                            <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(rangeDisplay)}</div>
-                        </div>
-                    </div>
-                    <div class="text-xs text-gray-400">${formatTime(o)}</div>
-                </div>
-                <div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>
-            </div>`;
-        }
-    });
-    
-    let earn = (total * 0.005).toFixed(2);
-    
-    if (!html) {
-        document.getElementById('pastBox').innerHTML = '<p class="text-center text-gray-400 py-4">No OTPs in this date range</p>';
-        return;
-    }
-    
-    document.getElementById('pastBox').innerHTML = html + `
-    <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
-        <span class="font-semibold">Total: ${total} OTPs</span>
-        <span class="mx-2">|</span>
-        <span class="font-bold text-purple-700">$${earn}</span>
-    </div>`;
-}
-
 function updateCountdown() {
     let el = document.getElementById("countdown");
     if (!el) return;
@@ -563,38 +499,49 @@ function uploadPic(e) {
     let reader = new FileReader();
     reader.onload = () => {
         localStorage.setItem("avatar", reader.result);
-        loadPageContent('profile').then(html => {
-            document.getElementById('content').innerHTML = html;
-        });
+        loadPageContent('profile').then(html => { document.getElementById('content').innerHTML = html; });
     };
     reader.readAsDataURL(file);
 }
 
-async function initFromUrl() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const userId = urlParams.get('id');
-    
-    if (!userId) {
-        window.location.href = '../index.html';
+async function showPage(p) {
+    const content = document.getElementById('content');
+    if (p === 'support') {
+        window.open('https://wa.me/2348113903584', '_blank');
         return;
     }
     
-    // Show skeleton loader immediately
-    document.getElementById('content').innerHTML = `<div class="glass-card p-6"><div class="skeleton h-32 w-full mb-3"></div><div class="skeleton h-24 w-full mb-3"></div><div class="skeleton h-24 w-full"></div></div>`;
-    
-    await loadUserDataParallel(userId);
-    
-    // Process unmatched OTPs in background (non-blocking)
-    setTimeout(() => processUnmatchedOtpsBackground(), 100);
-    
+    localStorage.setItem('elite_current_page', p);
     const menu = document.getElementById('menu');
-    menu.onchange = () => handleMenu(menu.value);
+    if (menu) menu.value = p;
     
-    const savedPage = localStorage.getItem('elite_current_page');
-    const pageToShow = (savedPage && savedPage !== 'logout' && savedPage !== 'support') ? savedPage : 'profile';
-    menu.value = pageToShow;
+    content.innerHTML = `<div class="glass-card p-6"><div class="skeleton h-32 w-full mb-3"></div><div class="skeleton h-24 w-full mb-3"></div><div class="skeleton h-24 w-full"></div></div>`;
     
-    await showPage(pageToShow);
+    const pageHtml = await loadPageContent(p);
+    content.innerHTML = pageHtml;
+    
+    if (p === 'allocation') {
+        setTimeout(() => {
+            const rangeSelect = document.getElementById('rangeSelect');
+            if (rangeSelect && userNumbers.length) {
+                displayNumbers(rangeSelect.value);
+                rangeSelect.onchange = () => displayNumbers(rangeSelect.value);
+            }
+        }, 50);
+    } else if (p === 'past') {
+        // Set default dates (last 7 days)
+        const today = new Date();
+        const weekAgo = new Date();
+        weekAgo.setDate(today.getDate() - 7);
+        setTimeout(() => {
+            const startInput = document.getElementById('startDate');
+            const endInput = document.getElementById('endDate');
+            if (startInput) startInput.value = weekAgo.toISOString().slice(0, 10);
+            if (endInput) endInput.value = today.toISOString().slice(0, 10);
+        }, 50);
+    } else if (p === 'total') {
+        updateCountdown();
+    }
 }
 
 function handleMenu(value) {
@@ -610,14 +557,36 @@ function handleMenu(value) {
     }
 }
 
-// Make functions global
+async function initFromUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
+    
+    if (!userId) {
+        window.location.href = '../index.html';
+        return;
+    }
+    
+    document.getElementById('content').innerHTML = `<div class="glass-card p-6"><div class="skeleton h-32 w-full mb-3"></div><div class="skeleton h-24 w-full mb-3"></div><div class="skeleton h-24 w-full"></div></div>`;
+    
+    await loadUserDataParallel(userId);
+    setTimeout(() => processUnmatchedOtpsBackground(), 100);
+    
+    const menu = document.getElementById('menu');
+    menu.onchange = () => handleMenu(menu.value);
+    
+    const savedPage = localStorage.getItem('elite_current_page');
+    const pageToShow = (savedPage && savedPage !== 'logout' && savedPage !== 'support') ? savedPage : 'profile';
+    menu.value = pageToShow;
+    
+    await showPage(pageToShow);
+}
+
 window.uploadPic = uploadPic;
 window.displayNumbers = displayNumbers;
-window.filterPast = filterPast;
+window.filterPastRecords = filterPastRecords;
 window.showPage = showPage;
 window.handleMenu = handleMenu;
 
-// Start app
 initFromUrl();
 </script>
 </body>
