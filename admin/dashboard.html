@@ -18,13 +18,8 @@
             animation: spin 0.8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
-        .stat-card {
-            transition: all 0.3s ease;
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.3);
-        }
+        .stat-card { transition: all 0.3s ease; }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.3); }
         .otp-entry {
             background: white;
             border-radius: 12px;
@@ -33,10 +28,7 @@
             border: 1px solid #e9d5ff;
             transition: all 0.2s;
         }
-        .otp-entry:hover {
-            border-color: #7c3aed;
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
-        }
+        .otp-entry:hover { border-color: #7c3aed; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1); }
         .otp-badge {
             background: linear-gradient(135deg, #7c3aed, #6d28d9);
             color: white;
@@ -46,29 +38,12 @@
             font-family: monospace;
             font-size: 0.9rem;
         }
-        .otp-exceeded {
-            background-color: #fef2f2;
-            opacity: 0.7;
-        }
-        .otp-exceeded:hover {
-            background-color: #fee2e2;
-        }
-        .nav-link:hover {
-            background-color: #f5f3ff;
-            color: #7c3aed;
-        }
-        .table-container::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        .table-container::-webkit-scrollbar-track {
-            background: #f3e8ff;
-            border-radius: 10px;
-        }
-        .table-container::-webkit-scrollbar-thumb {
-            background: #a78bfa;
-            border-radius: 10px;
-        }
+        .otp-exceeded { background-color: #fef2f2; opacity: 0.7; }
+        .otp-exceeded:hover { background-color: #fee2e2; }
+        .nav-link:hover { background-color: #f5f3ff; color: #7c3aed; }
+        .table-container::-webkit-scrollbar { width: 6px; height: 6px; }
+        .table-container::-webkit-scrollbar-track { background: #f3e8ff; border-radius: 10px; }
+        .table-container::-webkit-scrollbar-thumb { background: #a78bfa; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-purple-50 to-gray-100 min-h-screen">
@@ -103,8 +78,8 @@
 
 <main class="max-w-7xl mx-auto px-4 py-8">
     <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">📊 Smart OTP Tracker</h1>
-        <p class="text-gray-500 text-sm mt-1">Tracking OTPs that match allocated numbers (Max 2 OTPs per number per day)</p>
+        <h1 class="text-2xl font-bold text-gray-900">📊 OTP Tracker</h1>
+        <p class="text-gray-500 text-sm mt-1">Tracking OTPs that match allocated numbers (All OTPs count - no limits)</p>
     </div>
 
     <!-- Date Range Filter Section -->
@@ -141,23 +116,23 @@
             <p class="text-white text-3xl font-bold mt-2" id="statNumbers">0</p>
         </div>
         <div class="stat-card bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl shadow-lg p-6 text-white">
-            <p class="text-amber-100 text-sm font-medium">Valid OTPs</p>
+            <p class="text-amber-100 text-sm font-medium">Matched OTPs</p>
             <p class="text-white text-3xl font-bold mt-2" id="statOtps">0</p>
-            <p class="text-amber-100 text-xs mt-1">(First 2 per number/day)</p>
+            <p class="text-amber-100 text-xs mt-1">(All OTPs count)</p>
         </div>
         <div class="stat-card bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl shadow-lg p-6 text-white">
             <p class="text-rose-100 text-sm font-medium">Total Earnings</p>
             <p class="text-white text-3xl font-bold mt-2" id="statEarnings">$0.00</p>
-            <p class="text-rose-100 text-xs mt-1">($0.005 per valid OTP)</p>
+            <p class="text-rose-100 text-xs mt-1">($0.005 per OTP)</p>
         </div>
     </div>
 
-    <!-- OTP Records - Card View (Same as User Panel) -->
+    <!-- OTP Records - Card View -->
     <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
         <div class="p-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center">
             <h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>OTP Records</h3>
             <div class="text-sm text-gray-500">
-                <i class="fas fa-info-circle mr-1 text-purple-400"></i> Max 2 OTPs per number per day
+                <i class="fas fa-info-circle mr-1 text-purple-400"></i> Showing OTPs that match allocated numbers
             </div>
         </div>
         <div id="otpRecordsList" class="p-4 space-y-3 max-h-[600px] overflow-y-auto">
@@ -173,13 +148,13 @@
 const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
 const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
 
-// Session check
 const session = JSON.parse(localStorage.getItem('elite_session') || 'null');
 if (!session || session.role !== 'admin') window.location.href = '../index.html';
 document.getElementById('adminName').innerText = session.username || 'Administrator';
 
 let allAllocatedNumbers = [];
 let allOtps = [];
+let matchedOtps = [];
 
 function escapeHtml(str) {
     if (!str) return '';
@@ -201,12 +176,6 @@ function formatTime(messageTime) {
     return '-';
 }
 
-function getPanelDate(o) {
-    let t = new Date(o.message_time || o.created_at || o.date || new Date());
-    t.setHours(t.getHours() - 1);
-    return t.toISOString().slice(0, 10);
-}
-
 async function fetchAllAllocatedNumbers() {
     try {
         const url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)`;
@@ -224,10 +193,12 @@ async function fetchOtps(startDate, endDate) {
     try {
         let url = `${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=5000`;
         if (startDate && endDate) {
+            // Convert dates to proper format for Supabase
             url = `${SUPABASE_URL}/rest/v1/otp_logs?select=*&date=gte.${startDate}&date=lte.${endDate}&order=date.desc&limit=5000`;
         }
         const res = await fetch(url, { headers: { 'apikey': API_KEY } });
         const data = await res.json();
+        console.log(`Fetched ${data.length} OTPs for date range ${startDate} to ${endDate}`);
         return data || [];
     } catch (err) {
         console.error("Fetch OTPs error:", err);
@@ -249,6 +220,8 @@ async function loadGlobalStats() {
 async function loadOtps() {
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
+    
+    console.log(`Loading OTPs from ${startDate} to ${endDate}`);
     
     document.getElementById('otpRecordsList').innerHTML = `
         <div class="text-center py-12 text-gray-400">
@@ -274,35 +247,26 @@ async function loadOtps() {
         }
     }
     
-    // Filter OTPs that match allocated numbers
-    let matchedOtps = allOtps.filter(otp => last3Map.has(otp.phone_last3));
+    console.log(`Last3 map has ${last3Map.size} entries`);
     
-    // Apply daily limit (max 2 per number per day)
-    const dailyCountMap = new Map();
-    const validOtps = [];
-    const exceededOtps = [];
+    // Filter OTPs that match allocated numbers (NO LIMITS - all OTPs count)
+    matchedOtps = allOtps.filter(otp => last3Map.has(otp.phone_last3));
     
-    for (const otp of matchedOtps) {
-        const otpDate = otp.date || otp.message_time?.slice(0, 10);
-        const key = `${otpDate}_${otp.phone_last3}`;
-        const count = dailyCountMap.get(key) || 0;
-        
-        if (count < 2) {
-            dailyCountMap.set(key, count + 1);
-            validOtps.push(otp);
-        } else {
-            exceededOtps.push(otp);
-        }
-    }
+    console.log(`Matched ${matchedOtps.length} OTPs`);
     
     // Update stats
-    document.getElementById('statOtps').textContent = validOtps.length;
-    document.getElementById('statEarnings').textContent = `$${(validOtps.length * 0.005).toFixed(2)}`;
+    const totalOtps = matchedOtps.length;
+    const totalEarnings = totalOtps * 0.005;
+    
+    document.getElementById('statOtps').textContent = totalOtps;
+    document.getElementById('statEarnings').textContent = `$${totalEarnings.toFixed(2)}`;
     
     if (startDate && endDate) {
         document.getElementById('filterStartDate').textContent = startDate;
         document.getElementById('filterEndDate').textContent = endDate;
         document.getElementById('filterResult').classList.remove('hidden');
+    } else {
+        document.getElementById('filterResult').classList.add('hidden');
     }
     
     if (matchedOtps.length === 0) {
@@ -315,11 +279,10 @@ async function loadOtps() {
         return;
     }
     
-    // Display OTPs as cards (same format as user panel)
+    // Display OTPs as cards
     let html = '';
     
-    // Show valid OTPs first
-    for (const otp of validOtps) {
+    for (const otp of matchedOtps) {
         const numberInfo = last3Map.get(otp.phone_last3);
         const phoneNumber = numberInfo?.fullNumber || otp.phone_last3;
         const maskedNumber = maskPhoneNumber(phoneNumber);
@@ -331,13 +294,32 @@ async function loadOtps() {
                 <div class="flex justify-between items-start flex-wrap gap-2">
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-2 flex-wrap">
-                            <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country || '-')}</span>
+                            <span class="text-xs text-gray-400">#${otp.id || ''}</span>
+                            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">📅 ${otp.date || 'N/A'}</span>
                             <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
                             <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✓ Counted</span>
                         </div>
-                        <div class="text-sm">
-                            <div>📞 ${escapeHtml(maskedNumber)}</div>
-                            <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(otp.sender || otp.service || 'Unknown')} | 📌 ${escapeHtml(rangeName)}</div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                            <div>
+                                <span class="text-gray-500 text-xs">👤 User</span>
+                                <p class="font-medium">${escapeHtml(numberInfo?.username || 'Unknown')}</p>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 text-xs">📞 Phone</span>
+                                <p class="font-mono font-medium">${escapeHtml(maskedNumber)}</p>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 text-xs">🔐 Last3</span>
+                                <p class="font-mono">${escapeHtml(otp.phone_last3)}</p>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 text-xs">✉️ Sender</span>
+                                <p>${escapeHtml(otp.sender || otp.service || 'Unknown')}</p>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 text-xs">📌 Range</span>
+                                <p>${escapeHtml(rangeName)}</p>
+                            </div>
                         </div>
                     </div>
                     <div class="text-right">
@@ -349,44 +331,12 @@ async function loadOtps() {
         `;
     }
     
-    // Show exceeded OTPs
-    for (const otp of exceededOtps) {
-        const numberInfo = last3Map.get(otp.phone_last3);
-        const phoneNumber = numberInfo?.fullNumber || otp.phone_last3;
-        const maskedNumber = maskPhoneNumber(phoneNumber);
-        const rangeName = numberInfo?.range || otp.range || 'Unknown';
-        const timeStr = formatTime(otp.message_time);
-        
-        html += `
-            <div class="otp-entry otp-exceeded">
-                <div class="flex justify-between items-start flex-wrap gap-2">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-2 flex-wrap">
-                            <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country || '-')}</span>
-                            <span class="otp-badge text-xs opacity-50">${escapeHtml(otp.otp)}</span>
-                            <span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">✗ Limit Exceeded</span>
-                        </div>
-                        <div class="text-sm">
-                            <div>📞 ${escapeHtml(maskedNumber)}</div>
-                            <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(otp.sender || otp.service || 'Unknown')} | 📌 ${escapeHtml(rangeName)}</div>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-xs text-gray-400">${timeStr}</div>
-                        <div class="text-gray-400 font-semibold text-sm mt-1">$0.00 (Exceeded)</div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
     // Add summary
     html += `
         <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
-            <span class="font-semibold">Valid: ${validOtps.length} OTPs</span>
+            <span class="font-semibold">Total: ${matchedOtps.length} OTPs</span>
             <span class="mx-2">|</span>
-            <span class="font-bold text-purple-700">$${(validOtps.length * 0.005).toFixed(2)}</span>
-            ${exceededOtps.length > 0 ? `<span class="mx-2">|</span><span class="text-gray-500">Exceeded: ${exceededOtps.length} (not counted)</span>` : ''}
+            <span class="font-bold text-purple-700">$${totalEarnings.toFixed(2)}</span>
         </div>
     `;
     
@@ -397,11 +347,15 @@ function setDefaultDates() {
     const end = new Date();
     const start = new Date();
     start.setDate(end.getDate() - 7);
-    if (!document.getElementById('startDate').value) {
-        document.getElementById('startDate').value = start.toISOString().slice(0, 10);
+    
+    const startInput = document.getElementById('startDate');
+    const endInput = document.getElementById('endDate');
+    
+    if (startInput && !startInput.value) {
+        startInput.value = start.toISOString().slice(0, 10);
     }
-    if (!document.getElementById('endDate').value) {
-        document.getElementById('endDate').value = end.toISOString().slice(0, 10);
+    if (endInput && !endInput.value) {
+        endInput.value = end.toISOString().slice(0, 10);
     }
 }
 
