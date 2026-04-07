@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>ELITE Panel | Allocations Dashboard</title>
+    <title>ELITE Panel | Allocations + OTP Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -51,6 +51,15 @@
         
         .allocation-badge {
             background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+        
+        .otp-badge {
+            background: linear-gradient(135deg, #059669, #047857);
             color: white;
             padding: 4px 12px;
             border-radius: 20px;
@@ -158,6 +167,23 @@
             background: #faf5ff;
         }
         
+        .otp-row {
+            background: #f0fdf4;
+        }
+        
+        .otp-row td {
+            border-color: #d1fae5;
+        }
+        
+        .section-title {
+            background: #f5f3ff;
+            padding: 12px 15px;
+            font-weight: 800;
+            font-size: 16px;
+            color: #5b21b6;
+            border-bottom: 2px solid #c4b5fd;
+        }
+        
         .loading, .no-data {
             text-align: center;
             padding: 60px;
@@ -188,7 +214,7 @@
             font-weight: 600;
         }
         
-        #statAllocs, #statRanges, #statNumbers {
+        #statAllocs, #statRanges, #statOtps, #statEarnings {
             font-weight: 800;
         }
         
@@ -279,6 +305,18 @@
             align-items: center;
             margin-bottom: 20px;
         }
+        
+        .earnings-card {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+        
+        .allocs-card {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+        }
+        
+        .ranges-card {
+            background: linear-gradient(135deg, #d97706, #b45309);
+        }
     </style>
 </head>
 <body>
@@ -290,11 +328,11 @@
         <div class="header-container">
             <div class="flex items-center gap-3">
                 <div class="w-12 h-12 bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl flex items-center justify-center shadow-lg">
-                    <i class="fas fa-phone-alt text-white text-xl"></i>
+                    <i class="fas fa-chart-line text-white text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold text-gray-800">ELITE<span class="text-purple-600">Allocations</span></h1>
-                    <p class="text-gray-500 text-sm font-semibold">Number Allocations Tracker</p>
+                    <h1 class="text-2xl font-bold text-gray-800">ELITE<span class="text-purple-600">Dashboard</span></h1>
+                    <p class="text-gray-500 text-sm font-semibold">Allocations + OTP Tracker</p>
                 </div>
             </div>
             
@@ -358,26 +396,31 @@
             </div>
         </div>
         
-        <!-- Stats Cards -->
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-            <div class="stat-card rounded-2xl p-4 text-white">
+        <!-- Stats Cards - 4 cards only -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div class="stat-card rounded-2xl p-4 text-white allocs-card">
                 <p class="text-purple-100 text-xs font-bold">Total Allocations</p>
                 <p class="text-2xl font-extrabold" id="statAllocs">0</p>
             </div>
-            <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #d97706, #b45309);">
+            <div class="stat-card rounded-2xl p-4 text-white ranges-card">
                 <p class="text-amber-100 text-xs font-bold">Unique Ranges</p>
                 <p class="text-2xl font-extrabold" id="statRanges">0</p>
             </div>
-            <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #7c3aed, #6d28d9);">
-                <p class="text-purple-100 text-xs font-bold">Total Numbers</p>
-                <p class="text-2xl font-extrabold" id="statNumbers">0</p>
+            <div class="stat-card rounded-2xl p-4 text-white earnings-card">
+                <p class="text-emerald-100 text-xs font-bold">📨 Total OTPs</p>
+                <p class="text-2xl font-extrabold" id="statOtps">0</p>
+            </div>
+            <div class="stat-card rounded-2xl p-4 text-white earnings-card">
+                <p class="text-emerald-100 text-xs font-bold">💰 Total Earnings</p>
+                <p class="text-2xl font-extrabold" id="statEarnings">$0.00</p>
+                <p class="text-emerald-100 text-xs mt-1">($0.005/OTP)</p>
             </div>
         </div>
         
-        <!-- Table Display - Ranges as Columns -->
-        <div class="glass-card p-6">
+        <!-- Allocations Table -->
+        <div class="glass-card p-6 mb-6">
             <h2 class="text-xl font-extrabold mb-4 flex items-center gap-2">
-                <i class="fas fa-table text-purple-600"></i>
+                <i class="fas fa-phone-alt text-purple-600"></i>
                 Allocations by Range
                 <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full ml-2 font-bold">Numbers listed under each range</span>
             </h2>
@@ -390,9 +433,35 @@
             <\/div>
         <\/div>
         
+        <!-- OTP Records Table -->
+        <div class="glass-card p-6">
+            <h2 class="text-xl font-extrabold mb-4 flex items-center gap-2">
+                <i class="fas fa-envelope text-emerald-600"></i>
+                Recent OTP Records
+                <span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full ml-2 font-bold">Last 50 OTPs</span>
+            </h2>
+            <div class="table-wrapper">
+                <table id="otpTable">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>OTP Code</th>
+                            <th>Last3</th>
+                            <th>Country</th>
+                            <th>Sender</th>
+                            <th>Earnings</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td colspan="6" class="loading">Loading OTPs...<\/td><\/tr>
+                    </tbody>
+                <\/table>
+            <\/div>
+        <\/div>
+        
         <!-- Footer -->
         <div class="text-center text-gray-400 text-xs mt-6 font-semibold">
-            <i class="fas fa-chart-line mr-1"></i> ELITE Panel - All Allocations (Active + Deleted)
+            <i class="fas fa-chart-line mr-1"></i> ELITE Panel - All Allocations (Active + Deleted) | $0.005 per OTP
         <\/div>
     <\/div>
 <\/div>
@@ -401,7 +470,10 @@
 const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
 const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
 
+const OTP_RATE = 0.005;
+
 let allAllocations = [];
+let allOtps = [];
 
 // Fetch Allocations
 async function fetchAllocations() {
@@ -418,6 +490,21 @@ async function fetchAllocations() {
     }
 }
 
+// Fetch OTPs
+async function fetchOtps() {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=created_at.desc&limit=500`, {
+            headers: { 'apikey': API_KEY }
+        });
+        const data = await response.json();
+        console.log(`Fetched ${data.length} OTPs`);
+        return data || [];
+    } catch (err) {
+        console.error('Error fetching OTPs:', err);
+        return [];
+    }
+}
+
 // Process Allocations
 function processAllocations(allocations) {
     return allocations.map(alloc => ({
@@ -429,13 +516,24 @@ function processAllocations(allocations) {
     })).filter(item => item.date);
 }
 
-// DISPLAY IN TABLE - RANGES AS COLUMNS
-function displayData(data) {
+// Process OTPs
+function processOtps(otps) {
+    return otps.map(otp => ({
+        date: otp.created_at ? otp.created_at.split('T')[0] : null,
+        time: otp.created_at ? otp.created_at.split('T')[1]?.split('.')[0] : null,
+        otp: otp.otp,
+        phoneLast3: otp.phone_last3,
+        country: otp.country || 'N/A',
+        sender: otp.sender || 'Unknown'
+    })).filter(item => item.date);
+}
+
+// DISPLAY ALLOCATIONS TABLE
+function displayAllocations(data) {
     if (data.length === 0) {
-        document.getElementById('allocTable').innerHTML = '<tbody><tr><td class="no-data">No allocations found for selected period<\/td><\/tr><\/tbody>';
+        document.getElementById('allocTable').innerHTML = '<tbody><tr><td class="no-data">No allocations found<\/td><\/tr><\/tbody>';
         document.getElementById('statAllocs').textContent = '0';
         document.getElementById('statRanges').textContent = '0';
-        document.getElementById('statNumbers').textContent = '0';
         return;
     }
 
@@ -449,10 +547,8 @@ function displayData(data) {
         grouped[range].push(item.number);
     });
 
-    // Get ranges sorted alphabetically
     const ranges = Object.keys(grouped).sort();
 
-    // Find longest column length
     let maxLength = 0;
     ranges.forEach(r => {
         if (grouped[r].length > maxLength) {
@@ -460,14 +556,12 @@ function displayData(data) {
         }
     });
 
-    // Build HTML table
-    let html = '<thead><tr>';
+    let html = '<thead></tr>';
     for (const range of ranges) {
-        html += `<th>${escapeHtml(range)}<br><span style="font-size: 10px; font-weight: 600;">(${grouped[range].length})<\/span><\/th>`;
+        html += `<th>${escapeHtml(range)}<br><span style="font-size: 10px;">(${grouped[range].length})<\/span><\/th>`;
     }
     html += '<\/thead><tbody>';
 
-    // Create rows - each row contains one number from each column
     for (let i = 0; i < maxLength; i++) {
         html += '<tr>';
         for (const range of ranges) {
@@ -480,13 +574,47 @@ function displayData(data) {
 
     document.getElementById('allocTable').innerHTML = html;
 
-    // Update stats
     const totalNumbers = data.length;
     const uniqueRanges = ranges.length;
     
     document.getElementById('statAllocs').textContent = totalNumbers;
     document.getElementById('statRanges').textContent = uniqueRanges;
-    document.getElementById('statNumbers').textContent = totalNumbers;
+}
+
+// DISPLAY OTP TABLE
+function displayOtps(data) {
+    if (data.length === 0) {
+        document.getElementById('otpTable').innerHTML = '<tbody><tr><td colspan="6" class="no-data">No OTPs found<\/td><\/tr><\/tbody>';
+        document.getElementById('statOtps').textContent = '0';
+        document.getElementById('statEarnings').textContent = '$0.00';
+        return;
+    }
+
+    let html = '<thead><tr><th>Date/Time</th><th>OTP Code</th><th>Last3</th><th>Country</th><th>Sender</th><th>Earnings</th></tr></thead><tbody>';
+    
+    let totalOtps = 0;
+    
+    for (const otp of data) {
+        totalOtps++;
+        const earnings = OTP_RATE;
+        html += `
+            <tr class="otp-row">
+                <td>${escapeHtml(otp.date)} ${otp.time ? escapeHtml(otp.time) : ''}</td>
+                <td><span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span></td>
+                <td>${escapeHtml(otp.phoneLast3)}</td>
+                <td>${escapeHtml(otp.country)}</td>
+                <td>${escapeHtml(otp.sender)}</td>
+                <td class="text-emerald-600 font-bold">+$${earnings.toFixed(3)}</td>
+            </tr>
+        `;
+    }
+    
+    html += '</tbody>';
+    document.getElementById('otpTable').innerHTML = html;
+    
+    const totalEarnings = totalOtps * OTP_RATE;
+    document.getElementById('statOtps').textContent = totalOtps;
+    document.getElementById('statEarnings').textContent = `$${totalEarnings.toFixed(3)}`;
 }
 
 // Apply date filter
@@ -494,13 +622,16 @@ function applyFilter() {
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
 
-    let filtered = [...allAllocations];
+    let filteredAllocs = [...allAllocations];
+    let filteredOtps = [...allOtps];
 
     if (startDate && endDate) {
-        filtered = filtered.filter(x => x.date >= startDate && x.date <= endDate);
+        filteredAllocs = filteredAllocs.filter(x => x.date >= startDate && x.date <= endDate);
+        filteredOtps = filteredOtps.filter(x => x.date >= startDate && x.date <= endDate);
     }
 
-    displayData(filtered);
+    displayAllocations(filteredAllocs);
+    displayOtps(filteredOtps);
 }
 
 function escapeHtml(str) {
@@ -545,10 +676,15 @@ function logout() {
 // Init
 async function init() {
     document.getElementById('allocTable').innerHTML = '<tbody><tr><td class="loading">Loading allocations...<\/td><\/tr><\/tbody>';
+    document.getElementById('otpTable').innerHTML = '<tbody><tr><td colspan="6" class="loading">Loading OTPs...<\/td><\/tr><\/tbody>';
     
-    const raw = await fetchAllocations();
-    allAllocations = processAllocations(raw);
+    const [allocations, otps] = await Promise.all([fetchAllocations(), fetchOtps()]);
+    
+    allAllocations = processAllocations(allocations);
+    allOtps = processOtps(otps);
+    
     console.log(`Processed ${allAllocations.length} allocations`);
+    console.log(`Processed ${allOtps.length} OTPs`);
 
     const today = new Date();
     const weekAgo = new Date();
