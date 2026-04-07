@@ -59,17 +59,13 @@ const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
 const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
 
 let currentUser = null;
-let allUserNumbers = [];
+let allUserNumbers = [];      // ALL numbers (including deleted) - for earnings preservation
 let allOtps = [];
 let currentUserId = null;
+let deletedLast3s = new Set(); // Track deleted numbers
 
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); }
 function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
-function formatTime(o) {
-    if (o.message_time) return new Date(o.message_time).toLocaleTimeString();
-    if (o.created_at) return new Date(o.created_at).toLocaleTimeString();
-    return '-';
-}
 
 async function loadData(userId) {
     const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&id=eq.${encodeURIComponent(userId)}`, {
@@ -79,24 +75,70 @@ async function loadData(userId) {
     if (!users.length) throw new Error('User not found');
     currentUser = users[0];
     
+    // Get ALL numbers (including deleted) - needed for earnings preservation
     const allNumbersRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
     allUserNumbers = await allNumbersRes.json();
-    const userLast3s = [...new Set(allUserNumbers.map(n => getLast3Digits(n.number)))];
     
+    // Track which last3 digits are from deleted numbers
+    deletedLast3s.clear();
+    for (const num of allUserNumbers) {
+        if (num.is_deleted && num.last3) {
+            deletedLast3s.add(num.last3);
+        }
+    }
+    
+    // Get ALL last3 digits from all numbers (including deleted)
+    const allLast3s = [...new Set(allUserNumbers.map(n => getLast3Digits(n.number)))];
+    
+    // Fetch all OTPs
     const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=2000`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
     const allOtpsRaw = await otpRes.json();
-    allOtps = allOtpsRaw.filter(otp => userLast3s.includes(otp.phone_last3));
+    
+    // Filter OTPs that match ANY number (including deleted) - preserves earnings
+    allOtps = allOtpsRaw.filter(otp => allLast3s.includes(otp.phone_last3));
+    
+    console.log('All numbers last3:', allLast3s);
+    console.log('Deleted last3:', Array.from(deletedLast3s));
+    console.log('Total matched OTPs:', allOtps.length);
 }
 
 function displayTodayOtp() {
-    let today = new Date().toISOString().slice(0, 10);
-    let todayCount = allOtps.filter(o => (o.date || o.message_time?.slice(0, 10)) === today).length;
-    let earn = (todayCount * 0.005).toFixed(2);
-    document.getElementById('content').innerHTML = `<div class="glass-card p-6 fade-in"><div class="text-center"><div class="stat-card rounded-2xl p-6 text-white mb-4"><p class="text-purple-100 text-sm">Total OTP Today</p><p class="text-5xl font-bold mt-2">${todayCount}</p></div><div class="stat-card rounded-2xl p-6 text-white"><p class="text-purple-100 text-sm">Today's Earnings</p><p class="text-4xl font-bold mt-2">$${earn}</p><p class="text-purple-100 text-xs mt-2">($0.005 per OTP)</p></div><p id="countdown" class="mt-4 text-sm text-gray-500"></p></div></div>`;
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().slice(0, 10);
+    
+    // Filter OTPs that occurred today
+    // Include ALL OTPs from today regardless of deletion status (earnings preserved)
+    const todayOtps = allOtps.filter(otp => {
+        const otpDate = otp.date || otp.message_time?.slice(0, 10);
+        return otpDate === today;
+    });
+    
+    const todayCount = todayOtps.length;
+    const earn = (todayCount * 0.005).toFixed(2);
+    
+    console.log(`Today (${today}) OTPs: ${todayCount}`);
+    
+    document.getElementById('content').innerHTML = `
+        <div class="glass-card p-6 fade-in">
+            <div class="text-center">
+                <div class="stat-card rounded-2xl p-6 text-white mb-4">
+                    <p class="text-purple-100 text-sm">Total OTP Today</p>
+                    <p class="text-5xl font-bold mt-2">${todayCount}</p>
+                    ${deletedLast3s.size > 0 ? `<p class="text-purple-100 text-xs mt-1">(Includes OTPs from ${deletedLast3s.size} deleted number(s) - earnings preserved)</p>` : ''}
+                </div>
+                <div class="stat-card rounded-2xl p-6 text-white">
+                    <p class="text-purple-100 text-sm">Today's Earnings</p>
+                    <p class="text-4xl font-bold mt-2">$${earn}</p>
+                    <p class="text-purple-100 text-xs mt-2">($0.005 per OTP)</p>
+                </div>
+                <p id="countdown" class="mt-4 text-sm text-gray-500"></p>
+            </div>
+        </div>
+    `;
     updateCountdown();
     setInterval(updateCountdown, 1000);
 }
