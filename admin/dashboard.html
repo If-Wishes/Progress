@@ -38,8 +38,6 @@
             font-family: monospace;
             font-size: 0.9rem;
         }
-        .otp-exceeded { background-color: #fef2f2; opacity: 0.7; }
-        .otp-exceeded:hover { background-color: #fee2e2; }
         .nav-link:hover { background-color: #f5f3ff; color: #7c3aed; }
         .table-container::-webkit-scrollbar { width: 6px; height: 6px; }
         .table-container::-webkit-scrollbar-track { background: #f3e8ff; border-radius: 10px; }
@@ -79,13 +77,13 @@
 <main class="max-w-7xl mx-auto px-4 py-8">
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-900">📊 OTP Tracker</h1>
-        <p class="text-gray-500 text-sm mt-1">Tracking OTPs that match allocated numbers (All OTPs count - no limits)</p>
+        <p class="text-gray-500 text-sm mt-1">Tracking ALL OTPs received in the system (no filtering by allocation)</p>
     </div>
 
     <!-- Date Range Filter Section -->
     <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 mb-8">
         <h3 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-calendar-alt text-purple-500"></i>Filter by Date Range</h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">📅 Start Date</label>
                 <input type="date" id="startDate" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
@@ -93,6 +91,12 @@
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">📅 End Date</label>
                 <input type="date" id="endDate" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">👤 Filter by User</label>
+                <select id="userFilter" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+                    <option value="all">All Users</option>
+                </select>
             </div>
             <div class="flex items-end">
                 <button id="filterBtn" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2.5 rounded-xl transition shadow-md">
@@ -102,6 +106,7 @@
         </div>
         <div id="filterResult" class="mt-4 text-sm text-gray-600 hidden bg-purple-50 p-3 rounded-lg">
             <i class="fas fa-chart-line mr-1 text-purple-500"></i>Showing OTPs from <span id="filterStartDate" class="font-medium text-purple-700"></span> to <span id="filterEndDate" class="font-medium text-purple-700"></span>
+            <span id="filterUserInfo" class="ml-3"></span>
         </div>
     </div>
 
@@ -114,11 +119,12 @@
         <div class="stat-card bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl shadow-lg p-6 text-white">
             <p class="text-emerald-100 text-sm font-medium">Total Numbers</p>
             <p class="text-white text-3xl font-bold mt-2" id="statNumbers">0</p>
+            <p class="text-emerald-100 text-xs mt-1">(Active + Deleted)</p>
         </div>
         <div class="stat-card bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl shadow-lg p-6 text-white">
-            <p class="text-amber-100 text-sm font-medium">Matched OTPs</p>
+            <p class="text-amber-100 text-sm font-medium">Total OTPs</p>
             <p class="text-white text-3xl font-bold mt-2" id="statOtps">0</p>
-            <p class="text-amber-100 text-xs mt-1">(All OTPs count)</p>
+            <p class="text-amber-100 text-xs mt-1">(All OTPs in date range)</p>
         </div>
         <div class="stat-card bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl shadow-lg p-6 text-white">
             <p class="text-rose-100 text-sm font-medium">Total Earnings</p>
@@ -132,7 +138,7 @@
         <div class="p-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center">
             <h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>OTP Records</h3>
             <div class="text-sm text-gray-500">
-                <i class="fas fa-info-circle mr-1 text-purple-400"></i> Showing OTPs that match allocated numbers
+                <i class="fas fa-info-circle mr-1 text-purple-400"></i> Showing ALL OTPs received in the selected date range
             </div>
         </div>
         <div id="otpRecordsList" class="p-4 space-y-3 max-h-[600px] overflow-y-auto">
@@ -152,9 +158,11 @@ const session = JSON.parse(localStorage.getItem('elite_session') || 'null');
 if (!session || session.role !== 'admin') window.location.href = '../index.html';
 document.getElementById('adminName').innerText = session.username || 'Administrator';
 
+let allUsers = [];
 let allAllocatedNumbers = [];
 let allOtps = [];
-let matchedOtps = [];
+let userNumberMap = new Map(); // Maps user_id to user object
+let last3ToUserMap = new Map(); // Maps last3 to user_id
 
 function escapeHtml(str) {
     if (!str) return '';
@@ -176,12 +184,53 @@ function formatTime(messageTime) {
     return '-';
 }
 
+function formatDate(dateStr) {
+    if (!dateStr) return 'N/A';
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d.toLocaleDateString();
+    return dateStr;
+}
+
+async function fetchAllUsers() {
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&role=eq.user`, {
+            headers: { 'apikey': API_KEY }
+        });
+        allUsers = await res.json();
+        userNumberMap.clear();
+        allUsers.forEach(user => {
+            userNumberMap.set(user.id, user);
+        });
+        return allUsers;
+    } catch (err) {
+        console.error("Fetch users error:", err);
+        return [];
+    }
+}
+
 async function fetchAllAllocatedNumbers() {
     try {
-        const url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)`;
-        const res = await fetch(url, { headers: { 'apikey': API_KEY } });
+        // Fetch ALL allocated numbers (including deleted ones for complete data)
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)`, {
+            headers: { 'apikey': API_KEY }
+        });
         const data = await res.json();
         allAllocatedNumbers = data || [];
+        
+        // Build last3 to user mapping
+        last3ToUserMap.clear();
+        for (const allocated of allAllocatedNumbers) {
+            if (allocated.last3) {
+                last3ToUserMap.set(allocated.last3, {
+                    userId: allocated.user_id,
+                    username: allocated.users?.username || 'Unknown',
+                    range: allocated.range_name || allocated.country || 'Unknown',
+                    fullNumber: allocated.number,
+                    isDeleted: allocated.is_deleted === true
+                });
+            }
+        }
+        
         return allAllocatedNumbers;
     } catch (err) {
         console.error("Fetch allocated numbers error:", err);
@@ -193,7 +242,7 @@ async function fetchOtps(startDate, endDate) {
     try {
         let url = `${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=5000`;
         if (startDate && endDate) {
-            // Convert dates to proper format for Supabase
+            // Filter by date range
             url = `${SUPABASE_URL}/rest/v1/otp_logs?select=*&date=gte.${startDate}&date=lte.${endDate}&order=date.desc&limit=5000`;
         }
         const res = await fetch(url, { headers: { 'apikey': API_KEY } });
@@ -206,11 +255,22 @@ async function fetchOtps(startDate, endDate) {
     }
 }
 
+async function loadUserFilterDropdown() {
+    const userFilter = document.getElementById('userFilter');
+    if (!userFilter) return;
+    
+    userFilter.innerHTML = '<option value="all">All Users</option>';
+    for (const user of allUsers) {
+        userFilter.innerHTML += `<option value="${user.id}">${escapeHtml(user.username)}</option>`;
+    }
+}
+
 async function loadGlobalStats() {
     try {
-        const usersRes = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id&role=eq.user`, { headers: { 'apikey': API_KEY } });
-        const users = await usersRes.json();
-        document.getElementById('statUsers').textContent = users.length;
+        // Total users
+        document.getElementById('statUsers').textContent = allUsers.length;
+        
+        // Total numbers (including deleted)
         document.getElementById('statNumbers').textContent = allAllocatedNumbers.length;
     } catch (err) {
         console.error("Stats error:", err);
@@ -220,8 +280,9 @@ async function loadGlobalStats() {
 async function loadOtps() {
     const startDate = document.getElementById('startDate').value;
     const endDate = document.getElementById('endDate').value;
+    const selectedUserId = document.getElementById('userFilter').value;
     
-    console.log(`Loading OTPs from ${startDate} to ${endDate}`);
+    console.log(`Loading OTPs from ${startDate} to ${endDate}, user filter: ${selectedUserId}`);
     
     document.getElementById('otpRecordsList').innerHTML = `
         <div class="text-center py-12 text-gray-400">
@@ -230,32 +291,29 @@ async function loadOtps() {
         </div>
     `;
     
-    await fetchAllAllocatedNumbers();
+    // Fetch all data
+    await Promise.all([fetchAllUsers(), fetchAllAllocatedNumbers()]);
     allOtps = await fetchOtps(startDate, endDate);
+    await loadUserFilterDropdown();
     await loadGlobalStats();
     
-    // Create map of last3 to allocated number details
-    const last3Map = new Map();
-    for (const allocated of allAllocatedNumbers) {
-        if (allocated.last3 && !last3Map.has(allocated.last3)) {
-            last3Map.set(allocated.last3, {
-                userId: allocated.user_id,
-                username: allocated.users?.username || 'Unknown',
-                range: allocated.range_name || allocated.country || 'Unknown',
-                fullNumber: allocated.number
-            });
+    // Filter OTPs by user if selected
+    let filteredOtps = [...allOtps];
+    
+    if (selectedUserId !== 'all') {
+        // Get all last3 digits for this user
+        const userLast3s = new Set();
+        for (const allocated of allAllocatedNumbers) {
+            if (allocated.user_id === selectedUserId && allocated.last3) {
+                userLast3s.add(allocated.last3);
+            }
         }
+        filteredOtps = allOtps.filter(otp => userLast3s.has(otp.phone_last3));
+        console.log(`Filtered to ${filteredOtps.length} OTPs for user ${selectedUserId}`);
     }
     
-    console.log(`Last3 map has ${last3Map.size} entries`);
-    
-    // Filter OTPs that match allocated numbers (NO LIMITS - all OTPs count)
-    matchedOtps = allOtps.filter(otp => last3Map.has(otp.phone_last3));
-    
-    console.log(`Matched ${matchedOtps.length} OTPs`);
-    
-    // Update stats
-    const totalOtps = matchedOtps.length;
+    // Update stats with ALL OTPs (including those without user mapping for earnings)
+    const totalOtps = filteredOtps.length;
     const totalEarnings = totalOtps * 0.005;
     
     document.getElementById('statOtps').textContent = totalOtps;
@@ -264,16 +322,20 @@ async function loadOtps() {
     if (startDate && endDate) {
         document.getElementById('filterStartDate').textContent = startDate;
         document.getElementById('filterEndDate').textContent = endDate;
+        const selectedUserName = selectedUserId !== 'all' 
+            ? userNumberMap.get(selectedUserId)?.username || 'Selected User'
+            : '';
+        document.getElementById('filterUserInfo').innerHTML = selectedUserName ? ` | 👤 ${escapeHtml(selectedUserName)}` : '';
         document.getElementById('filterResult').classList.remove('hidden');
     } else {
         document.getElementById('filterResult').classList.add('hidden');
     }
     
-    if (matchedOtps.length === 0) {
+    if (filteredOtps.length === 0) {
         document.getElementById('otpRecordsList').innerHTML = `
             <div class="text-center py-12 text-gray-400">
                 <i class="fas fa-inbox text-4xl mb-3 opacity-40"></i><br/>
-                📭 No OTPs match any allocated numbers in this date range
+                📭 No OTPs found in this date range
             </div>
         `;
         return;
@@ -282,27 +344,29 @@ async function loadOtps() {
     // Display OTPs as cards
     let html = '';
     
-    for (const otp of matchedOtps) {
-        const numberInfo = last3Map.get(otp.phone_last3);
+    for (const otp of filteredOtps) {
+        const numberInfo = last3ToUserMap.get(otp.phone_last3);
         const phoneNumber = numberInfo?.fullNumber || otp.phone_last3;
         const maskedNumber = maskPhoneNumber(phoneNumber);
+        const userName = numberInfo?.username || (otp.user_name) || 'Unknown User';
         const rangeName = numberInfo?.range || otp.range || 'Unknown';
         const timeStr = formatTime(otp.message_time);
+        const isDeleted = numberInfo?.isDeleted || false;
         
         html += `
-            <div class="otp-entry">
+            <div class="otp-entry ${isDeleted ? 'border-yellow-200 bg-yellow-50/30' : ''}">
                 <div class="flex justify-between items-start flex-wrap gap-2">
                     <div class="flex-1">
                         <div class="flex items-center gap-2 mb-2 flex-wrap">
                             <span class="text-xs text-gray-400">#${otp.id || ''}</span>
-                            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">📅 ${otp.date || 'N/A'}</span>
+                            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">📅 ${formatDate(otp.date)}</span>
                             <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
-                            <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✓ Counted</span>
+                            ${isDeleted ? '<span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full"><i class="fas fa-trash-alt mr-1"></i>Number Deleted</span>' : '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✓ Active</span>'}
                         </div>
                         <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                             <div>
                                 <span class="text-gray-500 text-xs">👤 User</span>
-                                <p class="font-medium">${escapeHtml(numberInfo?.username || 'Unknown')}</p>
+                                <p class="font-medium">${escapeHtml(userName)}</p>
                             </div>
                             <div>
                                 <span class="text-gray-500 text-xs">📞 Phone</span>
@@ -315,6 +379,10 @@ async function loadOtps() {
                             <div>
                                 <span class="text-gray-500 text-xs">✉️ Sender</span>
                                 <p>${escapeHtml(otp.sender || otp.service || 'Unknown')}</p>
+                            </div>
+                            <div>
+                                <span class="text-gray-500 text-xs">🌍 Country</span>
+                                <p>${escapeHtml(otp.country || '-')}</p>
                             </div>
                             <div>
                                 <span class="text-gray-500 text-xs">📌 Range</span>
@@ -334,9 +402,11 @@ async function loadOtps() {
     // Add summary
     html += `
         <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
-            <span class="font-semibold">Total: ${matchedOtps.length} OTPs</span>
+            <span class="font-semibold">Total OTPs: ${filteredOtps.length}</span>
             <span class="mx-2">|</span>
             <span class="font-bold text-purple-700">$${totalEarnings.toFixed(2)}</span>
+            <span class="mx-2">|</span>
+            <span class="text-xs text-gray-500">${filteredOtps.filter(o => last3ToUserMap.get(o.phone_last3)?.isDeleted).length} from deleted numbers</span>
         </div>
     `;
     
