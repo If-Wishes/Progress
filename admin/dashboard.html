@@ -214,7 +214,7 @@
             font-weight: 600;
         }
         
-        #statAllocs, #statRanges, #statOtps, #statEarnings {
+        #statAllocs, #statRanges, #statOtps, #statEarnings, #statUsers, #statAdmins {
             font-weight: 800;
         }
         
@@ -317,6 +317,28 @@
         .ranges-card {
             background: linear-gradient(135deg, #d97706, #b45309);
         }
+        
+        .users-card {
+            background: linear-gradient(135deg, #0891b2, #06b6d4);
+        }
+        
+        .admins-card {
+            background: linear-gradient(135deg, #dc2626, #ef4444);
+        }
+        
+        /* Top stats row */
+        .top-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        @media (min-width: 768px) {
+            .top-stats {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
     </style>
 </head>
 <body>
@@ -371,6 +393,26 @@
     
     <div class="max-w-7xl mx-auto mt-4">
         
+        <!-- Top Stats: Users and Admins -->
+        <div class="top-stats">
+            <div class="stat-card rounded-2xl p-4 text-white users-card">
+                <p class="text-cyan-100 text-xs font-bold">👥 Total Users</p>
+                <p class="text-2xl font-extrabold" id="statUsers">0</p>
+            </div>
+            <div class="stat-card rounded-2xl p-4 text-white admins-card">
+                <p class="text-red-100 text-xs font-bold">👑 Total Admins</p>
+                <p class="text-2xl font-extrabold" id="statAdmins">0</p>
+            </div>
+            <div class="stat-card rounded-2xl p-4 text-white allocs-card">
+                <p class="text-purple-100 text-xs font-bold">📞 Total Allocations</p>
+                <p class="text-2xl font-extrabold" id="statAllocs">0</p>
+            </div>
+            <div class="stat-card rounded-2xl p-4 text-white ranges-card">
+                <p class="text-amber-100 text-xs font-bold">📌 Unique Ranges</p>
+                <p class="text-2xl font-extrabold" id="statRanges">0</p>
+            </div>
+        </div>
+        
         <!-- Filter Section -->
         <div class="filter-bar">
             <div class="flex flex-col md:flex-row gap-4">
@@ -396,16 +438,8 @@
             </div>
         </div>
         
-        <!-- Stats Cards - 4 cards only -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="stat-card rounded-2xl p-4 text-white allocs-card">
-                <p class="text-purple-100 text-xs font-bold">Total Allocations</p>
-                <p class="text-2xl font-extrabold" id="statAllocs">0</p>
-            </div>
-            <div class="stat-card rounded-2xl p-4 text-white ranges-card">
-                <p class="text-amber-100 text-xs font-bold">Unique Ranges</p>
-                <p class="text-2xl font-extrabold" id="statRanges">0</p>
-            </div>
+        <!-- OTP Stats Cards -->
+        <div class="grid grid-cols-2 gap-4 mb-6">
             <div class="stat-card rounded-2xl p-4 text-white earnings-card">
                 <p class="text-emerald-100 text-xs font-bold">📨 Total OTPs</p>
                 <p class="text-2xl font-extrabold" id="statOtps">0</p>
@@ -429,9 +463,7 @@
                     <tbody>
                         <tr><td class="loading">Loading allocations...<\/td><\/tr>
                     </tbody>
-                <\/table>
-            <\/div>
-        <\/div>
+                
         
         <!-- OTP Records Table -->
         <div class="glass-card p-6">
@@ -455,16 +487,12 @@
                     <tbody>
                         <tr><td colspan="6" class="loading">Loading OTPs...<\/td><\/tr>
                     </tbody>
-                <\/table>
-            <\/div>
-        <\/div>
+                
         
         <!-- Footer -->
         <div class="text-center text-gray-400 text-xs mt-6 font-semibold">
-            <i class="fas fa-chart-line mr-1"></i> ELITE Panel - All Allocations (Active + Deleted) | $0.005 per OTP
-        <\/div>
-    <\/div>
-<\/div>
+            <i class="fas fa-chart-line mr-1"></i> ELITE Panel - All Allocations $0.005 per OTP
+        
 
 <script>
 const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
@@ -474,6 +502,31 @@ const OTP_RATE = 0.005;
 
 let allAllocations = [];
 let allOtps = [];
+let totalUsers = 0;
+let totalAdmins = 0;
+
+// Fetch Users
+async function fetchUsers() {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/users?select=role`, {
+            headers: { 'apikey': API_KEY }
+        });
+        const data = await response.json();
+        console.log(`Fetched ${data.length} users`);
+        
+        // Count users and admins
+        totalUsers = data.filter(u => u.role === 'user' || u.role === 'user').length;
+        totalAdmins = data.filter(u => u.role === 'admin').length;
+        
+        document.getElementById('statUsers').textContent = totalUsers;
+        document.getElementById('statAdmins').textContent = totalAdmins;
+        
+        return data;
+    } catch (err) {
+        console.error('Error fetching users:', err);
+        return [];
+    }
+}
 
 // Fetch Allocations
 async function fetchAllocations() {
@@ -556,7 +609,7 @@ function displayAllocations(data) {
         }
     });
 
-    let html = '<thead></tr>';
+    let html = '<thead><tr>';
     for (const range of ranges) {
         html += `<th>${escapeHtml(range)}<br><span style="font-size: 10px;">(${grouped[range].length})<\/span><\/th>`;
     }
@@ -677,6 +730,9 @@ function logout() {
 async function init() {
     document.getElementById('allocTable').innerHTML = '<tbody><tr><td class="loading">Loading allocations...<\/td><\/tr><\/tbody>';
     document.getElementById('otpTable').innerHTML = '<tbody><tr><td colspan="6" class="loading">Loading OTPs...<\/td><\/tr><\/tbody>';
+    
+    // Fetch users first
+    await fetchUsers();
     
     const [allocations, otps] = await Promise.all([fetchAllocations(), fetchOtps()]);
     
