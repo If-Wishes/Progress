@@ -180,8 +180,9 @@ async function initFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('id');
     
+    // FIX: Removed redirect loop - show error message instead
     if (!userId) {
-        window.location.href = '../index.html';
+        document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;color:#7c3aed;'>⚠️ Invalid access</h2><p style='text-align:center;margin-top:20px;'>Missing user ID. Please check your login link.</p>";
         return;
     }
     
@@ -191,8 +192,9 @@ async function initFromUrl() {
         });
         const users = await res.json();
         
+        // FIX: Removed redirect - show error message instead
         if (!users.length) {
-            window.location.href = '../index.html';
+            document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;color:#7c3aed;'>⚠️ User not found</h2><p style='text-align:center;margin-top:20px;'>This user account does not exist. Please contact support.</p>";
             return;
         }
         
@@ -203,18 +205,19 @@ async function initFromUrl() {
         
         // Setup menu
         const menu = document.getElementById('menu');
-        menu.onchange = () => handleMenu(menu.value);
+        if (menu) menu.onchange = () => handleMenu(menu.value);
         
         // Get saved page from localStorage or default to profile
         const savedPage = localStorage.getItem('elite_current_page');
         const pageToShow = (savedPage && savedPage !== 'logout' && savedPage !== 'support') ? savedPage : 'profile';
         
-        menu.value = pageToShow;
+        if (menu) menu.value = pageToShow;
         showPage(pageToShow);
         
     } catch (err) {
+        // FIX: Removed redirect - show error message instead, no infinite loop
         console.error('Init error:', err);
-        window.location.href = '../index.html';
+        document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;color:#7c3aed;'>⚠️ Error loading dashboard</h2><p style='text-align:center;margin-top:20px;'>Please check your connection and try again. Refresh the page if the issue persists.</p>";
     }
 }
 
@@ -259,11 +262,13 @@ async function loadUserData() {
 function handleMenu(value) {
     if (value === 'logout') {
         localStorage.removeItem('elite_current_page');
-        window.location.href = '../index.html';
+        // FIX: Show logout message instead of redirecting to potentially problematic index
+        document.body.innerHTML = "<h2 style='text-align:center;margin-top:50px;color:#7c3aed;'>👋 Logged out</h2><p style='text-align:center;margin-top:20px;'>You have been logged out successfully.</p>";
     } else if (value === 'support') {
         window.open('https://wa.me/2348113903584', '_blank');
         const savedPage = localStorage.getItem('elite_current_page') || 'profile';
-        document.getElementById('menu').value = savedPage;
+        const menu = document.getElementById('menu');
+        if (menu) menu.value = savedPage;
         showPage(savedPage);
     } else {
         localStorage.setItem('elite_current_page', value);
@@ -538,6 +543,7 @@ function filterPast() {
 // PAGE ROUTER
 function showPage(p) {
     const content = document.getElementById('content');
+    if (!content) return;
     
     if (p !== 'support') {
         localStorage.setItem('elite_current_page', p);
