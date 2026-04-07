@@ -64,52 +64,70 @@
             to { transform: translateY(0); opacity: 1; }
         }
         
-        .number-chip {
-            background: #f3e8ff;
-            border-radius: 12px;
-            padding: 8px 12px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Table styles for allocations */
+        .allocations-table-wrapper {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        .alloc-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Courier New', monospace;
             font-size: 13px;
-            transition: all 0.2s;
-            border: 1px solid #e9d5ff;
-        }
-        
-        .number-chip.used {
-            background: #fee2e2;
-            border-color: #fecaca;
-            text-decoration: line-through;
-        }
-        
-        .number-chip.deleted {
-            background: #f3f4f6;
-            border-color: #e5e7eb;
-            text-decoration: line-through;
-            opacity: 0.7;
-        }
-        
-        .otp-badge {
-            background: linear-gradient(135deg, #7c3aed, #6d28d9);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-family: monospace;
-            font-size: 0.85rem;
-        }
-        
-        .otp-entry {
             background: white;
             border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        
+        .alloc-table th {
+            background: #f5f3ff;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 800;
             border: 1px solid #e9d5ff;
+            border-bottom: 2px solid #c4b5fd;
+            font-size: 13px;
+            white-space: nowrap;
+            color: #5b21b6;
+        }
+        
+        .alloc-table td {
+            padding: 8px 12px;
+            border: 1px solid #f0e6ff;
+            vertical-align: top;
+            font-size: 12px;
+            font-weight: 500;
+            color: #1a1a2e;
+        }
+        
+        .range-header td {
+            background: #faf5ff;
+            font-weight: 800;
+            border-top: 2px solid #c4b5fd;
+            border-bottom: 2px solid #c4b5fd;
+        }
+        
+        .delete-range-btn {
+            background: #dc2626;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
             transition: all 0.2s;
         }
-        .otp-entry:hover {
-            border-color: #7c3aed;
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
+        .delete-range-btn:hover {
+            background: #b91c1c;
         }
         
         .toast {
@@ -129,11 +147,16 @@
         ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 10px; }
         
-        .glass-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 24px;
-            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1);
+        .number-cell {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 4px 0;
+            display: inline-block;
+            width: 100%;
+        }
+        
+        .number-column {
+            vertical-align: top;
         }
     </style>
 </head>
@@ -179,12 +202,9 @@
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">📱 Number Management</h1>
-            <p class="text-gray-500 text-sm mt-1">Allocate, manage, and track phone numbers</p>
+            <p class="text-gray-500 text-sm mt-1">Allocate and manage phone numbers by range</p>
         </div>
         <div class="flex gap-3">
-            <button id="showDeletedBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 font-medium">
-                <i class="fas fa-eye-slash"></i> Hide Deleted
-            </button>
             <button id="totalStatsBtn" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md transition flex items-center gap-2">
                 <i class="fas fa-chart-line"></i> Total Stats
             </button>
@@ -202,12 +222,12 @@
             <p class="text-2xl font-bold" id="activeNumbers">0</p>
         </div>
         <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #d97706, #b45309);">
-            <p class="text-amber-100 text-xs font-medium">Used Numbers</p>
-            <p class="text-2xl font-bold" id="usedNumbers">0</p>
+            <p class="text-amber-100 text-xs font-medium">Total Ranges</p>
+            <p class="text-2xl font-bold" id="totalRanges">0</p>
         </div>
-        <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #dc2626, #b91c1c);">
-            <p class="text-red-100 text-xs font-medium">Deleted Numbers</p>
-            <p class="text-2xl font-bold" id="deletedNumbers">0</p>
+        <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #7c3aed, #6d28d9);">
+            <p class="text-purple-100 text-xs font-medium">Active Users</p>
+            <p class="text-2xl font-bold" id="activeUsers">0</p>
         </div>
     </div>
     
@@ -246,6 +266,7 @@ Example:
 +2348023456789
 +2349023456789"></textarea>
                 <p class="text-xs text-gray-400 mt-1">💡 Numbers must have at least 3 digits for OTP matching</p>
+                <p class="text-xs text-blue-500 mt-1">⚠️ Deleted numbers can be re-added as new allocations</p>
             </div>
             
             <button id="addBtn" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-2.5 rounded-xl transition shadow-md font-semibold">
@@ -253,32 +274,25 @@ Example:
             </button>
         </div>
         
-        <!-- Allocated Numbers List -->
+        <!-- Allocated Numbers Display - Table Format -->
         <div class="glass-card p-6">
             <h2 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg">
-                <i class="fas fa-list-ul text-purple-500"></i> Allocated Numbers
+                <i class="fas fa-table-list text-purple-500"></i> Allocated Numbers
             </h2>
             
             <select id="filterSelect" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 mb-4 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
                 <option value="">-- All Users --</option>
             </select>
             
-            <div id="allocationsList" class="max-h-96 overflow-y-auto space-y-3">
-                <div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin"></i> Loading...</div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- OTP Records Section -->
-    <div class="mt-6 glass-card p-6">
-        <h2 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg">
-            <i class="fas fa-list text-purple-500"></i> OTP Records
-            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full ml-2">Matched by last 3 digits</span>
-        </h2>
-        <div id="otpRecordsList" class="space-y-3 max-h-[500px] overflow-y-auto">
-            <div class="text-center py-12 text-gray-400">
-                <i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>
-                Select a user from the filter above to view OTPs
+            <div class="allocations-table-wrapper">
+                <table class="alloc-table" id="allocationsTable">
+                    <thead>
+                        <tr><th>User / Range</th><th>Numbers</th><th>Action</th></tr>
+                    </thead>
+                    <tbody id="allocationsBody">
+                        <tr><td colspan="3" class="text-center py-8 text-gray-400">Loading...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -294,7 +308,6 @@ Example:
         <div class="mb-4">
             <label class="block text-sm font-semibold text-gray-700 mb-2">Range Name *</label>
             <input type="text" id="newRangeName" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-purple-500 outline-none" placeholder="e.g., Nigeria Premium, USA Gold">
-            <p class="text-xs text-gray-400 mt-1">Use a unique name for this number range</p>
         </div>
         <div class="flex gap-3">
             <button id="saveRangeBtn" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-2.5 rounded-xl transition font-semibold">Create Range</button>
@@ -315,9 +328,7 @@ if (!session || session.role !== 'admin') {
 document.getElementById('adminName').innerText = session.username || 'Administrator';
 
 let usersList = [];
-let usedNumbersSet = new Set();
 let customRanges = ['Carmine', 'Carrot'];
-let showDeleted = false;
 let allAllocations = [];
 
 function getLast3Digits(number) {
@@ -336,21 +347,6 @@ function showToast(message, type = 'success') {
     toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>${message}`;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
-}
-
-async function fetchUsedNumbers() {
-    try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=phone_last3`, {
-            headers: { 'apikey': API_KEY }
-        });
-        const otps = await res.json();
-        usedNumbersSet.clear();
-        otps.forEach(otp => {
-            if (otp.phone_last3) usedNumbersSet.add(otp.phone_last3);
-        });
-    } catch (err) {
-        console.error("Error fetching OTPs:", err);
-    }
 }
 
 async function loadRanges() {
@@ -413,6 +409,8 @@ async function loadUsers() {
     const filterSelect = document.getElementById('filterSelect');
     filterSelect.innerHTML = '<option value="">-- All Users --</option>' + 
         usersList.map(u => `<option value="${u.id}">👤 ${escapeHtml(u.username)}</option>`).join('');
+    
+    document.getElementById('activeUsers').textContent = usersList.length;
 }
 
 async function loadAllocatedNumbers() {
@@ -426,150 +424,74 @@ async function loadAllocatedNumbers() {
     let allocations = await res.json();
     allAllocations = allocations;
     
-    if (!showDeleted) {
-        allocations = allocations.filter(a => a.is_deleted !== true);
-    }
+    // Only show active numbers (not deleted)
+    const activeAllocations = allocations.filter(a => a.is_deleted !== true);
     
     // Update stats
-    const totalNums = allAllocations.length;
-    const activeNums = allAllocations.filter(a => a.is_deleted !== true).length;
-    const deletedNums = allAllocations.filter(a => a.is_deleted === true).length;
-    const usedNums = allAllocations.filter(a => usedNumbersSet.has(a.last3) && a.is_deleted !== true).length;
+    const totalNums = allocations.length;
+    const activeNums = activeAllocations.length;
+    const uniqueRanges = [...new Set(allocations.map(a => a.range_name).filter(r => r))];
     
     document.getElementById('totalNumbers').textContent = totalNums;
     document.getElementById('activeNumbers').textContent = activeNums;
-    document.getElementById('deletedNumbers').textContent = deletedNums;
-    document.getElementById('usedNumbers').textContent = usedNums;
+    document.getElementById('totalRanges').textContent = uniqueRanges.length;
     
-    const container = document.getElementById('allocationsList');
-    
-    if (!allocations || allocations.length === 0) {
-        container.innerHTML = '<div class="text-center py-8 text-gray-400">📭 No numbers allocated yet</div>';
-        return;
-    }
-    
+    // Group by user and range
     const grouped = {};
-    for (const item of allocations) {
+    for (const item of activeAllocations) {
+        const userName = item.users?.username || 'Unknown';
         const rangeName = item.range_name || 'Unknown';
-        const key = `${item.user_id}_${rangeName}`;
+        const key = `${userName}_${rangeName}`;
         if (!grouped[key]) {
             grouped[key] = {
+                userName: userName,
                 userId: item.user_id,
-                userName: item.users?.username || 'Unknown',
                 range: rangeName,
                 numbers: []
             };
         }
-        grouped[key].numbers.push(item);
+        grouped[key].numbers.push(item.number);
     }
     
+    const container = document.getElementById('allocationsBody');
+    
+    if (Object.keys(grouped).length === 0) {
+        container.innerHTML = '<tr><td colspan="3" class="text-center py-8 text-gray-400">📭 No active numbers allocated</td></tr>';
+        return;
+    }
+    
+    // Find max numbers in any group for column sizing
+    let maxNumbers = 0;
+    for (const key in grouped) {
+        if (grouped[key].numbers.length > maxNumbers) {
+            maxNumbers = grouped[key].numbers.length;
+        }
+    }
+    
+    // Build table with ranges as rows, numbers as columns
     let html = '';
     for (const key in grouped) {
         const g = grouped[key];
-        const usedCount = g.numbers.filter(num => usedNumbersSet.has(num.last3)).length;
-        const deletedCount = g.numbers.filter(num => num.is_deleted === true).length;
-        const activeCount = g.numbers.filter(num => !num.is_deleted).length;
-        const totalCount = g.numbers.length;
+        html += `<tr class="range-header"><td colspan="3"><div class="flex justify-between items-center w-full">
+            <div><span class="font-bold">👤 ${escapeHtml(g.userName)}</span> <span class="ml-3 text-purple-600">📌 ${escapeHtml(g.range)}</span> <span class="ml-2 text-gray-500 text-xs">(${g.numbers.length} numbers)</span></div>
+            <button class="delete-range-btn" onclick="deleteRange('${g.userId}', '${escapeHtml(g.range).replace(/'/g, "\\'")}')"><i class="fas fa-trash-alt mr-1"></i>Delete All</button>
+        </div></td></tr>`;
         
-        html += `
-            <div class="border border-purple-100 rounded-xl overflow-hidden shadow-sm bg-white">
-                <div class="bg-gradient-to-r from-purple-50 to-white px-4 py-3 flex justify-between items-center flex-wrap gap-2">
-                    <div class="flex flex-wrap gap-2 items-center">
-                        <span class="font-bold text-gray-800">👤 ${escapeHtml(g.userName)}</span>
-                        <span class="inline-flex items-center gap-1 text-sm font-semibold text-purple-700 bg-purple-100 px-2 py-1 rounded-full">
-                            📌 ${escapeHtml(g.range)}
-                        </span>
-                        ${usedCount > 0 ? `<span class="text-xs text-red-600 bg-red-100 px-2 py-1 rounded-full">⚠️ ${usedCount} used</span>` : ''}
-                        ${deletedCount > 0 ? `<span class="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full">🗑️ ${deletedCount} deleted</span>` : ''}
-                        <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">✅ ${activeCount} active</span>
-                    </div>
-                    <button onclick="softDeleteRangeNumbers('${g.userId}', '${escapeHtml(g.range).replace(/'/g, "\\'")}')" class="text-red-500 text-sm hover:text-red-700 transition font-medium">
-                        <i class="fas fa-trash-alt mr-1"></i>Delete All
-                    </button>
-                </div>
-                <div class="p-3 flex flex-wrap gap-2 bg-white">
-                    ${g.numbers.map(num => {
-                        const isUsed = usedNumbersSet.has(num.last3);
-                        const isDeleted = num.is_deleted === true;
-                        let statusClass = '';
-                        let statusIcon = '';
-                        
-                        if (isDeleted) {
-                            statusClass = 'deleted';
-                            statusIcon = '<i class="fas fa-ban text-gray-400 mr-1 text-xs"></i>';
-                        } else if (isUsed) {
-                            statusClass = 'used';
-                            statusIcon = '<i class="fas fa-check-circle text-red-500 mr-1 text-xs"></i>';
-                        } else {
-                            statusIcon = '<i class="fas fa-circle text-green-500 mr-1 text-xs"></i>';
-                        }
-                        
-                        return `
-                            <div class="number-chip ${statusClass}">
-                                ${statusIcon}
-                                <span class="font-mono text-sm">${escapeHtml(num.number)}</span>
-                                <span class="text-xs text-gray-400">(${num.last3})</span>
-                                <button onclick="${isDeleted ? `restoreNumber('${num.id}')` : `softDeleteNumber('${num.id}')`}" class="${isDeleted ? 'text-green-600 hover:text-green-800' : 'text-gray-400 hover:text-red-600'} ml-1" title="${isDeleted ? 'Restore' : 'Delete'}">
-                                    <i class="fas ${isDeleted ? 'fa-trash-restore' : 'fa-trash-alt'}"></i>
-                                </button>
-                            </div>
-                        `;
-                    }).join('')}
-                </div>
-            </div>
-        `;
+        // Create number columns
+        html += '<tr>';
+        for (let i = 0; i < maxNumbers; i++) {
+            const number = g.numbers[i] || '';
+            html += `<td class="number-column">${number ? `<div class="number-cell">📞 ${escapeHtml(number)}</div>` : ''}</td>`;
+        }
+        html += '</tr>';
     }
+    
     container.innerHTML = html;
 }
 
-async function restoreNumber(numberId) {
-    if (!confirm('Restore this number? It will become visible to the user again.')) return;
-    
-    try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?id=eq.${numberId}`, {
-            method: 'PATCH',
-            headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ is_deleted: false, deleted_at: null })
-        });
-        
-        if (res.ok) {
-            await loadAllocatedNumbers();
-            await fetchUsedNumbers();
-            loadUserOtps();
-            showToast('Number restored successfully', 'success');
-        } else {
-            showToast('Error restoring number', 'error');
-        }
-    } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-    }
-}
-
-async function softDeleteNumber(numberId) {
-    if (!confirm('Delete this number? It will be hidden from the user, but earnings preserved.')) return;
-    
-    try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?id=eq.${numberId}`, {
-            method: 'PATCH',
-            headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ is_deleted: true, deleted_at: new Date().toISOString() })
-        });
-        
-        if (res.ok) {
-            await loadAllocatedNumbers();
-            await fetchUsedNumbers();
-            loadUserOtps();
-            showToast('Number deleted (hidden from user)', 'success');
-        } else {
-            showToast('Error deleting number', 'error');
-        }
-    } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-    }
-}
-
-async function softDeleteRangeNumbers(userId, range) {
-    if (!confirm(`Delete ALL numbers for ${range}? They will be hidden from users, but earnings preserved.`)) return;
+// Delete all numbers in a range for a user (soft delete - hide from users)
+async function deleteRange(userId, range) {
+    if (!confirm(`⚠️ Delete ALL numbers in "${range}" for this user?\n\nNumbers will be hidden from users but remain in database. You can add the same numbers again later.`)) return;
     
     try {
         await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&range_name=eq.${encodeURIComponent(range)}&is_deleted=eq.false`, {
@@ -579,13 +501,13 @@ async function softDeleteRangeNumbers(userId, range) {
         });
         
         await loadAllocatedNumbers();
-        loadUserOtps();
-        showToast('Numbers deleted successfully', 'success');
+        showToast(`✅ All numbers in "${range}" deleted (hidden from user)`, 'success');
     } catch (err) {
         showToast('Error deleting numbers', 'error');
     }
 }
 
+// Add numbers - checks if number exists but NOT deleted, allows re-adding deleted numbers
 async function addNumbers() {
     const userId = document.getElementById('userSelect').value;
     const rangeName = document.getElementById('rangeSelect').value;
@@ -598,7 +520,26 @@ async function addNumbers() {
     let numbers = numbersInput.split(/[,\n]/).map(n => n.trim()).filter(n => n.length > 0);
     if (numbers.length === 0) { showToast('No valid numbers found', 'error'); return; }
     
+    // First, fetch existing numbers for this user to check duplicates
+    const existingRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&select=number,is_deleted`, {
+        headers: { 'apikey': API_KEY }
+    });
+    const existingNumbers = await existingRes.json();
+    
+    // Create maps for quick lookup
+    const activeNumbersMap = new Map(); // numbers that are active (not deleted)
+    const deletedNumbersMap = new Map(); // numbers that are deleted
+    
+    existingNumbers.forEach(item => {
+        if (item.is_deleted === true) {
+            deletedNumbersMap.set(item.number, item);
+        } else {
+            activeNumbersMap.set(item.number, item);
+        }
+    });
+    
     let successCount = 0;
+    let duplicateCount = 0;
     let errorCount = 0;
     
     for (const number of numbers) {
@@ -608,127 +549,69 @@ async function addNumbers() {
             continue;
         }
         
-        try {
-            const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
-                method: 'POST',
-                headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: userId,
-                    number: number,
-                    last3: last3,
-                    range_name: rangeName,
-                    is_deleted: false
-                })
-            });
-            
-            if (res.ok) successCount++;
-            else errorCount++;
-        } catch (err) {
-            errorCount++;
+        // Check if number is already active (not deleted)
+        if (activeNumbersMap.has(number)) {
+            duplicateCount++;
+            continue;
+        }
+        
+        // Check if number was deleted - if yes, we can re-add it as new
+        if (deletedNumbersMap.has(number)) {
+            // Add as a new entry (keep old deleted one, create new active one)
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
+                    method: 'POST',
+                    headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        number: number,
+                        last3: last3,
+                        range_name: rangeName,
+                        is_deleted: false
+                    })
+                });
+                
+                if (res.ok) successCount++;
+                else errorCount++;
+            } catch (err) {
+                errorCount++;
+            }
+        } else {
+            // Brand new number
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
+                    method: 'POST',
+                    headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        number: number,
+                        last3: last3,
+                        range_name: rangeName,
+                        is_deleted: false
+                    })
+                });
+                
+                if (res.ok) successCount++;
+                else errorCount++;
+            } catch (err) {
+                errorCount++;
+            }
         }
     }
     
+    let message = `✅ Added ${successCount} numbers!`;
+    if (duplicateCount > 0) message += ` ⚠️ ${duplicateCount} duplicates skipped`;
+    if (errorCount > 0) message += ` ❌ ${errorCount} errors`;
+    
     if (successCount > 0) {
-        showToast(`✅ Added ${successCount} numbers!`, 'success');
+        showToast(message, 'success');
         document.getElementById('numbersInput').value = '';
         await loadAllocatedNumbers();
-        await fetchUsedNumbers();
-        loadUserOtps();
+    } else if (duplicateCount > 0) {
+        showToast(message, 'error');
     } else {
         showToast(`❌ Failed to add numbers`, 'error');
     }
-}
-
-async function loadUserOtps() {
-    const filterUserId = document.getElementById('filterSelect').value;
-    
-    if (!filterUserId) {
-        document.getElementById('otpRecordsList').innerHTML = `
-            <div class="text-center py-12 text-gray-400">
-                <i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>
-                Select a user from the filter above to view OTPs
-            </div>
-        `;
-        return;
-    }
-    
-    const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,last3,range_name&user_id=eq.${filterUserId}`, {
-        headers: { 'apikey': API_KEY }
-    });
-    const userNumbers = await numRes.json();
-    const userLast3s = userNumbers.map(n => n.last3);
-    
-    if (userLast3s.length === 0) {
-        document.getElementById('otpRecordsList').innerHTML = `
-            <div class="text-center py-12 text-gray-400">
-                <i class="fas fa-database text-4xl mb-3 opacity-40"></i><br/>
-                No numbers allocated to this user
-            </div>
-        `;
-        return;
-    }
-    
-    const last3Filter = userLast3s.map(l3 => `phone_last3=eq.${l3}`).join(',');
-    const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&or=(${last3Filter})&order=date.desc&limit=500`, {
-        headers: { 'apikey': API_KEY }
-    });
-    const userOtps = await otpRes.json();
-    
-    if (userOtps.length === 0) {
-        document.getElementById('otpRecordsList').innerHTML = `
-            <div class="text-center py-12 text-gray-400">
-                <i class="fas fa-inbox text-4xl mb-3 opacity-40"></i><br/>
-                No OTPs found for this user
-            </div>
-        `;
-        return;
-    }
-    
-    const numberMap = new Map();
-    userNumbers.forEach(item => {
-        numberMap.set(item.last3, { number: item.number, range_name: item.range_name });
-    });
-    
-    let html = '';
-    for (const otp of userOtps) {
-        const numberInfo = numberMap.get(otp.phone_last3);
-        const phoneNumber = numberInfo?.number || otp.phone_last3;
-        const maskedNumber = phoneNumber.toString().replace(/\d(?=\d{4})/g, '*');
-        const rangeName = numberInfo?.range_name || otp.range || 'Unknown';
-        
-        html += `
-            <div class="otp-entry">
-                <div class="flex justify-between items-start flex-wrap gap-2">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-2 flex-wrap">
-                            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">📅 ${otp.date || 'N/A'}</span>
-                            <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
-                        </div>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                            <div><span class="text-gray-500 text-xs">📞 Phone</span><p class="font-mono font-medium">${escapeHtml(maskedNumber)}</p></div>
-                            <div><span class="text-gray-500 text-xs">🔐 Last3</span><p class="font-mono">${escapeHtml(otp.phone_last3)}</p></div>
-                            <div><span class="text-gray-500 text-xs">✉️ Sender</span><p>${escapeHtml(otp.sender || 'Unknown')}</p></div>
-                            <div><span class="text-gray-500 text-xs">📌 Range</span><p>${escapeHtml(rangeName)}</p></div>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-emerald-600 font-bold text-sm">+$${OTP_RATE}</div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    const OTP_RATE = 0.005;
-    html += `
-        <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
-            <span class="font-bold">Total: ${userOtps.length} OTPs</span>
-            <span class="mx-2">|</span>
-            <span class="font-bold text-purple-700">$${(userOtps.length * OTP_RATE).toFixed(2)}</span>
-        </div>
-    `;
-    
-    document.getElementById('otpRecordsList').innerHTML = html;
 }
 
 function setupModal() {
@@ -765,23 +648,6 @@ function setupModal() {
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
 }
 
-function setupDeletedToggle() {
-    const btn = document.getElementById('showDeletedBtn');
-    btn.onclick = () => {
-        showDeleted = !showDeleted;
-        if (showDeleted) {
-            btn.innerHTML = '<i class="fas fa-eye"></i> Show Deleted';
-            btn.classList.remove('bg-gray-200', 'hover:bg-gray-300');
-            btn.classList.add('bg-purple-100', 'hover:bg-purple-200', 'text-purple-700');
-        } else {
-            btn.innerHTML = '<i class="fas fa-eye-slash"></i> Hide Deleted';
-            btn.classList.remove('bg-purple-100', 'hover:bg-purple-200', 'text-purple-700');
-            btn.classList.add('bg-gray-200', 'hover:bg-gray-300', 'text-gray-700');
-        }
-        loadAllocatedNumbers();
-    };
-}
-
 function setupDropdown() {
     const menuBtn = document.getElementById('menuBtn');
     const dropdown = document.getElementById('dropdown');
@@ -799,9 +665,7 @@ function setupDropdown() {
 }
 
 // Make functions global
-window.softDeleteNumber = softDeleteNumber;
-window.softDeleteRangeNumbers = softDeleteRangeNumbers;
-window.restoreNumber = restoreNumber;
+window.deleteRange = deleteRange;
 
 document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); localStorage.removeItem('elite_session'); window.location.href = '../index.html'; };
 document.getElementById('addBtn').onclick = addNumbers;
@@ -810,15 +674,12 @@ document.getElementById('totalStatsBtn').onclick = () => { window.location.href 
 async function init() {
     setupDropdown();
     await loadRanges();
-    await fetchUsedNumbers();
     await loadUsers();
     await loadAllocatedNumbers();
     setupModal();
-    setupDeletedToggle();
     
     document.getElementById('filterSelect').addEventListener('change', () => {
         loadAllocatedNumbers();
-        loadUserOtps();
     });
 }
 
