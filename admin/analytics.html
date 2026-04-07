@@ -2,32 +2,41 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELITE Admin | Range Allocation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>ELITE Admin | Number Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+            min-height: 100vh;
+        }
+        
         .hidden-dropdown { display: none !important; }
-        .success { background-color: #d1fae5; color: #065f46; }
-        .error { background-color: #fee2e2; color: #991b1b; }
-        .used-number {
-            background-color: #fee2e2 !important;
-            border-left: 3px solid #dc2626 !important;
-            text-decoration: line-through;
-            opacity: 0.8;
+        
+        .stat-card {
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
         }
-        .used-number:hover {
-            background-color: #fecaca !important;
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.4);
         }
-        .deleted-number {
-            background-color: #f3f4f6 !important;
-            border-left: 3px solid #9ca3af !important;
-            text-decoration: line-through;
-            opacity: 0.6;
+        
+        .nav-link {
+            transition: all 0.2s;
+            display: block;
+            width: 100%;
+            text-align: left;
         }
-        .deleted-number:hover {
-            background-color: #e5e7eb !important;
+        .nav-link:hover {
+            background-color: #f5f3ff;
+            color: #7c3aed;
         }
+        
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -40,24 +49,54 @@
             justify-content: center;
             z-index: 1000;
         }
+        .modal-overlay.hidden { display: none; }
+        
         .modal-content {
             background: white;
-            border-radius: 20px;
+            border-radius: 24px;
             max-width: 500px;
             width: 90%;
             animation: slideUp 0.2s ease;
         }
+        
         @keyframes slideUp {
             from { transform: translateY(30px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
         
-        .dropdown-enter {
-            animation: dropdownFade 0.2s ease;
+        .number-chip {
+            background: #f3e8ff;
+            border-radius: 12px;
+            padding: 8px 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            transition: all 0.2s;
+            border: 1px solid #e9d5ff;
         }
-        @keyframes dropdownFade {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+        
+        .number-chip.used {
+            background: #fee2e2;
+            border-color: #fecaca;
+            text-decoration: line-through;
+        }
+        
+        .number-chip.deleted {
+            background: #f3f4f6;
+            border-color: #e5e7eb;
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        
+        .otp-badge {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-family: monospace;
+            font-size: 0.85rem;
         }
         
         .otp-entry {
@@ -72,53 +111,33 @@
             border-color: #7c3aed;
             box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
         }
-        .otp-badge {
-            background: linear-gradient(135deg, #7c3aed, #6d28d9);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-family: monospace;
-            font-size: 0.9rem;
-        }
-        .nav-link {
-            transition: all 0.2s;
-            display: block;
-            width: 100%;
-            text-align: left;
-        }
-        .nav-link:hover {
-            background-color: #f5f3ff;
-            color: #7c3aed;
-        }
-        .btn-total {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            transition: all 0.2s;
-        }
-        .btn-total:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+        
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
         }
         
-        .deleted-badge {
-            background: #9ca3af;
-            color: white;
-            font-size: 0.65rem;
-            padding: 2px 8px;
-            border-radius: 12px;
-            margin-left: 8px;
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
         
-        .toggle-deleted {
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .toggle-deleted:hover {
-            background-color: #f3e8ff;
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 10px; }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
-<body class="bg-gradient-to-br from-purple-50 to-gray-100 min-h-screen">
+<body>
 
 <nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -129,22 +148,22 @@
                     <i class="fas fa-crown text-white text-sm"></i>
                 </div>
                 <span class="text-xl font-bold text-gray-800">ELITE<span class="text-purple-600">Admin</span></span>
-                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">Range Allocation</span>
+                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">Numbers</span>
             </div>
             <div class="flex items-center gap-4 relative">
                 <div class="text-right hidden sm:block">
                     <p class="text-sm font-medium text-gray-800" id="adminName">Admin</p>
-                    <p class="text-xs text-gray-500">Number Allocation</p>
+                    <p class="text-xs text-gray-500">Number Management</p>
                 </div>
                 <div class="relative">
                     <button id="menuBtn" class="bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition cursor-pointer">
                         <i class="fas fa-user-shield text-purple-600"></i>
                         <i class="fas fa-chevron-down text-xs"></i>
                     </button>
-                    <div id="dropdown" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden dropdown-enter">
+                    <div id="dropdown" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden">
                         <a href="dashboard.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-tachometer-alt w-5 text-purple-500 mr-2"></i> Dashboard</a>
                         <a href="users.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-users w-5 text-purple-500 mr-2"></i> Users</a>
-                        <a href="analytics.html" class="nav-link px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-phone-alt w-5 text-purple-500 mr-2"></i> Range Allocation</a>
+                        <a href="analytics.html" class="nav-link px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-phone-alt w-5 text-purple-500 mr-2"></i> Number Manager</a>
                         <a href="activities.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-history w-5 text-purple-500 mr-2"></i> Activities</a>
                         <div class="border-t border-gray-100 my-1"></div>
                         <a href="#" id="logoutBtn" class="nav-link px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
@@ -156,28 +175,51 @@
 </nav>
 
 <main class="max-w-7xl mx-auto px-4 py-8">
-    <div class="flex justify-between items-center mb-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-            <h1 class="text-2xl font-bold text-gray-800">📌 Range Allocation</h1>
-            <p class="text-gray-500">Manage numbers - <span class="text-red-600">Red</span> = have OTPs | <span class="text-gray-400">Gray strikethrough</span> = deleted (hidden from users)</p>
+            <h1 class="text-2xl font-bold text-gray-800">📱 Number Management</h1>
+            <p class="text-gray-500 text-sm mt-1">Allocate, manage, and track phone numbers</p>
         </div>
-        <div class="flex gap-2">
-            <button id="showDeletedBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1.5 rounded-lg text-sm transition flex items-center gap-2">
+        <div class="flex gap-3">
+            <button id="showDeletedBtn" class="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 font-medium">
                 <i class="fas fa-eye-slash"></i> Hide Deleted
             </button>
-            <button onclick="window.location.href='total.html'" class="btn-total text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md transition flex items-center gap-2">
-                <i class="fas fa-chart-line"></i> TOTAL
+            <button id="totalStatsBtn" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md transition flex items-center gap-2">
+                <i class="fas fa-chart-line"></i> Total Stats
             </button>
+        </div>
+    </div>
+    
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="stat-card rounded-2xl p-4 text-white">
+            <p class="text-purple-100 text-xs font-medium">Total Numbers</p>
+            <p class="text-2xl font-bold" id="totalNumbers">0</p>
+        </div>
+        <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #059669, #047857);">
+            <p class="text-emerald-100 text-xs font-medium">Active Numbers</p>
+            <p class="text-2xl font-bold" id="activeNumbers">0</p>
+        </div>
+        <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #d97706, #b45309);">
+            <p class="text-amber-100 text-xs font-medium">Used Numbers</p>
+            <p class="text-2xl font-bold" id="usedNumbers">0</p>
+        </div>
+        <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #dc2626, #b91c1c);">
+            <p class="text-red-100 text-xs font-medium">Deleted Numbers</p>
+            <p class="text-2xl font-bold" id="deletedNumbers">0</p>
         </div>
     </div>
     
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Add Numbers Form -->
-        <div class="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
-            <h2 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-plus-circle text-purple-500"></i> Add Numbers</h2>
+        <div class="glass-card p-6">
+            <h2 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg">
+                <i class="fas fa-plus-circle text-purple-500"></i> Allocate Numbers
+            </h2>
             
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">👤 Select User *</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">👤 Select User *</label>
                 <select id="userSelect" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
                     <option value="">-- Select User --</option>
                 </select>
@@ -185,41 +227,37 @@
             
             <div class="mb-4">
                 <div class="flex justify-between items-center mb-2">
-                    <label class="block text-sm font-medium text-gray-700">🌍 Select Range *</label>
-                    <button id="addRangeBtn" class="text-xs bg-gradient-to-r from-purple-500 to-purple-600 text-white px-3 py-1 rounded-full hover:shadow-md transition">
+                    <label class="block text-sm font-semibold text-gray-700">📌 Select Range *</label>
+                    <button id="addRangeBtn" class="text-xs bg-gradient-to-r from-purple-500 to-purple-600 text-white px-3 py-1.5 rounded-full hover:shadow-md transition font-medium">
                         <i class="fas fa-plus mr-1"></i> New Range
                     </button>
                 </div>
                 <select id="rangeSelect" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
                     <option value="">-- Select Range --</option>
-                    <option value="Carmine">❤️ Carmine</option>
-                    <option value="Carrot">🥕 Carrot</option>
                 </select>
             </div>
             
             <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">📞 Phone Numbers *</label>
+                <label class="block text-sm font-semibold text-gray-700 mb-2">📞 Phone Numbers *</label>
                 <textarea id="numbersInput" rows="5" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 font-mono text-sm focus:ring-2 focus:ring-purple-500 outline-none" 
-                    placeholder="Enter phone numbers (one per line or comma separated)
+                    placeholder="Enter phone numbers (one per line)
 Example:
 +2348123456789
 +2348023456789
-+998901234567"></textarea>
-                <p class="text-xs text-gray-400 mt-1">Numbers must have at least 3 digits for matching</p>
++2349023456789"></textarea>
+                <p class="text-xs text-gray-400 mt-1">💡 Numbers must have at least 3 digits for OTP matching</p>
             </div>
             
-            <button id="addBtn" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-2.5 rounded-xl transition shadow-md">
+            <button id="addBtn" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-2.5 rounded-xl transition shadow-md font-semibold">
                 <i class="fas fa-plus mr-2"></i>Allocate Numbers
             </button>
-            
-            <div id="messageBox" class="mt-4 text-sm text-center hidden rounded-lg p-2"></div>
         </div>
         
         <!-- Allocated Numbers List -->
-        <div class="bg-white rounded-2xl border border-purple-100 shadow-sm p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="font-semibold text-gray-800 flex items-center gap-2"><i class="fas fa-list-ul text-purple-500"></i> Allocated Numbers</h2>
-            </div>
+        <div class="glass-card p-6">
+            <h2 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg">
+                <i class="fas fa-list-ul text-purple-500"></i> Allocated Numbers
+            </h2>
             
             <select id="filterSelect" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 mb-4 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
                 <option value="">-- All Users --</option>
@@ -232,39 +270,35 @@ Example:
     </div>
     
     <!-- OTP Records Section -->
-    <div class="mt-8">
-        <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
-            <div class="p-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center">
-                <h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>OTP Records</h3>
-                <div class="text-sm text-gray-500">
-                    <i class="fas fa-info-circle mr-1 text-purple-400"></i> Showing OTPs matched by last 3 digits (including from deleted numbers)
-                </div>
-            </div>
-            <div id="otpRecordsList" class="p-4 space-y-3 max-h-[500px] overflow-y-auto">
-                <div class="text-center py-12 text-gray-400">
-                    <i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>
-                    Select a user to view OTPs
-                </div>
+    <div class="mt-6 glass-card p-6">
+        <h2 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg">
+            <i class="fas fa-list text-purple-500"></i> OTP Records
+            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full ml-2">Matched by last 3 digits</span>
+        </h2>
+        <div id="otpRecordsList" class="space-y-3 max-h-[500px] overflow-y-auto">
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>
+                Select a user from the filter above to view OTPs
             </div>
         </div>
     </div>
 </main>
 
-<!-- Modal for Adding New Range -->
+<!-- Modal for New Range -->
 <div id="rangeModal" class="modal-overlay hidden">
     <div class="modal-content p-6">
         <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-bold text-gray-800"><i class="fas fa-tag text-purple-500 mr-2"></i>Add New Range</h3>
+            <h3 class="text-xl font-bold text-gray-800"><i class="fas fa-tag text-purple-500 mr-2"></i>Create New Range</h3>
             <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600"><i class="fas fa-times text-xl"></i></button>
         </div>
         <div class="mb-4">
-            <label class="block text-sm font-medium text-gray-700 mb-2">Range Name *</label>
-            <input type="text" id="newRangeName" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-purple-500 outline-none" placeholder="e.g., Europe Premium, Asia Gold">
-            <p class="text-xs text-gray-400 mt-1">Use a unique name for this range</p>
+            <label class="block text-sm font-semibold text-gray-700 mb-2">Range Name *</label>
+            <input type="text" id="newRangeName" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-purple-500 outline-none" placeholder="e.g., Nigeria Premium, USA Gold">
+            <p class="text-xs text-gray-400 mt-1">Use a unique name for this number range</p>
         </div>
         <div class="flex gap-3">
-            <button id="saveRangeBtn" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-2.5 rounded-xl transition">Save Range</button>
-            <button id="cancelModalBtn" class="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-xl hover:bg-gray-300 transition">Cancel</button>
+            <button id="saveRangeBtn" class="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-2.5 rounded-xl transition font-semibold">Create Range</button>
+            <button id="cancelModalBtn" class="flex-1 bg-gray-200 text-gray-700 py-2.5 rounded-xl hover:bg-gray-300 transition font-semibold">Cancel</button>
         </div>
     </div>
 </div>
@@ -273,17 +307,21 @@ Example:
 const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
 const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
 
+// Session check
 const session = JSON.parse(localStorage.getItem('elite_session') || 'null');
-if (!session || session.role !== 'admin') window.location.href = '../index.html';
-document.getElementById('adminName').innerText = session.username;
+if (!session || session.role !== 'admin') {
+    window.location.href = '../index.html';
+}
+document.getElementById('adminName').innerText = session.username || 'Administrator';
 
 let usersList = [];
 let usedNumbersSet = new Set();
-let customRanges = [];
-let showDeleted = false; // Toggle for showing deleted numbers in admin view
+let customRanges = ['Carmine', 'Carrot'];
+let showDeleted = false;
+let allAllocations = [];
 
 function getLast3Digits(number) {
-    let cleaned = number.replace(/[^0-9]/g, '');
+    let cleaned = number.toString().replace(/[^0-9]/g, '');
     return cleaned.slice(-3);
 }
 
@@ -292,17 +330,12 @@ function escapeHtml(str) {
     return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m));
 }
 
-function getRangeFlag(range) {
-    const flags = { 'Carmine': '❤️', 'Carrot': '🥕' };
-    return flags[range] || '📌';
-}
-
-function formatTime(messageTime) {
-    if (messageTime) {
-        const d = new Date(messageTime);
-        if (!isNaN(d.getTime())) return d.toLocaleTimeString();
-    }
-    return '-';
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `toast ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white px-4 py-2 rounded-lg shadow-lg text-sm`;
+    toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>${message}`;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 async function fetchUsedNumbers() {
@@ -328,12 +361,9 @@ async function loadRanges() {
         let data = await res.json();
         if (data.length > 0) {
             customRanges = data.map(r => r.name);
-        } else {
-            customRanges = ['Carmine', 'Carrot'];
         }
         updateRangeDropdown();
     } catch (err) {
-        customRanges = ['Carmine', 'Carrot'];
         updateRangeDropdown();
     }
 }
@@ -341,7 +371,7 @@ async function loadRanges() {
 function updateRangeDropdown() {
     const rangeSelect = document.getElementById('rangeSelect');
     rangeSelect.innerHTML = '<option value="">-- Select Range --</option>' + 
-        customRanges.map(r => `<option value="${escapeHtml(r)}">${getRangeFlag(r)} ${escapeHtml(r)}</option>`).join('');
+        customRanges.map(r => `<option value="${escapeHtml(r)}">📌 ${escapeHtml(r)}</option>`).join('');
 }
 
 async function addNewRange(rangeName) {
@@ -377,21 +407,16 @@ async function loadUsers() {
         userSelect.innerHTML = '<option value="">-- No users found --</option>';
     } else {
         userSelect.innerHTML = '<option value="">-- Select User --</option>' + 
-            usersList.map(u => `<option value="${u.id}">${escapeHtml(u.username)}</option>`).join('');
+            usersList.map(u => `<option value="${u.id}">👤 ${escapeHtml(u.username)}</option>`).join('');
     }
     
     const filterSelect = document.getElementById('filterSelect');
     filterSelect.innerHTML = '<option value="">-- All Users --</option>' + 
-        usersList.map(u => `<option value="${u.id}">${escapeHtml(u.username)}</option>`).join('');
-    filterSelect.onchange = () => {
-        loadAllocatedNumbers();
-        loadUserOtps();
-    };
+        usersList.map(u => `<option value="${u.id}">👤 ${escapeHtml(u.username)}</option>`).join('');
 }
 
 async function loadAllocatedNumbers() {
     const filterUserId = document.getElementById('filterSelect').value;
-    // Fetch ALL numbers (including deleted) for admin view, but we'll filter display based on toggle
     let url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&order=allocated_at.desc`;
     if (filterUserId) {
         url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&user_id=eq.${filterUserId}&order=allocated_at.desc`;
@@ -399,11 +424,22 @@ async function loadAllocatedNumbers() {
     
     const res = await fetch(url, { headers: { 'apikey': API_KEY } });
     let allocations = await res.json();
+    allAllocations = allocations;
     
-    // Filter based on showDeleted toggle
     if (!showDeleted) {
         allocations = allocations.filter(a => a.is_deleted !== true);
     }
+    
+    // Update stats
+    const totalNums = allAllocations.length;
+    const activeNums = allAllocations.filter(a => a.is_deleted !== true).length;
+    const deletedNums = allAllocations.filter(a => a.is_deleted === true).length;
+    const usedNums = allAllocations.filter(a => usedNumbersSet.has(a.last3) && a.is_deleted !== true).length;
+    
+    document.getElementById('totalNumbers').textContent = totalNums;
+    document.getElementById('activeNumbers').textContent = activeNums;
+    document.getElementById('deletedNumbers').textContent = deletedNums;
+    document.getElementById('usedNumbers').textContent = usedNums;
     
     const container = document.getElementById('allocationsList');
     
@@ -414,7 +450,7 @@ async function loadAllocatedNumbers() {
     
     const grouped = {};
     for (const item of allocations) {
-        const rangeName = item.range_name || item.country || 'Unknown';
+        const rangeName = item.range_name || 'Unknown';
         const key = `${item.user_id}_${rangeName}`;
         if (!grouped[key]) {
             grouped[key] = {
@@ -436,18 +472,18 @@ async function loadAllocatedNumbers() {
         const totalCount = g.numbers.length;
         
         html += `
-            <div class="border border-purple-100 rounded-xl overflow-hidden shadow-sm">
+            <div class="border border-purple-100 rounded-xl overflow-hidden shadow-sm bg-white">
                 <div class="bg-gradient-to-r from-purple-50 to-white px-4 py-3 flex justify-between items-center flex-wrap gap-2">
-                    <div>
-                        <span class="font-semibold text-gray-800">👤 ${escapeHtml(g.userName)}</span>
-                        <span class="ml-2 inline-flex items-center gap-1 text-sm font-medium text-purple-700 bg-purple-100 px-2 py-0.5 rounded-full">
-                            ${getRangeFlag(g.range)} ${escapeHtml(g.range)}
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <span class="font-bold text-gray-800">👤 ${escapeHtml(g.userName)}</span>
+                        <span class="inline-flex items-center gap-1 text-sm font-semibold text-purple-700 bg-purple-100 px-2 py-1 rounded-full">
+                            📌 ${escapeHtml(g.range)}
                         </span>
-                        ${usedCount > 0 ? `<span class="ml-2 text-xs text-red-600 bg-red-100 px-2 py-0.5 rounded-full">⚠️ ${usedCount} used</span>` : ''}
-                        ${deletedCount > 0 ? `<span class="ml-2 text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">🗑️ ${deletedCount} deleted</span>` : ''}
-                        <span class="ml-2 text-xs text-green-600 bg-green-100 px-2 py-0.5 rounded-full">✅ ${activeCount} active</span>
+                        ${usedCount > 0 ? `<span class="text-xs text-red-600 bg-red-100 px-2 py-1 rounded-full">⚠️ ${usedCount} used</span>` : ''}
+                        ${deletedCount > 0 ? `<span class="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-full">🗑️ ${deletedCount} deleted</span>` : ''}
+                        <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">✅ ${activeCount} active</span>
                     </div>
-                    <button onclick="softDeleteRangeNumbers('${g.userId}', '${escapeHtml(g.range).replace(/'/g, "\\'")}')" class="text-red-500 text-sm hover:text-red-700 transition">
+                    <button onclick="softDeleteRangeNumbers('${g.userId}', '${escapeHtml(g.range).replace(/'/g, "\\'")}')" class="text-red-500 text-sm hover:text-red-700 transition font-medium">
                         <i class="fas fa-trash-alt mr-1"></i>Delete All
                     </button>
                 </div>
@@ -457,38 +493,28 @@ async function loadAllocatedNumbers() {
                         const isDeleted = num.is_deleted === true;
                         let statusClass = '';
                         let statusIcon = '';
-                        let title = '';
                         
                         if (isDeleted) {
-                            statusClass = 'deleted-number';
+                            statusClass = 'deleted';
                             statusIcon = '<i class="fas fa-ban text-gray-400 mr-1 text-xs"></i>';
-                            title = 'Deleted number - hidden from users, earnings preserved';
                         } else if (isUsed) {
-                            statusClass = 'used-number';
+                            statusClass = 'used';
                             statusIcon = '<i class="fas fa-check-circle text-red-500 mr-1 text-xs"></i>';
-                            title = 'This number has received an OTP';
                         } else {
                             statusIcon = '<i class="fas fa-circle text-green-500 mr-1 text-xs"></i>';
-                            title = 'Active number - no OTP received yet';
                         }
                         
-                        const deletedBadge = isDeleted ? '<span class="deleted-badge">deleted</span>' : '';
-                        
                         return `
-                            <div class="bg-gray-100 rounded-lg px-3 py-1.5 flex items-center gap-2 ${statusClass} transition" title="${title}">
+                            <div class="number-chip ${statusClass}">
                                 ${statusIcon}
-                                <span class="font-mono text-sm ${isDeleted ? 'line-through text-gray-500' : ''}">${escapeHtml(num.number)}</span>
-                                <span class="text-xs text-gray-400">(last3: ${num.last3})</span>
-                                ${deletedBadge}
-                                <button onclick="${isDeleted ? `restoreNumber('${num.id}')` : `softDeleteNumber('${num.id}')`}" class="${isDeleted ? 'text-green-600 hover:text-green-800' : 'text-gray-400 hover:text-red-600'} ml-1" title="${isDeleted ? 'Restore number' : 'Delete number'}">
+                                <span class="font-mono text-sm">${escapeHtml(num.number)}</span>
+                                <span class="text-xs text-gray-400">(${num.last3})</span>
+                                <button onclick="${isDeleted ? `restoreNumber('${num.id}')` : `softDeleteNumber('${num.id}')`}" class="${isDeleted ? 'text-green-600 hover:text-green-800' : 'text-gray-400 hover:text-red-600'} ml-1" title="${isDeleted ? 'Restore' : 'Delete'}">
                                     <i class="fas ${isDeleted ? 'fa-trash-restore' : 'fa-trash-alt'}"></i>
                                 </button>
                             </div>
                         `;
                     }).join('')}
-                </div>
-                <div class="bg-gray-50 px-4 py-2 text-xs text-gray-500 border-t border-purple-100">
-                    📊 Total: ${totalCount} numbers | Used: ${usedCount} | Active: ${activeCount} | Deleted: ${deletedCount}
                 </div>
             </div>
         `;
@@ -496,7 +522,6 @@ async function loadAllocatedNumbers() {
     container.innerHTML = html;
 }
 
-// Restore a deleted number (set is_deleted back to false)
 async function restoreNumber(numberId) {
     if (!confirm('Restore this number? It will become visible to the user again.')) return;
     
@@ -511,18 +536,17 @@ async function restoreNumber(numberId) {
             await loadAllocatedNumbers();
             await fetchUsedNumbers();
             loadUserOtps();
-            showMessage('✅ Number restored and visible to user', 'success');
+            showToast('Number restored successfully', 'success');
         } else {
-            showMessage('❌ Error restoring number', 'error');
+            showToast('Error restoring number', 'error');
         }
     } catch (err) {
-        showMessage('❌ Error: ' + err.message, 'error');
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
-// Soft delete single number (hide from users)
 async function softDeleteNumber(numberId) {
-    if (!confirm('Delete this number? It will be hidden from the user, but earnings will be preserved.')) return;
+    if (!confirm('Delete this number? It will be hidden from the user, but earnings preserved.')) return;
     
     try {
         const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?id=eq.${numberId}`, {
@@ -535,33 +559,30 @@ async function softDeleteNumber(numberId) {
             await loadAllocatedNumbers();
             await fetchUsedNumbers();
             loadUserOtps();
-            showMessage('✅ Number deleted (hidden from user, earnings preserved)', 'success');
+            showToast('Number deleted (hidden from user)', 'success');
         } else {
-            showMessage('❌ Error deleting number', 'error');
+            showToast('Error deleting number', 'error');
         }
     } catch (err) {
-        showMessage('❌ Error: ' + err.message, 'error');
+        showToast('Error: ' + err.message, 'error');
     }
 }
 
-// Soft delete all numbers in a range
 async function softDeleteRangeNumbers(userId, range) {
-    if (!confirm(`Delete ALL numbers for this user in ${range}? They will be hidden from users, but earnings will be preserved.`)) return;
+    if (!confirm(`Delete ALL numbers for ${range}? They will be hidden from users, but earnings preserved.`)) return;
     
     try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&range_name=eq.${encodeURIComponent(range)}&is_deleted=eq.false`, {
+        await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&range_name=eq.${encodeURIComponent(range)}&is_deleted=eq.false`, {
             method: 'PATCH',
             headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({ is_deleted: true, deleted_at: new Date().toISOString() })
         });
         
-        if (res.ok) {
-            await loadAllocatedNumbers();
-            loadUserOtps();
-            showMessage('Numbers deleted successfully (hidden from users)', 'success');
-        }
+        await loadAllocatedNumbers();
+        loadUserOtps();
+        showToast('Numbers deleted successfully', 'success');
     } catch (err) {
-        showMessage('Error deleting numbers', 'error');
+        showToast('Error deleting numbers', 'error');
     }
 }
 
@@ -569,16 +590,13 @@ async function addNumbers() {
     const userId = document.getElementById('userSelect').value;
     const rangeName = document.getElementById('rangeSelect').value;
     const numbersInput = document.getElementById('numbersInput').value;
-    const messageBox = document.getElementById('messageBox');
     
-    if (!userId) { showMessage('Please select a user', 'error'); return; }
-    if (!rangeName) { showMessage('Please select a range', 'error'); return; }
-    if (!numbersInput.trim()) { showMessage('Please enter phone numbers', 'error'); return; }
+    if (!userId) { showToast('Please select a user', 'error'); return; }
+    if (!rangeName) { showToast('Please select a range', 'error'); return; }
+    if (!numbersInput.trim()) { showToast('Please enter phone numbers', 'error'); return; }
     
     let numbers = numbersInput.split(/[,\n]/).map(n => n.trim()).filter(n => n.length > 0);
-    if (numbers.length === 0) { showMessage('No valid numbers found', 'error'); return; }
-    
-    showMessage('Adding numbers...', 'info');
+    if (numbers.length === 0) { showToast('No valid numbers found', 'error'); return; }
     
     let successCount = 0;
     let errorCount = 0;
@@ -611,28 +629,106 @@ async function addNumbers() {
     }
     
     if (successCount > 0) {
-        showMessage(`✅ Successfully added ${successCount} numbers!`, 'success');
+        showToast(`✅ Added ${successCount} numbers!`, 'success');
         document.getElementById('numbersInput').value = '';
         await loadAllocatedNumbers();
         await fetchUsedNumbers();
         loadUserOtps();
     } else {
-        showMessage(`❌ Failed to add numbers.`, 'error');
+        showToast(`❌ Failed to add numbers`, 'error');
+    }
+}
+
+async function loadUserOtps() {
+    const filterUserId = document.getElementById('filterSelect').value;
+    
+    if (!filterUserId) {
+        document.getElementById('otpRecordsList').innerHTML = `
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>
+                Select a user from the filter above to view OTPs
+            </div>
+        `;
+        return;
     }
     
-    setTimeout(() => { messageBox.classList.add('hidden'); }, 3000);
-}
-
-function showMessage(msg, type) {
-    const messageBox = document.getElementById('messageBox');
-    messageBox.textContent = msg;
-    messageBox.className = `mt-4 text-sm text-center p-2 rounded-lg ${type === 'success' ? 'bg-green-100 text-green-700' : type === 'error' ? 'bg-red-100 text-red-700' : 'bg-purple-100 text-purple-700'}`;
-    messageBox.classList.remove('hidden');
-}
-
-function logout() {
-    localStorage.removeItem('elite_session');
-    window.location.href = '../index.html';
+    const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,last3,range_name&user_id=eq.${filterUserId}`, {
+        headers: { 'apikey': API_KEY }
+    });
+    const userNumbers = await numRes.json();
+    const userLast3s = userNumbers.map(n => n.last3);
+    
+    if (userLast3s.length === 0) {
+        document.getElementById('otpRecordsList').innerHTML = `
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-database text-4xl mb-3 opacity-40"></i><br/>
+                No numbers allocated to this user
+            </div>
+        `;
+        return;
+    }
+    
+    const last3Filter = userLast3s.map(l3 => `phone_last3=eq.${l3}`).join(',');
+    const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&or=(${last3Filter})&order=date.desc&limit=500`, {
+        headers: { 'apikey': API_KEY }
+    });
+    const userOtps = await otpRes.json();
+    
+    if (userOtps.length === 0) {
+        document.getElementById('otpRecordsList').innerHTML = `
+            <div class="text-center py-12 text-gray-400">
+                <i class="fas fa-inbox text-4xl mb-3 opacity-40"></i><br/>
+                No OTPs found for this user
+            </div>
+        `;
+        return;
+    }
+    
+    const numberMap = new Map();
+    userNumbers.forEach(item => {
+        numberMap.set(item.last3, { number: item.number, range_name: item.range_name });
+    });
+    
+    let html = '';
+    for (const otp of userOtps) {
+        const numberInfo = numberMap.get(otp.phone_last3);
+        const phoneNumber = numberInfo?.number || otp.phone_last3;
+        const maskedNumber = phoneNumber.toString().replace(/\d(?=\d{4})/g, '*');
+        const rangeName = numberInfo?.range_name || otp.range || 'Unknown';
+        
+        html += `
+            <div class="otp-entry">
+                <div class="flex justify-between items-start flex-wrap gap-2">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-2 flex-wrap">
+                            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">📅 ${otp.date || 'N/A'}</span>
+                            <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                            <div><span class="text-gray-500 text-xs">📞 Phone</span><p class="font-mono font-medium">${escapeHtml(maskedNumber)}</p></div>
+                            <div><span class="text-gray-500 text-xs">🔐 Last3</span><p class="font-mono">${escapeHtml(otp.phone_last3)}</p></div>
+                            <div><span class="text-gray-500 text-xs">✉️ Sender</span><p>${escapeHtml(otp.sender || 'Unknown')}</p></div>
+                            <div><span class="text-gray-500 text-xs">📌 Range</span><p>${escapeHtml(rangeName)}</p></div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-emerald-600 font-bold text-sm">+$${OTP_RATE}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+    
+    const OTP_RATE = 0.005;
+    html += `
+        <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
+            <span class="font-bold">Total: ${userOtps.length} OTPs</span>
+            <span class="mx-2">|</span>
+            <span class="font-bold text-purple-700">$${(userOtps.length * OTP_RATE).toFixed(2)}</span>
+        </div>
+    `;
+    
+    document.getElementById('otpRecordsList').innerHTML = html;
 }
 
 function setupModal() {
@@ -654,22 +750,21 @@ function setupModal() {
     saveRangeBtn.onclick = async () => {
         const newName = document.getElementById('newRangeName').value.trim();
         if (!newName) {
-            showMessage('Please enter a range name', 'error');
+            showToast('Please enter a range name', 'error');
             return;
         }
         const success = await addNewRange(newName);
         if (success) {
-            showMessage(`✅ Range "${escapeHtml(newName)}" created!`, 'success');
+            showToast(`✅ Range "${newName}" created!`, 'success');
             closeModal();
         } else {
-            showMessage('❌ Range already exists', 'error');
+            showToast('❌ Range already exists', 'error');
         }
     };
     
     modal.onclick = (e) => { if (e.target === modal) closeModal(); };
 }
 
-// Toggle deleted numbers visibility
 function setupDeletedToggle() {
     const btn = document.getElementById('showDeletedBtn');
     btn.onclick = () => {
@@ -687,121 +782,6 @@ function setupDeletedToggle() {
     };
 }
 
-// Load OTP records for selected user
-async function loadUserOtps() {
-    const filterUserId = document.getElementById('filterSelect').value;
-    
-    if (!filterUserId) {
-        document.getElementById('otpRecordsList').innerHTML = `
-            <div class="text-center py-12 text-gray-400">
-                <i class="fas fa-user-circle text-4xl mb-3 opacity-40"></i><br/>
-                Select a user to view OTPs
-            </div>
-        `;
-        return;
-    }
-    
-    document.getElementById('otpRecordsList').innerHTML = `
-        <div class="text-center py-12">
-            <div class="loading-spinner inline-block w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-            <p class="mt-3 text-gray-500">Loading OTP records...</p>
-        </div>
-    `;
-    
-    // Get ALL user's allocated numbers (including deleted for OTP matching - earnings preserved)
-    const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,last3,range_name&user_id=eq.${filterUserId}`, {
-        headers: { 'apikey': API_KEY }
-    });
-    const userNumbers = await numRes.json();
-    const userLast3s = userNumbers.map(n => n.last3);
-    
-    if (userLast3s.length > 0) {
-        const last3Filter = userLast3s.map(l3 => `phone_last3=eq.${l3}`).join(',');
-        const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&or=(${last3Filter})&order=date.desc&limit=500`, {
-            headers: { 'apikey': API_KEY }
-        });
-        const userOtps = await otpRes.json();
-        
-        if (userOtps.length === 0) {
-            document.getElementById('otpRecordsList').innerHTML = `
-                <div class="text-center py-12 text-gray-400">
-                    <i class="fas fa-inbox text-4xl mb-3 opacity-40"></i><br/>
-                    📭 No OTPs found for this user
-                </div>
-            `;
-            return;
-        }
-        
-        const numberMap = new Map();
-        userNumbers.forEach(item => {
-            numberMap.set(item.last3, { number: item.number, range_name: item.range_name });
-        });
-        
-        let html = '';
-        for (const otp of userOtps) {
-            const numberInfo = numberMap.get(otp.phone_last3);
-            const phoneNumber = numberInfo?.number || otp.phone_last3;
-            const maskedNumber = phoneNumber.toString().replace(/\d(?=\d{4})/g, '*');
-            const rangeName = numberInfo?.range_name || otp.range || 'Unknown';
-            const timeStr = formatTime(otp.message_time);
-            
-            html += `
-                <div class="otp-entry">
-                    <div class="flex justify-between items-start flex-wrap gap-2">
-                        <div class="flex-1">
-                            <div class="flex items-center gap-2 mb-2 flex-wrap">
-                                <span class="text-xs text-gray-400">#${otp.id || ''}</span>
-                                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">📅 ${otp.date || 'N/A'}</span>
-                                <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
-                            </div>
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                                <div>
-                                    <span class="text-gray-500 text-xs">📞 Phone</span>
-                                    <p class="font-mono font-medium">${escapeHtml(maskedNumber)}</p>
-                                </div>
-                                <div>
-                                    <span class="text-gray-500 text-xs">🔐 Last3</span>
-                                    <p class="font-mono">${escapeHtml(otp.phone_last3)}</p>
-                                </div>
-                                <div>
-                                    <span class="text-gray-500 text-xs">✉️ Sender</span>
-                                    <p>${escapeHtml(otp.sender || otp.service || 'Unknown')}</p>
-                                </div>
-                                <div>
-                                    <span class="text-gray-500 text-xs">📌 Range</span>
-                                    <p>${escapeHtml(rangeName)}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-xs text-gray-400">${timeStr}</div>
-                            <div class="text-emerald-600 font-semibold text-sm mt-1">+$0.005</div>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-        
-        html += `
-            <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
-                <span class="font-semibold">Total: ${userOtps.length} OTPs</span>
-                <span class="mx-2">|</span>
-                <span class="font-bold text-purple-700">$${(userOtps.length * 0.005).toFixed(2)}</span>
-                <p class="text-xs text-gray-400 mt-1">✅ Includes OTPs from deleted numbers (earnings preserved)</p>
-            </div>
-        `;
-        
-        document.getElementById('otpRecordsList').innerHTML = html;
-    } else {
-        document.getElementById('otpRecordsList').innerHTML = `
-            <div class="text-center py-12 text-gray-400">
-                <i class="fas fa-database text-4xl mb-3 opacity-40"></i><br/>
-                📭 No numbers allocated to this user
-            </div>
-        `;
-    }
-}
-
 function setupDropdown() {
     const menuBtn = document.getElementById('menuBtn');
     const dropdown = document.getElementById('dropdown');
@@ -811,10 +791,9 @@ function setupDropdown() {
             dropdown.classList.toggle('hidden-dropdown');
         });
     }
-    
     document.addEventListener('click', function(e) {
-        if (!menuBtn.contains(e.target) && !dropdown.contains(e.target)) {
-            dropdown.classList.add('hidden-dropdown');
+        if (!menuBtn?.contains(e.target) && !dropdown?.contains(e.target)) {
+            dropdown?.classList.add('hidden-dropdown');
         }
     });
 }
@@ -824,8 +803,9 @@ window.softDeleteNumber = softDeleteNumber;
 window.softDeleteRangeNumbers = softDeleteRangeNumbers;
 window.restoreNumber = restoreNumber;
 
-document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); logout(); };
+document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); localStorage.removeItem('elite_session'); window.location.href = '../index.html'; };
 document.getElementById('addBtn').onclick = addNumbers;
+document.getElementById('totalStatsBtn').onclick = () => { window.location.href = 'total.html'; };
 
 async function init() {
     setupDropdown();
@@ -837,6 +817,7 @@ async function init() {
     setupDeletedToggle();
     
     document.getElementById('filterSelect').addEventListener('change', () => {
+        loadAllocatedNumbers();
         loadUserOtps();
     });
 }
