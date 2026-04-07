@@ -116,6 +116,21 @@
             border-radius: 20px;
             margin-left: 8px;
         }
+        
+        /* Loading spinner */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #7c3aed;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -148,8 +163,13 @@
         </div>
     </nav>
     
-    <!-- Main Content -->
-    <div id="content" class="max-w-4xl mx-auto p-4 fade-in"></div>
+    <!-- Main Content with loading indicator -->
+    <div id="content" class="max-w-4xl mx-auto p-4">
+        <div class="glass-card p-8 text-center">
+            <div class="loader"></div>
+            <p class="text-gray-500 mt-4">Loading your dashboard...</p>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -160,6 +180,8 @@ let currentUser = null;
 let activeNumbers = [];      // ONLY active numbers (is_deleted = false) for allocation page
 let allOtps = [];            // All OTPs for this user (including from deleted numbers for earnings)
 let deletedLast3s = new Set(); // Track last3 of deleted numbers for reference
+let isLoading = false;       // Prevent multiple simultaneous loads
+let dataLoaded = false;      // Track if data has been loaded
 
 // Helper Functions
 function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
@@ -177,6 +199,10 @@ function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m =
 
 // Get user from URL and load data
 async function initFromUrl() {
+    // Prevent multiple initialization
+    if (isLoading) return;
+    isLoading = true;
+    
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('id');
     
@@ -191,7 +217,7 @@ async function initFromUrl() {
         });
         const users = await res.json();
         
-        if (!users.length) {
+        if (!users || users.length === 0) {
             window.location.href = '../index.html';
             return;
         }
@@ -200,74 +226,105 @@ async function initFromUrl() {
         
         // Load user data
         await loadUserData();
+        dataLoaded = true;
         
-        // Setup menu
+        // Setup menu only after data is loaded
         const menu = document.getElementById('menu');
-        menu.onchange = () => handleMenu(menu.value);
+        if (menu) {
+            // Remove any existing listeners to prevent duplicates
+            const newMenu = menu.cloneNode(true);
+            menu.parentNode.replaceChild(newMenu, menu);
+            const finalMenu = document.getElementById('menu');
+            
+            finalMenu.onchange = () => {
+                const val = finalMenu.value;
+                if (val === 'logout') {
+                    localStorage.removeItem('elite_current_page');
+                    window.location.href = '../index.html';
+                } else if (val === 'support') {
+                    window.open('https://wa.me/2348113903584', '_blank');
+                    // Don't change page, just keep current
+                    const savedPage = localStorage.getItem('elite_current_page') || 'profile';
+                    finalMenu.value = savedPage;
+                    showPage(savedPage);
+                } else {
+                    localStorage.setItem('elite_current_page', val);
+                    showPage(val);
+                }
+            };
+        }
         
         // Get saved page from localStorage or default to profile
         const savedPage = localStorage.getItem('elite_current_page');
-        const pageToShow = (savedPage && savedPage !== 'logout' && savedPage !== 'support') ? savedPage : 'profile';
+        let pageToShow = 'profile';
+        if (savedPage && savedPage !== 'logout' && savedPage !== 'support') {
+            pageToShow = savedPage;
+        }
         
-        menu.value = pageToShow;
+        // Set menu value and show page
+        const menuSelect = document.getElementById('menu');
+        if (menuSelect) menuSelect.value = pageToShow;
         showPage(pageToShow);
         
     } catch (err) {
         console.error('Init error:', err);
-        window.location.href = '../index.html';
+        const contentDiv = document.getElementById('content');
+        if (contentDiv) {
+            contentDiv.innerHTML = `
+                <div class="glass-card p-8 text-center">
+                    <i class="fas fa-exclamation-triangle text-red-500 text-4xl mb-4"></i>
+                    <h2 class="text-xl font-bold text-gray-800">Connection Error</h2>
+                    <p class="text-gray-500 mt-2">Unable to load dashboard. Please check your internet connection.</p>
+                    <button onclick="location.reload()" class="mt-4 btn-purple text-white px-6 py-2 rounded-xl">Retry</button>
+                </div>
+            `;
+        }
+    } finally {
+        isLoading = false;
     }
 }
 
 // Load User Data - Separate active numbers from deleted ones
 async function loadUserData() {
-    // Fetch ONLY ACTIVE numbers (is_deleted = false) for allocation page
-    const activeRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}&is_deleted=eq.false`, {
-        headers: { 'apikey': SUPABASE_API_KEY }
-    });
-    activeNumbers = await activeRes.json();
-    
-    // Fetch ALL numbers (including deleted) to get complete OTP history
-    const allNumbersRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}`, {
-        headers: { 'apikey': SUPABASE_API_KEY }
-    });
-    const allUserNumbers = await allNumbersRes.json();
-    
-    // Get all last3 digits from ALL numbers the user ever had (including deleted)
-    const allLast3s = [...new Set(allUserNumbers.map(n => n.last3))];
-    
-    // Track which last3 belong to deleted numbers
-    const activeLast3s = new Set(activeNumbers.map(n => n.last3));
-    allUserNumbers.forEach(num => {
-        if (num.is_deleted === true) {
-            deletedLast3s.add(num.last3);
-        }
-    });
-    
-    // Fetch all OTPs for this user's numbers (including deleted ones for earnings)
-    if (allLast3s.length > 0) {
-        const last3Filter = allLast3s.map(l3 => `phone_last3=eq.${l3}`).join(',');
-        const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&or=(${last3Filter})&order=date.desc&limit=2000`, {
+    try {
+        // Fetch ONLY ACTIVE numbers (is_deleted = false) for allocation page
+        const activeRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}&is_deleted=eq.false`, {
             headers: { 'apikey': SUPABASE_API_KEY }
         });
-        allOtps = await otpRes.json();
-    } else {
+        activeNumbers = await activeRes.json();
+        
+        // Fetch ALL numbers (including deleted) to get complete OTP history
+        const allNumbersRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}`, {
+            headers: { 'apikey': SUPABASE_API_KEY }
+        });
+        const allUserNumbers = await allNumbersRes.json();
+        
+        // Get all last3 digits from ALL numbers the user ever had (including deleted)
+        const allLast3s = [...new Set(allUserNumbers.map(n => n.last3))];
+        
+        // Track which last3 belong to deleted numbers
+        deletedLast3s.clear();
+        allUserNumbers.forEach(num => {
+            if (num.is_deleted === true) {
+                deletedLast3s.add(num.last3);
+            }
+        });
+        
+        // Fetch all OTPs for this user's numbers (including deleted ones for earnings)
+        if (allLast3s.length > 0) {
+            const last3Filter = allLast3s.map(l3 => `phone_last3=eq.${l3}`).join(',');
+            const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&or=(${last3Filter})&order=date.desc&limit=2000`, {
+                headers: { 'apikey': SUPABASE_API_KEY }
+            });
+            allOtps = await otpRes.json();
+        } else {
+            allOtps = [];
+        }
+    } catch (err) {
+        console.error('Error loading user data:', err);
+        // Don't throw, just set empty arrays
+        activeNumbers = [];
         allOtps = [];
-    }
-}
-
-// Handle Menu Navigation
-function handleMenu(value) {
-    if (value === 'logout') {
-        localStorage.removeItem('elite_current_page');
-        window.location.href = '../index.html';
-    } else if (value === 'support') {
-        window.open('https://wa.me/2348113903584', '_blank');
-        const savedPage = localStorage.getItem('elite_current_page') || 'profile';
-        document.getElementById('menu').value = savedPage;
-        showPage(savedPage);
-    } else {
-        localStorage.setItem('elite_current_page', value);
-        showPage(value);
     }
 }
 
@@ -306,6 +363,7 @@ function profilePage() {
 // UPLOAD PROFILE PIC
 function uploadPic(e) {
     let file = e.target.files[0];
+    if (!file) return;
     let reader = new FileReader();
     reader.onload = () => {
         localStorage.setItem("avatar", reader.result);
@@ -333,6 +391,7 @@ function allocationPage() {
         <div class="mt-4 text-xs text-gray-400 text-center">✅ All numbers are always available - no daily limits applied</div>
     </div>`;
     
+    // Use setTimeout to ensure DOM is ready
     setTimeout(() => {
         const rangeSelect = document.getElementById('rangeSelect');
         if (rangeSelect && ranges.length > 0) {
@@ -361,7 +420,8 @@ function displayNumbers(r) {
         html += `<div class="mt-3 text-xs text-green-600 text-center">✨ ${numbers.length} active number(s)</div>`;
     }
     
-    document.getElementById('numBox').innerHTML = html;
+    const numBox = document.getElementById('numBox');
+    if (numBox) numBox.innerHTML = html;
 }
 
 // TODAY PAGE - Shows ALL OTPs from today (including from deleted numbers, no labels)
@@ -444,24 +504,40 @@ function totalPage() {
     </div>`;
 }
 
-// COUNTDOWN TO 1AM
-setInterval(() => {
-    let now = new Date();
-    let next = new Date();
-    next.setHours(1, 0, 0, 0);
-    if (now >= next) next.setDate(next.getDate() + 1);
-    
-    let diff = next - now;
-    let h = Math.floor(diff / 3600000);
-    let m = Math.floor((diff % 3600000) / 60000);
-    let s = Math.floor((diff % 60000) / 1000);
-    
-    let el = document.getElementById("countdown");
-    if (el) el.innerHTML = `<i class="fas fa-clock mr-1"></i> Day resets in ${h}h ${m}m ${s}s`;
-}, 1000);
+// COUNTDOWN TO 1AM - Use setInterval with cleanup
+let countdownInterval = null;
+
+function startCountdown() {
+    if (countdownInterval) clearInterval(countdownInterval);
+    countdownInterval = setInterval(() => {
+        let now = new Date();
+        let next = new Date();
+        next.setHours(1, 0, 0, 0);
+        if (now >= next) next.setDate(next.getDate() + 1);
+        
+        let diff = next - now;
+        let h = Math.floor(diff / 3600000);
+        let m = Math.floor((diff % 3600000) / 60000);
+        let s = Math.floor((diff % 60000) / 1000);
+        
+        let el = document.getElementById("countdown");
+        if (el) el.innerHTML = `<i class="fas fa-clock mr-1"></i> Day resets in ${h}h ${m}m ${s}s`;
+    }, 1000);
+}
 
 // PAST RECORDS PAGE - Shows all OTPs in date range (including from deleted numbers, no labels)
 function pastPage() {
+    // Small delay to ensure DOM is ready before setting date inputs
+    setTimeout(() => {
+        const today = new Date();
+        const weekAgo = new Date();
+        weekAgo.setDate(today.getDate() - 7);
+        const startInput = document.getElementById('start');
+        const endInput = document.getElementById('end');
+        if (startInput) startInput.value = weekAgo.toISOString().slice(0, 10);
+        if (endInput) endInput.value = today.toISOString().slice(0, 10);
+    }, 100);
+    
     return `
     <div class="glass-card p-6 fade-in">
         <h2 class="text-xl font-bold mb-4">📋 Past OTP Records <span class="unlimited-badge"><i class="fas fa-infinity mr-1"></i>All OTPs included</span></h2>
@@ -521,12 +597,15 @@ function filterPast() {
     
     let earn = (total * 0.005).toFixed(2);
     
+    const pastBox = document.getElementById('pastBox');
+    if (!pastBox) return;
+    
     if (!html) {
-        document.getElementById('pastBox').innerHTML = '<p class="text-center text-gray-400 py-4">No OTPs in this date range</p>';
+        pastBox.innerHTML = '<p class="text-center text-gray-400 py-4">No OTPs in this date range</p>';
         return;
     }
     
-    document.getElementById('pastBox').innerHTML = html + `
+    pastBox.innerHTML = html + `
     <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
         <span class="font-semibold">Total OTPs: ${total}</span>
         <span class="mx-2">|</span>
@@ -538,29 +617,27 @@ function filterPast() {
 // PAGE ROUTER
 function showPage(p) {
     const content = document.getElementById('content');
+    if (!content) return;
+    
+    // Start countdown only on total page
+    if (p === "total") {
+        startCountdown();
+    } else if (countdownInterval) {
+        clearInterval(countdownInterval);
+        countdownInterval = null;
+    }
     
     if (p !== 'support') {
         localStorage.setItem('elite_current_page', p);
         const menu = document.getElementById('menu');
-        if (menu) menu.value = p;
+        if (menu && menu.value !== p) menu.value = p;
     }
     
     if (p === "profile") content.innerHTML = profilePage();
     if (p === "allocation") content.innerHTML = allocationPage();
     if (p === "today") content.innerHTML = todayPage();
     if (p === "total") content.innerHTML = totalPage();
-    if (p === "past") {
-        const today = new Date();
-        const weekAgo = new Date();
-        weekAgo.setDate(today.getDate() - 7);
-        setTimeout(() => {
-            const startInput = document.getElementById('start');
-            const endInput = document.getElementById('end');
-            if (startInput) startInput.value = weekAgo.toISOString().slice(0, 10);
-            if (endInput) endInput.value = today.toISOString().slice(0, 10);
-        }, 50);
-        content.innerHTML = pastPage();
-    }
+    if (p === "past") content.innerHTML = pastPage();
 }
 
 // Make functions global
@@ -569,8 +646,12 @@ window.displayNumbers = displayNumbers;
 window.filterPast = filterPast;
 window.showPage = showPage;
 
-// Start app
-initFromUrl();
+// Start app - only once when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initFromUrl);
+} else {
+    initFromUrl();
+}
 </script>
 </body>
 </html>
