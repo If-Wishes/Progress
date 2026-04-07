@@ -167,7 +167,6 @@ let userLast3s = [];
 let deletedNumbersMap = new Map();
 let matchedOtpIds = new Set();
 let dataLoaded = false;
-let loadingPromises = {};
 
 // Helper Functions
 function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
@@ -228,26 +227,36 @@ async function loadUserDataParallel(userId) {
     if (!users.length) throw new Error('User not found');
     currentUser = users[0];
     
-    // Load allocated numbers and OTPs in parallel
-    const [numRes, otpRes] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}`, {
-            headers: { 'apikey': SUPABASE_API_KEY }
-        }),
-        fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=2000`, {
-            headers: { 'apikey': SUPABASE_API_KEY }
-        })
-    ]);
+    // Load allocated numbers (ONLY non-deleted ones for display)
+    const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}&is_deleted=eq.false`, {
+        headers: { 'apikey': SUPABASE_API_KEY }
+    });
     
-    userNumbers = await numRes.json();
-    const allOtpsRaw = await otpRes.json();
+    // Load OTPs
+    const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=2000`, {
+        headers: { 'apikey': SUPABASE_API_KEY }
+    });
+    
+    const [numbersData, allOtpsRaw] = await Promise.all([numRes.json(), otpRes.json()]);
+    
+    userNumbers = numbersData;
+    const allOtpsRawData = allOtpsRaw;
     
     // Process data
     userLast3s = [...new Set(userNumbers.map(n => getLast3Digits(n.number)))];
-    allOtps = allOtpsRaw.filter(otp => userLast3s.includes(otp.phone_last3));
+    allOtps = allOtpsRawData.filter(otp => userLast3s.includes(otp.phone_last3));
     
+    // Track deleted numbers for OTP display purposes (earnings preserved)
     const currentLast3s = new Set(userNumbers.map(n => n.last3));
+    // Also fetch ALL numbers (including deleted) for OTP matching to preserve earnings
+    const allNumbersRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=number,last3,range_name&user_id=eq.${currentUser.id}`, {
+        headers: { 'apikey': SUPABASE_API_KEY }
+    });
+    const allNumbers = await allNumbersRes.json();
+    const allLast3s = new Set(allNumbers.map(n => n.last3));
+    
     allOtps.forEach(otp => {
-        if (!currentLast3s.has(otp.phone_last3)) {
+        if (!currentLast3s.has(otp.phone_last3) && allLast3s.has(otp.phone_last3)) {
             deletedNumbersMap.set(otp.phone_last3, true);
         }
     });
@@ -271,7 +280,12 @@ async function processUnmatchedOtpsBackground() {
     
     for (const otp of allOtps) {
         if (matchedOtpIds.has(otp.id)) continue;
-        const matchedNumber = userNumbers.find(n => getLast3Digits(n.number) === otp.phone_last3);
+        // Find matching number (including deleted ones for earnings)
+        const allNumbersRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=id,number,last3,range_name&user_id=eq.${currentUser.id}&last3=eq.${otp.phone_last3}`, {
+            headers: { 'apikey': SUPABASE_API_KEY }
+        });
+        const matchedNumbers = await allNumbersRes.json();
+        const matchedNumber = matchedNumbers[0];
         if (matchedNumber) {
             await sendToMatchOtp(otp, matchedNumber);
             matchedOtpIds.add(otp.id);
@@ -342,8 +356,8 @@ async function loadPageContent(pageName) {
             `;
             for (const otp of todayOtps) {
                 let match = userNumbers.find(n => getLast3Digits(n.number) === otp.phone_last3);
-                let phoneDisplay = match ? match.number : '***' + otp.phone_last3;
-                let rangeName = otp.range || match?.range_name || '-';
+                let phoneDisplay = match ? match.number : (deletedNumbersMap.has(otp.phone_last3) ? 'Deleted Number' : '***' + otp.phone_last3);
+                let rangeName = otp.range || match?.range_name || (deletedNumbersMap.has(otp.phone_last3) ? 'Deleted' : '-');
                 html += `
                 <div class="otp-entry">
                     <div class="flex justify-between items-start flex-wrap gap-2">
@@ -489,8 +503,8 @@ function filterPast() {
         let d = getPanelDate(o);
         if (d >= s && d <= e) {
             let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-            let phoneDisplay = match ? match.number : '***' + o.phone_last3;
-            let rangeDisplay = o.range || match?.range_name || '-';
+            let phoneDisplay = match ? match.number : (deletedNumbersMap.has(o.phone_last3) ? 'Deleted Number' : '***' + o.phone_last3);
+            let rangeDisplay = o.range || match?.range_name || (deletedNumbersMap.has(o.phone_last3) ? 'Deleted' : '-');
             total++;
             html += `
             <div class="otp-entry">
