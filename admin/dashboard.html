@@ -2,459 +2,577 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ELITE Admin | Smart OTP Tracker</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>ELITE Panel | Allocations Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        .hidden-dropdown { display: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+            min-height: 100vh;
+            font-weight: 500;
+        }
+        
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.4s ease-in-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .stat-card {
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.4);
+        }
+        
+        .stat-card p {
+            font-weight: 600;
+        }
+        
+        .stat-card .text-2xl {
+            font-weight: 800;
+        }
+        
+        .allocation-badge {
+            background: linear-gradient(135deg, #7c3aed, #6d28d9);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.8rem;
+        }
+        
         .loading-spinner {
             display: inline-block;
-            width: 24px;
-            height: 24px;
+            width: 30px;
+            height: 30px;
             border: 3px solid #e9d5ff;
             border-radius: 50%;
             border-top-color: #7c3aed;
             animation: spin 0.8s linear infinite;
         }
+        
         @keyframes spin { to { transform: rotate(360deg); } }
-        .stat-card { transition: all 0.3s ease; }
-        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.3); }
-        .otp-entry {
+        
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 10px; }
+        
+        .filter-bar {
+            background: white;
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .filter-bar label {
+            font-weight: 600;
+            color: #4a1d8c;
+        }
+        
+        .quick-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        
+        .quick-btn {
+            background: #f3e8ff;
+            color: #6d28d9;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+        
+        .quick-btn:hover {
+            background: #7c3aed;
+            color: white;
+        }
+        
+        .quick-btn.active {
+            background: #7c3aed;
+            color: white;
+        }
+        
+        /* Table Styles */
+        .table-wrapper {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'Courier New', 'Monaco', monospace;
+            font-size: 13px;
             background: white;
             border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        
+        th {
+            background: #f5f3ff;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 800;
             border: 1px solid #e9d5ff;
-            transition: all 0.2s;
+            border-bottom: 2px solid #c4b5fd;
+            font-size: 13px;
+            white-space: nowrap;
+            color: #5b21b6;
         }
-        .otp-entry:hover { border-color: #7c3aed; box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1); }
-        .otp-badge {
-            background: linear-gradient(135deg, #7c3aed, #6d28d9);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: bold;
+        
+        td {
+            padding: 10px 15px;
+            border: 1px solid #f0e6ff;
+            vertical-align: top;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+        
+        tr:hover td {
+            background: #faf5ff;
+        }
+        
+        .loading, .no-data {
+            text-align: center;
+            padding: 60px;
             font-family: monospace;
-            font-size: 0.9rem;
+            font-size: 14px;
+            font-weight: 600;
+            color: #7c3aed;
         }
-        .nav-link:hover { background-color: #f5f3ff; color: #7c3aed; }
-        .table-container::-webkit-scrollbar { width: 6px; height: 6px; }
-        .table-container::-webkit-scrollbar-track { background: #f3e8ff; border-radius: 10px; }
-        .table-container::-webkit-scrollbar-thumb { background: #a78bfa; border-radius: 10px; }
+        
+        h1, h2 {
+            font-weight: 800;
+        }
+        
+        .text-gray-500 {
+            font-weight: 500;
+            color: #6b7280;
+        }
+        
+        .text-purple-100 {
+            font-weight: 600;
+        }
+        
+        .text-xs {
+            font-weight: 500;
+        }
+        
+        .font-mono {
+            font-weight: 600;
+        }
+        
+        #statAllocs, #statRanges, #statNumbers {
+            font-weight: 800;
+        }
+        
+        footer div {
+            font-weight: 600;
+        }
+        
+        /* Dropdown Menu Styles */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .dropdown-btn {
+            background: white;
+            color: #5b21b6;
+            padding: 10px 16px;
+            border-radius: 40px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            transition: all 0.2s;
+            border: 1px solid #e9d5ff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .dropdown-btn:hover {
+            background: #7c3aed;
+            color: white;
+            border-color: #7c3aed;
+        }
+        
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 8px;
+            background: white;
+            min-width: 200px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+            overflow: hidden;
+            border: 1px solid #e9d5ff;
+        }
+        
+        .dropdown-content a {
+            color: #333;
+            padding: 12px 18px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 600;
+            transition: all 0.2s;
+            border-bottom: 1px solid #f0e6ff;
+        }
+        
+        .dropdown-content a:last-child {
+            border-bottom: none;
+        }
+        
+        .dropdown-content a:hover {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+        
+        .dropdown-content .logout {
+            color: #dc2626;
+        }
+        
+        .dropdown-content .logout:hover {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+        
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        
+        /* Header adjustment */
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
-<body class="bg-gradient-to-br from-purple-50 to-gray-100 min-h-screen">
+<body>
 
-<nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-            <div class="flex items-center gap-4">
-                <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-purple-600 to-purple-800 flex items-center justify-center shadow-md">
-                    <i class="fas fa-crown text-white text-sm"></i>
+<div class="min-h-screen p-4">
+    
+    <!-- Header with Dropdown -->
+    <div class="max-w-7xl mx-auto">
+        <div class="header-container">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl flex items-center justify-center shadow-lg">
+                    <i class="fas fa-phone-alt text-white text-xl"></i>
                 </div>
-                <span class="text-xl font-bold text-gray-800">ELITE<span class="text-purple-600">Admin</span></span>
-                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full font-medium">Smart Tracker</span>
-            </div>
-            <div class="flex items-center gap-4 relative">
-                <div class="text-right"><p class="text-sm font-medium text-gray-800" id="adminName">Admin</p><p class="text-xs text-gray-500">Dashboard</p></div>
-                <div class="relative">
-                    <button id="menuBtn" class="bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition"><i class="fas fa-user-shield text-purple-600"></i><i class="fas fa-chevron-down text-xs"></i></button>
-                    <div id="dropdown" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden">
-                        <a href="dashboard.html" class="nav-link block px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-tachometer-alt mr-2 text-purple-500"></i>Dashboard</a>
-                        <a href="users.html" class="nav-link block px-4 py-2.5 text-gray-700"><i class="fas fa-users mr-2 text-purple-500"></i>Users</a>
-                        <a href="analytics.html" class="nav-link block px-4 py-2.5 text-gray-700"><i class="fas fa-phone-alt mr-2 text-purple-500"></i>Range Allocation</a>
-                        <a href="activities.html" class="nav-link block px-4 py-2.5 text-gray-700"><i class="fas fa-history mr-2 text-purple-500"></i>Activities</a>
-                        <div class="border-t border-gray-100 my-1"></div>
-                        <a href="#" id="logoutBtn" class="nav-link block px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i>Logout</a>
-                    </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">ELITE<span class="text-purple-600">Allocations</span></h1>
+                    <p class="text-gray-500 text-sm font-semibold">Number Allocations Tracker</p>
                 </div>
             </div>
-        </div>
-    </div>
-</nav>
-
-<main class="max-w-7xl mx-auto px-4 py-8">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">📊 OTP Tracker</h1>
-        <p class="text-gray-500 text-sm mt-1">Tracking ALL OTPs received in the system (no filtering by allocation)</p>
-    </div>
-
-    <!-- Date Range Filter Section -->
-    <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 mb-8">
-        <h3 class="font-semibold text-gray-800 mb-4 flex items-center gap-2"><i class="fas fa-calendar-alt text-purple-500"></i>Filter by Date Range</h3>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">📅 Start Date</label>
-                <input type="date" id="startDate" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">📅 End Date</label>
-                <input type="date" id="endDate" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
-            </div>
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">👤 Filter by User</label>
-                <select id="userFilter" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
-                    <option value="all">All Users</option>
-                </select>
-            </div>
-            <div class="flex items-end">
-                <button id="filterBtn" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-4 py-2.5 rounded-xl transition shadow-md">
-                    <i class="fas fa-filter mr-2"></i>Apply Filter
-                </button>
-            </div>
-        </div>
-        <div id="filterResult" class="mt-4 text-sm text-gray-600 hidden bg-purple-50 p-3 rounded-lg">
-            <i class="fas fa-chart-line mr-1 text-purple-500"></i>Showing OTPs from <span id="filterStartDate" class="font-medium text-purple-700"></span> to <span id="filterEndDate" class="font-medium text-purple-700"></span>
-            <span id="filterUserInfo" class="ml-3"></span>
-        </div>
-    </div>
-
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div class="stat-card bg-gradient-to-br from-purple-600 to-purple-800 rounded-2xl shadow-lg p-6 text-white">
-            <p class="text-purple-100 text-sm font-medium">Total Users</p>
-            <p class="text-white text-3xl font-bold mt-2" id="statUsers">0</p>
-        </div>
-        <div class="stat-card bg-gradient-to-br from-emerald-600 to-emerald-700 rounded-2xl shadow-lg p-6 text-white">
-            <p class="text-emerald-100 text-sm font-medium">Total Numbers</p>
-            <p class="text-white text-3xl font-bold mt-2" id="statNumbers">0</p>
-            <p class="text-emerald-100 text-xs mt-1">(Active + Deleted)</p>
-        </div>
-        <div class="stat-card bg-gradient-to-br from-amber-500 to-amber-600 rounded-2xl shadow-lg p-6 text-white">
-            <p class="text-amber-100 text-sm font-medium">Total OTPs</p>
-            <p class="text-white text-3xl font-bold mt-2" id="statOtps">0</p>
-            <p class="text-amber-100 text-xs mt-1">(All OTPs in date range)</p>
-        </div>
-        <div class="stat-card bg-gradient-to-br from-rose-500 to-rose-600 rounded-2xl shadow-lg p-6 text-white">
-            <p class="text-rose-100 text-sm font-medium">Total Earnings</p>
-            <p class="text-white text-3xl font-bold mt-2" id="statEarnings">$0.00</p>
-            <p class="text-rose-100 text-xs mt-1">($0.005 per OTP)</p>
-        </div>
-    </div>
-
-    <!-- OTP Records - Card View -->
-    <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
-        <div class="p-4 border-b border-purple-100 bg-gradient-to-r from-purple-50 to-white flex justify-between items-center">
-            <h3 class="font-semibold text-gray-800"><i class="fas fa-list mr-2 text-purple-500"></i>OTP Records</h3>
-            <div class="text-sm text-gray-500">
-                <i class="fas fa-info-circle mr-1 text-purple-400"></i> Showing ALL OTPs received in the selected date range
-            </div>
-        </div>
-        <div id="otpRecordsList" class="p-4 space-y-3 max-h-[600px] overflow-y-auto">
-            <div class="text-center py-12 text-gray-400">
-                <div class="loading-spinner mx-auto mb-3"></div>
-                <p>Loading OTP records...</p>
+            
+            <!-- Dropdown Menu -->
+            <div class="dropdown">
+                <div class="dropdown-btn">
+                    <i class="fas fa-bars"></i>
+                    <span>Menu</span>
+                    <i class="fas fa-chevron-down text-xs"></i>
+                </div>
+                <div class="dropdown-content">
+                    <a href="dashboard.html">
+                        <i class="fas fa-tachometer-alt w-5 text-purple-500"></i>
+                        Dashboard
+                    </a>
+                    <a href="users.html">
+                        <i class="fas fa-users w-5 text-purple-500"></i>
+                        Users
+                    </a>
+                    <a href="analytics.html">
+                        <i class="fas fa-chart-line w-5 text-purple-500"></i>
+                        Analytics
+                    </a>
+                    <a href="activities.html">
+                        <i class="fas fa-history w-5 text-purple-500"></i>
+                        Activities
+                    </a>
+                    <a href="#" id="logoutBtn" class="logout">
+                        <i class="fas fa-sign-out-alt w-5"></i>
+                        Logout
+                    </a>
+                </div>
             </div>
         </div>
     </div>
-</main>
+    
+    <div class="max-w-7xl mx-auto mt-4">
+        
+        <!-- Filter Section -->
+        <div class="filter-bar">
+            <div class="flex flex-col md:flex-row gap-4">
+                <div class="flex-1">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">📅 Start Date</label>
+                    <input type="date" id="startDate" class="w-full border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none font-medium">
+                </div>
+                <div class="flex-1">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">📅 End Date</label>
+                    <input type="date" id="endDate" class="w-full border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none font-medium">
+                </div>
+                <div class="flex items-end">
+                    <button id="filterBtn" class="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white px-6 py-2 rounded-xl transition shadow-md font-bold">
+                        <i class="fas fa-filter mr-2"></i>Apply
+                    </button>
+                </div>
+            </div>
+            <div class="quick-filter">
+                <button class="quick-btn" data-days="1">Today</button>
+                <button class="quick-btn" data-days="7">Last 7 Days</button>
+                <button class="quick-btn" data-days="30">Last 30 Days</button>
+                <button class="quick-btn" data-days="0">All Time</button>
+            </div>
+        </div>
+        
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+            <div class="stat-card rounded-2xl p-4 text-white">
+                <p class="text-purple-100 text-xs font-bold">Total Allocations</p>
+                <p class="text-2xl font-extrabold" id="statAllocs">0</p>
+            </div>
+            <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #d97706, #b45309);">
+                <p class="text-amber-100 text-xs font-bold">Unique Ranges</p>
+                <p class="text-2xl font-extrabold" id="statRanges">0</p>
+            </div>
+            <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #7c3aed, #6d28d9);">
+                <p class="text-purple-100 text-xs font-bold">Total Numbers</p>
+                <p class="text-2xl font-extrabold" id="statNumbers">0</p>
+            </div>
+        </div>
+        
+        <!-- Table Display - Ranges as Columns -->
+        <div class="glass-card p-6">
+            <h2 class="text-xl font-extrabold mb-4 flex items-center gap-2">
+                <i class="fas fa-table text-purple-600"></i>
+                Allocations by Range
+                <span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full ml-2 font-bold">Numbers listed under each range</span>
+            </h2>
+            <div class="table-wrapper">
+                <table id="allocTable">
+                    <tbody>
+                        <tr><td class="loading">Loading allocations...<\/td><\/tr>
+                    </tbody>
+                <\/table>
+            <\/div>
+        <\/div>
+        
+        <!-- Footer -->
+        <div class="text-center text-gray-400 text-xs mt-6 font-semibold">
+            <i class="fas fa-chart-line mr-1"></i> ELITE Panel - All Allocations (Active + Deleted)
+        <\/div>
+    <\/div>
+<\/div>
 
 <script>
 const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
 const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
 
-const session = JSON.parse(localStorage.getItem('elite_session') || 'null');
-if (!session || session.role !== 'admin') window.location.href = '../index.html';
-document.getElementById('adminName').innerText = session.username || 'Administrator';
+let allAllocations = [];
 
-let allUsers = [];
-let allAllocatedNumbers = [];
-let allOtps = [];
-let userNumberMap = new Map(); // Maps user_id to user object
-let last3ToUserMap = new Map(); // Maps last3 to user_id
+// Fetch Allocations
+async function fetchAllocations() {
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&order=allocated_at.desc&limit=50000`, {
+            headers: { 'apikey': API_KEY }
+        });
+        const data = await response.json();
+        console.log(`Fetched ${data.length} allocations`);
+        return data || [];
+    } catch (err) {
+        console.error('Error fetching allocations:', err);
+        return [];
+    }
+}
+
+// Process Allocations
+function processAllocations(allocations) {
+    return allocations.map(alloc => ({
+        date: alloc.allocated_at ? alloc.allocated_at.split('T')[0] : null,
+        number: alloc.number,
+        last3: alloc.last3,
+        rangeName: alloc.range_name || 'NO_RANGE',
+        country: alloc.country || 'N/A'
+    })).filter(item => item.date);
+}
+
+// DISPLAY IN TABLE - RANGES AS COLUMNS
+function displayData(data) {
+    if (data.length === 0) {
+        document.getElementById('allocTable').innerHTML = '<tbody><tr><td class="no-data">No allocations found for selected period<\/td><\/tr><\/tbody>';
+        document.getElementById('statAllocs').textContent = '0';
+        document.getElementById('statRanges').textContent = '0';
+        document.getElementById('statNumbers').textContent = '0';
+        return;
+    }
+
+    // Group by range name
+    const grouped = {};
+    data.forEach(item => {
+        const range = item.rangeName;
+        if (!grouped[range]) {
+            grouped[range] = [];
+        }
+        grouped[range].push(item.number);
+    });
+
+    // Get ranges sorted alphabetically
+    const ranges = Object.keys(grouped).sort();
+
+    // Find longest column length
+    let maxLength = 0;
+    ranges.forEach(r => {
+        if (grouped[r].length > maxLength) {
+            maxLength = grouped[r].length;
+        }
+    });
+
+    // Build HTML table
+    let html = '<thead><tr>';
+    for (const range of ranges) {
+        html += `<th>${escapeHtml(range)}<br><span style="font-size: 10px; font-weight: 600;">(${grouped[range].length})<\/span><\/th>`;
+    }
+    html += '<\/thead><tbody>';
+
+    // Create rows - each row contains one number from each column
+    for (let i = 0; i < maxLength; i++) {
+        html += '<tr>';
+        for (const range of ranges) {
+            const number = grouped[range][i] || '';
+            html += `<td>${escapeHtml(number)}<\/td>`;
+        }
+        html += '<\/tr>';
+    }
+    html += '<\/tbody>';
+
+    document.getElementById('allocTable').innerHTML = html;
+
+    // Update stats
+    const totalNumbers = data.length;
+    const uniqueRanges = ranges.length;
+    
+    document.getElementById('statAllocs').textContent = totalNumbers;
+    document.getElementById('statRanges').textContent = uniqueRanges;
+    document.getElementById('statNumbers').textContent = totalNumbers;
+}
+
+// Apply date filter
+function applyFilter() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+
+    let filtered = [...allAllocations];
+
+    if (startDate && endDate) {
+        filtered = filtered.filter(x => x.date >= startDate && x.date <= endDate);
+    }
+
+    displayData(filtered);
+}
 
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m));
 }
 
-function maskPhoneNumber(phoneNumber) {
-    if (!phoneNumber) return '***';
-    const digits = phoneNumber.toString().replace(/\D/g, '');
-    if (digits.length <= 6) return '***' + digits.slice(-3);
-    return digits.slice(0,2) + '•'.repeat(Math.min(7, digits.length - 5)) + digits.slice(-3);
-}
-
-function formatTime(messageTime) {
-    if (messageTime) {
-        const d = new Date(messageTime);
-        if (!isNaN(d.getTime())) return d.toLocaleTimeString();
-    }
-    return '-';
-}
-
-function formatDate(dateStr) {
-    if (!dateStr) return 'N/A';
-    const d = new Date(dateStr);
-    if (!isNaN(d.getTime())) return d.toLocaleDateString();
-    return dateStr;
-}
-
-async function fetchAllUsers() {
-    try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&role=eq.user`, {
-            headers: { 'apikey': API_KEY }
-        });
-        allUsers = await res.json();
-        userNumberMap.clear();
-        allUsers.forEach(user => {
-            userNumberMap.set(user.id, user);
-        });
-        return allUsers;
-    } catch (err) {
-        console.error("Fetch users error:", err);
-        return [];
-    }
-}
-
-async function fetchAllAllocatedNumbers() {
-    try {
-        // Fetch ALL allocated numbers (including deleted ones for complete data)
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)`, {
-            headers: { 'apikey': API_KEY }
-        });
-        const data = await res.json();
-        allAllocatedNumbers = data || [];
-        
-        // Build last3 to user mapping
-        last3ToUserMap.clear();
-        for (const allocated of allAllocatedNumbers) {
-            if (allocated.last3) {
-                last3ToUserMap.set(allocated.last3, {
-                    userId: allocated.user_id,
-                    username: allocated.users?.username || 'Unknown',
-                    range: allocated.range_name || allocated.country || 'Unknown',
-                    fullNumber: allocated.number,
-                    isDeleted: allocated.is_deleted === true
-                });
+// Setup quick filters
+function setupQuickFilters() {
+    const buttons = document.querySelectorAll('.quick-btn');
+    const today = new Date();
+    
+    buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            const days = parseInt(btn.dataset.days);
+            const endDate = today.toISOString().slice(0, 10);
+            let startDate;
+            
+            if (days === 0) {
+                startDate = '2020-01-01';
+            } else if (days === 1) {
+                startDate = endDate;
+            } else {
+                const start = new Date();
+                start.setDate(today.getDate() - days + 1);
+                startDate = start.toISOString().slice(0, 10);
             }
-        }
-        
-        return allAllocatedNumbers;
-    } catch (err) {
-        console.error("Fetch allocated numbers error:", err);
-        return [];
-    }
+            
+            document.getElementById('startDate').value = startDate;
+            document.getElementById('endDate').value = endDate;
+            applyFilter();
+        });
+    });
 }
 
-async function fetchOtps(startDate, endDate) {
-    try {
-        let url = `${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=5000`;
-        if (startDate && endDate) {
-            // Filter by date range
-            url = `${SUPABASE_URL}/rest/v1/otp_logs?select=*&date=gte.${startDate}&date=lte.${endDate}&order=date.desc&limit=5000`;
-        }
-        const res = await fetch(url, { headers: { 'apikey': API_KEY } });
-        const data = await res.json();
-        console.log(`Fetched ${data.length} OTPs for date range ${startDate} to ${endDate}`);
-        return data || [];
-    } catch (err) {
-        console.error("Fetch OTPs error:", err);
-        return [];
-    }
-}
-
-async function loadUserFilterDropdown() {
-    const userFilter = document.getElementById('userFilter');
-    if (!userFilter) return;
-    
-    userFilter.innerHTML = '<option value="all">All Users</option>';
-    for (const user of allUsers) {
-        userFilter.innerHTML += `<option value="${user.id}">${escapeHtml(user.username)}</option>`;
-    }
-}
-
-async function loadGlobalStats() {
-    try {
-        // Total users
-        document.getElementById('statUsers').textContent = allUsers.length;
-        
-        // Total numbers (including deleted)
-        document.getElementById('statNumbers').textContent = allAllocatedNumbers.length;
-    } catch (err) {
-        console.error("Stats error:", err);
-    }
-}
-
-async function loadOtps() {
-    const startDate = document.getElementById('startDate').value;
-    const endDate = document.getElementById('endDate').value;
-    const selectedUserId = document.getElementById('userFilter').value;
-    
-    console.log(`Loading OTPs from ${startDate} to ${endDate}, user filter: ${selectedUserId}`);
-    
-    document.getElementById('otpRecordsList').innerHTML = `
-        <div class="text-center py-12 text-gray-400">
-            <div class="loading-spinner mx-auto mb-3"></div>
-            <p>Loading OTP records...</p>
-        </div>
-    `;
-    
-    // Fetch all data
-    await Promise.all([fetchAllUsers(), fetchAllAllocatedNumbers()]);
-    allOtps = await fetchOtps(startDate, endDate);
-    await loadUserFilterDropdown();
-    await loadGlobalStats();
-    
-    // Filter OTPs by user if selected
-    let filteredOtps = [...allOtps];
-    
-    if (selectedUserId !== 'all') {
-        // Get all last3 digits for this user
-        const userLast3s = new Set();
-        for (const allocated of allAllocatedNumbers) {
-            if (allocated.user_id === selectedUserId && allocated.last3) {
-                userLast3s.add(allocated.last3);
-            }
-        }
-        filteredOtps = allOtps.filter(otp => userLast3s.has(otp.phone_last3));
-        console.log(`Filtered to ${filteredOtps.length} OTPs for user ${selectedUserId}`);
-    }
-    
-    // Update stats with ALL OTPs (including those without user mapping for earnings)
-    const totalOtps = filteredOtps.length;
-    const totalEarnings = totalOtps * 0.005;
-    
-    document.getElementById('statOtps').textContent = totalOtps;
-    document.getElementById('statEarnings').textContent = `$${totalEarnings.toFixed(2)}`;
-    
-    if (startDate && endDate) {
-        document.getElementById('filterStartDate').textContent = startDate;
-        document.getElementById('filterEndDate').textContent = endDate;
-        const selectedUserName = selectedUserId !== 'all' 
-            ? userNumberMap.get(selectedUserId)?.username || 'Selected User'
-            : '';
-        document.getElementById('filterUserInfo').innerHTML = selectedUserName ? ` | 👤 ${escapeHtml(selectedUserName)}` : '';
-        document.getElementById('filterResult').classList.remove('hidden');
-    } else {
-        document.getElementById('filterResult').classList.add('hidden');
-    }
-    
-    if (filteredOtps.length === 0) {
-        document.getElementById('otpRecordsList').innerHTML = `
-            <div class="text-center py-12 text-gray-400">
-                <i class="fas fa-inbox text-4xl mb-3 opacity-40"></i><br/>
-                📭 No OTPs found in this date range
-            </div>
-        `;
-        return;
-    }
-    
-    // Display OTPs as cards
-    let html = '';
-    
-    for (const otp of filteredOtps) {
-        const numberInfo = last3ToUserMap.get(otp.phone_last3);
-        const phoneNumber = numberInfo?.fullNumber || otp.phone_last3;
-        const maskedNumber = maskPhoneNumber(phoneNumber);
-        const userName = numberInfo?.username || (otp.user_name) || 'Unknown User';
-        const rangeName = numberInfo?.range || otp.range || 'Unknown';
-        const timeStr = formatTime(otp.message_time);
-        const isDeleted = numberInfo?.isDeleted || false;
-        
-        html += `
-            <div class="otp-entry ${isDeleted ? 'border-yellow-200 bg-yellow-50/30' : ''}">
-                <div class="flex justify-between items-start flex-wrap gap-2">
-                    <div class="flex-1">
-                        <div class="flex items-center gap-2 mb-2 flex-wrap">
-                            <span class="text-xs text-gray-400">#${otp.id || ''}</span>
-                            <span class="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">📅 ${formatDate(otp.date)}</span>
-                            <span class="otp-badge text-xs">${escapeHtml(otp.otp)}</span>
-                            ${isDeleted ? '<span class="text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full"><i class="fas fa-trash-alt mr-1"></i>Number Deleted</span>' : '<span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✓ Active</span>'}
-                        </div>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
-                            <div>
-                                <span class="text-gray-500 text-xs">👤 User</span>
-                                <p class="font-medium">${escapeHtml(userName)}</p>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 text-xs">📞 Phone</span>
-                                <p class="font-mono font-medium">${escapeHtml(maskedNumber)}</p>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 text-xs">🔐 Last3</span>
-                                <p class="font-mono">${escapeHtml(otp.phone_last3)}</p>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 text-xs">✉️ Sender</span>
-                                <p>${escapeHtml(otp.sender || otp.service || 'Unknown')}</p>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 text-xs">🌍 Country</span>
-                                <p>${escapeHtml(otp.country || '-')}</p>
-                            </div>
-                            <div>
-                                <span class="text-gray-500 text-xs">📌 Range</span>
-                                <p>${escapeHtml(rangeName)}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="text-right">
-                        <div class="text-xs text-gray-400">${timeStr}</div>
-                        <div class="text-emerald-600 font-semibold text-sm mt-1">+$0.005</div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // Add summary
-    html += `
-        <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
-            <span class="font-semibold">Total OTPs: ${filteredOtps.length}</span>
-            <span class="mx-2">|</span>
-            <span class="font-bold text-purple-700">$${totalEarnings.toFixed(2)}</span>
-            <span class="mx-2">|</span>
-            <span class="text-xs text-gray-500">${filteredOtps.filter(o => last3ToUserMap.get(o.phone_last3)?.isDeleted).length} from deleted numbers</span>
-        </div>
-    `;
-    
-    document.getElementById('otpRecordsList').innerHTML = html;
-}
-
-function setDefaultDates() {
-    const end = new Date();
-    const start = new Date();
-    start.setDate(end.getDate() - 7);
-    
-    const startInput = document.getElementById('startDate');
-    const endInput = document.getElementById('endDate');
-    
-    if (startInput && !startInput.value) {
-        startInput.value = start.toISOString().slice(0, 10);
-    }
-    if (endInput && !endInput.value) {
-        endInput.value = end.toISOString().slice(0, 10);
-    }
-}
-
+// Logout function
 function logout() {
     localStorage.removeItem('elite_session');
     window.location.href = '../index.html';
 }
 
-function setupDropdown() {
-    const menuBtn = document.getElementById('menuBtn');
-    const dropdown = document.getElementById('dropdown');
-    if (menuBtn) {
-        menuBtn.onclick = (e) => {
-            e.stopPropagation();
-            dropdown.classList.toggle('hidden-dropdown');
-        };
-        document.addEventListener('click', () => dropdown.classList.add('hidden-dropdown'));
-    }
-}
-
+// Init
 async function init() {
-    setupDropdown();
-    setDefaultDates();
-    document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); logout(); };
-    document.getElementById('filterBtn').onclick = () => loadOtps();
-    await loadOtps();
+    document.getElementById('allocTable').innerHTML = '<tbody><tr><td class="loading">Loading allocations...<\/td><\/tr><\/tbody>';
+    
+    const raw = await fetchAllocations();
+    allAllocations = processAllocations(raw);
+    console.log(`Processed ${allAllocations.length} allocations`);
+
+    const today = new Date();
+    const weekAgo = new Date();
+    weekAgo.setDate(today.getDate() - 7);
+
+    document.getElementById('startDate').value = weekAgo.toISOString().slice(0, 10);
+    document.getElementById('endDate').value = today.toISOString().slice(0, 10);
+
+    setupQuickFilters();
+    applyFilter();
 }
 
-document.addEventListener('DOMContentLoaded', init);
+// Events
+document.getElementById('filterBtn').onclick = applyFilter;
+document.getElementById('startDate').onchange = applyFilter;
+document.getElementById('endDate').onchange = applyFilter;
+document.getElementById('logoutBtn').onclick = function(e) {
+    e.preventDefault();
+    logout();
+};
+
+// Run
+init();
 </script>
+
 </body>
 </html>
