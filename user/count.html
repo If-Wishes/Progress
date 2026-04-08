@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>ELITE Panel | My Statistics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); min-height: 100vh; }
+        .glass-card { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 24px; box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.1); }
+        .stat-card { transition: all 0.3s ease; background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
+        .stat-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.4); }
+        .btn-purple { background: linear-gradient(135deg, #7c3aed, #6d28d9); transition: all 0.2s; }
+        .btn-purple:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3); }
+        .range-item { padding: 12px 20px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .range-item:hover { background-color: #faf5ff; }
+        .range-name { font-weight: 600; color: #374151; }
+        .range-count { font-weight: bold; color: #7c3aed; font-size: 1.1rem; }
+        .range-earnings { color: #10b981; font-weight: 600; }
+        .loading-spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid #e9d5ff; border-radius: 50%; border-top-color: #7c3aed; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .hidden-dropdown { display: none !important; }
+        .nav-link { transition: all 0.2s; display: block; width: 100%; text-align: left; }
+        .nav-link:hover { background-color: #f5f3ff; color: #7c3aed; }
+        .dropdown-enter { animation: dropdownFade 0.2s ease; }
+        @keyframes dropdownFade { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+
+<nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-800 rounded-xl flex items-center justify-center shadow-md">
+                <i class="fas fa-crown text-white text-sm"></i>
+            </div>
+            <div>
+                <span class="text-xl font-bold text-gray-800">ELITE<span class="text-purple-600">Panel</span></span>
+                <span class="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">My Statistics</span>
+            </div>
+        </div>
+        <div class="relative">
+            <button id="menuBtn" class="bg-gray-100 hover:bg-purple-50 rounded-full px-3 py-2 transition cursor-pointer flex items-center gap-2">
+                <i class="fas fa-user-circle text-purple-600 text-lg"></i>
+                <i class="fas fa-chevron-down text-gray-500 text-xs"></i>
+            </button>
+            <div id="dropdown" class="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 hidden-dropdown z-50 overflow-hidden dropdown-enter">
+                <a href="dashboard.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-user w-5 text-purple-500 mr-2"></i> Profile</a>
+                <a href="allocation.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-phone-alt w-5 text-purple-500 mr-2"></i> Allocation</a>
+                <a href="today_stat.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-chart-bar w-5 text-purple-500 mr-2"></i> Today's Stat</a>
+                <a href="today_otp.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-dollar-sign w-5 text-purple-500 mr-2"></i> Today's OTP</a>
+                <a href="past_records.html" class="nav-link px-4 py-2.5 text-gray-700"><i class="fas fa-history w-5 text-purple-500 mr-2"></i> Past Records</a>
+                <a href="count.html" class="nav-link px-4 py-2.5 bg-purple-50 text-purple-700 font-medium"><i class="fas fa-chart-line w-5 text-purple-500 mr-2"></i> My Statistics</a>
+                <div class="border-t border-gray-100 my-1"></div>
+                <a href="#" id="supportBtn" class="nav-link px-4 py-2.5 text-purple-600"><i class="fab fa-whatsapp w-5 text-purple-500 mr-2"></i> Contact Support</a>
+                <a href="#" id="logoutBtn" class="nav-link px-4 py-2.5 text-red-600 hover:bg-red-50"><i class="fas fa-sign-out-alt mr-2"></i> Logout</a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<main class="max-w-7xl mx-auto px-4 py-8">
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold text-gray-900">📊 My OTP Statistics</h1>
+        <p class="text-gray-500 text-sm mt-1">View your OTP counts and earnings per range</p>
+    </div>
+
+    <!-- Filter Section -->
+    <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">📅 Start Date</label>
+                <input type="date" id="startDate" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">📅 End Date</label>
+                <input type="date" id="endDate" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+            </div>
+            <div class="flex items-end">
+                <button id="filterBtn" class="btn-purple w-full text-white px-4 py-2.5 rounded-xl transition shadow-md">
+                    <i class="fas fa-filter mr-2"></i> Apply Filter
+                </button>
+            </div>
+        </div>
+        <div id="filterInfo" class="mt-4 text-sm text-gray-500 hidden bg-purple-50 p-3 rounded-lg">
+            <i class="fas fa-chart-line mr-1 text-purple-500"></i> Showing data from <span id="filterStartDisplay" class="font-medium"></span> to <span id="filterEndDisplay" class="font-medium"></span>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="stat-card rounded-2xl shadow-lg p-6 text-white">
+            <p class="text-purple-100 text-sm font-medium">Total OTPs</p>
+            <p class="text-4xl font-bold mt-2" id="totalOtps">0</p>
+        </div>
+        <div class="stat-card rounded-2xl shadow-lg p-6 text-white">
+            <p class="text-purple-100 text-sm font-medium">Total Earnings</p>
+            <p class="text-4xl font-bold mt-2" id="totalEarnings">$0.00</p>
+        </div>
+        <div class="stat-card rounded-2xl shadow-lg p-6 text-white">
+            <p class="text-purple-100 text-sm font-medium">Active Ranges</p>
+            <p class="text-4xl font-bold mt-2" id="totalRanges">0</p>
+        </div>
+    </div>
+
+    <!-- Results Container -->
+    <div id="resultsContainer" class="space-y-4">
+        <div class="text-center py-12 text-gray-400">
+            <div class="loading-spinner mx-auto mb-3"></div>
+            <p>Loading your statistics...</p>
+        </div>
+    </div>
+</main>
+
+<script>
+// Supabase Configuration
+const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
+
+// Get user ID from URL
+const urlParams = new URLSearchParams(window.location.search);
+const userId = urlParams.get('id');
+
+if (!userId) {
+    window.location.href = '../index.html';
+}
+
+let currentUser = null;
+
+// Helper Functions
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m));
+}
+
+function setupDropdown() {
+    const menuBtn = document.getElementById('menuBtn');
+    const dropdown = document.getElementById('dropdown');
+    if (menuBtn) {
+        menuBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdown.classList.toggle('hidden-dropdown');
+        });
+    }
+    document.addEventListener('click', function(e) {
+        if (!menuBtn.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden-dropdown');
+        }
+    });
+}
+
+function logout() {
+    localStorage.removeItem('elite_session');
+    window.location.href = '../index.html';
+}
+
+// Navigation functions
+function goToPage(page) {
+    window.location.href = `${page}.html?id=${userId}`;
+}
+
+document.getElementById('supportBtn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.open('https://wa.me/2348113903584', '_blank');
+});
+
+document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    logout();
+});
+
+// Setup dropdown navigation
+document.querySelectorAll('[data-page]').forEach(link => {
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const page = link.getAttribute('data-page');
+        if (page === 'count') return;
+        window.location.href = `${page}.html?id=${userId}`;
+    });
+});
+
+setupDropdown();
+
+// Set default dates (last 30 days)
+const end = new Date();
+const start = new Date();
+start.setDate(end.getDate() - 30);
+document.getElementById('startDate').value = start.toISOString().slice(0, 10);
+document.getElementById('endDate').value = end.toISOString().slice(0, 10);
+
+async function loadStatistics() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    
+    const container = document.getElementById('resultsContainer');
+    container.innerHTML = `
+        <div class="text-center py-12 text-gray-400">
+            <div class="loading-spinner mx-auto mb-3"></div>
+            <p>Loading your statistics...</p>
+        </div>
+    `;
+    
+    try {
+        // Fetch user info
+        const userRes = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id,username&id=eq.${encodeURIComponent(userId)}`, {
+            headers: { 'apikey': SUPABASE_KEY }
+        });
+        const users = await userRes.json();
+        if (!users.length) throw new Error('User not found');
+        currentUser = users[0];
+        document.title = `${currentUser.username} | Statistics`;
+        
+        // Fetch user's allocated numbers
+        const allocRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=last3,range_name&user_id=eq.${encodeURIComponent(userId)}`, {
+            headers: { 'apikey': SUPABASE_KEY }
+        });
+        const allocations = await allocRes.json();
+        
+        // Build mapping: last3 -> range_name
+        const last3ToRange = {};
+        for (const alloc of allocations) {
+            const last3 = alloc.last3;
+            const rangeName = alloc.range_name;
+            if (last3) {
+                last3ToRange[last3] = rangeName;
+            }
+        }
+        
+        // Fetch OTPs
+        const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=phone_last3,date&limit=20000`, {
+            headers: { 'apikey': SUPABASE_KEY }
+        });
+        const allOtps = await otpRes.json();
+        
+        // Filter by date range and count per range
+        const rangeCounts = {};
+        let totalOtps = 0;
+        
+        for (const otp of allOtps) {
+            const otpDate = otp.date || '';
+            if (otpDate >= startDate && otpDate <= endDate) {
+                const last3 = otp.phone_last3;
+                if (last3 && last3ToRange[last3]) {
+                    const rangeName = last3ToRange[last3];
+                    rangeCounts[rangeName] = (rangeCounts[rangeName] || 0) + 1;
+                    totalOtps++;
+                }
+            }
+        }
+        
+        const totalRanges = Object.keys(rangeCounts).length;
+        const totalEarnings = (totalOtps * 0.005).toFixed(2);
+        
+        // Update summary cards
+        document.getElementById('totalOtps').textContent = totalOtps;
+        document.getElementById('totalEarnings').textContent = `$${totalEarnings}`;
+        document.getElementById('totalRanges').textContent = totalRanges;
+        
+        // Update filter info
+        document.getElementById('filterStartDisplay').textContent = startDate;
+        document.getElementById('filterEndDisplay').textContent = endDate;
+        document.getElementById('filterInfo').classList.remove('hidden');
+        
+        // Display results
+        if (totalOtps === 0) {
+            container.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-8 text-center text-gray-400">
+                    <i class="fas fa-inbox text-4xl mb-3 opacity-40"></i>
+                    <p>No OTPs found in this date range</p>
+                </div>
+            `;
+            return;
+        }
+        
+        // Sort ranges by count (descending)
+        const sortedRanges = Object.entries(rangeCounts).sort((a, b) => b[1] - a[1]);
+        
+        let html = `
+            <div class="bg-white rounded-2xl shadow-sm border border-purple-100 overflow-hidden">
+                <div class="bg-gradient-to-r from-purple-50 to-white px-6 py-4 border-b border-purple-100">
+                    <h3 class="font-semibold text-gray-800"><i class="fas fa-chart-pie mr-2 text-purple-500"></i>Breakdown by Range</h3>
+                </div>
+                <div class="divide-y divide-gray-100">
+        `;
+        
+        for (const [rangeName, count] of sortedRanges) {
+            const rangeEarnings = (count * 0.005).toFixed(4);
+            const percentage = ((count / totalOtps) * 100).toFixed(1);
+            
+            html += `
+                <div class="range-item">
+                    <div class="flex-1">
+                        <div class="range-name">📌 ${escapeHtml(rangeName)}</div>
+                        <div class="text-xs text-gray-400 mt-1">${percentage}% of your OTPs</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="range-count">${count} OTPs</div>
+                        <div class="range-earnings text-sm">💰 $${rangeEarnings}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Add summary footer
+        html += `
+                </div>
+                <div class="bg-gradient-to-r from-purple-50 to-purple-100 px-6 py-4 flex justify-between items-center">
+                    <div>
+                        <span class="font-semibold text-gray-800">📊 Total OTPs: ${totalOtps}</span>
+                    </div>
+                    <div>
+                        <span class="font-semibold text-purple-700">💰 Total Earnings: $${totalEarnings}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500">📌 Active Ranges: ${totalRanges}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.innerHTML = html;
+        
+    } catch (err) {
+        console.error('Error loading statistics:', err);
+        container.innerHTML = `
+            <div class="bg-white rounded-2xl shadow-sm border border-purple-100 p-8 text-center text-red-500">
+                <i class="fas fa-exclamation-triangle text-4xl mb-3"></i>
+                <p>Error loading your statistics. Please try again.</p>
+            </div>
+        `;
+    }
+}
+
+// Event Listeners
+document.getElementById('filterBtn').addEventListener('click', loadStatistics);
+
+// Load initial statistics
+loadStatistics();
+</script>
+</body>
+</html>
