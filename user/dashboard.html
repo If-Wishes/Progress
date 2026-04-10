@@ -44,11 +44,6 @@
             background-color: #f5f3ff;
         }
         
-        /* No hidden state anymore - all numbers always visible */
-        .number-item-hidden {
-            display: none; /* Not used but kept for compatibility */
-        }
-        
         .otp-badge {
             background: linear-gradient(135deg, #7c3aed, #6d28d9);
             color: white;
@@ -120,8 +115,6 @@
             border-color: #ef4444;
         }
         
-        .hidden-dropdown { display: none !important; }
-        
         .unlimited-badge {
             background: #10b981;
             color: white;
@@ -130,14 +123,17 @@
             border-radius: 20px;
             margin-left: 8px;
         }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #7c3aed;
+        }
     </style>
 </head>
 <body>
 
-<!-- DASHBOARD SECTION -->
 <div id="dashboard" class="min-h-screen">
-    
-    <!-- Navigation Bar -->
     <nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -154,7 +150,6 @@
                 <option value="profile">👤 Profile</option>
                 <option value="allocation">📌 Allocation</option>
                 <option value="today">📊 Today's Stat</option>
-                <option value="count.html">📊 Count</option>
                 <option value="total">💰 Total OTP</option>
                 <option value="past">📋 Past Records</option>
                 <option value="support">📞 Contact Support</option>
@@ -163,8 +158,12 @@
         </div>
     </nav>
     
-    <!-- Main Content -->
-    <div id="content" class="max-w-4xl mx-auto p-4 fade-in"></div>
+    <div id="content" class="max-w-4xl mx-auto p-4 fade-in">
+        <div class="loading">
+            <i class="fas fa-spinner fa-spin text-3xl text-purple-600"></i>
+            <p class="mt-2">Loading dashboard...</p>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -174,24 +173,29 @@ const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 let currentUser = null;
 let userNumbers = [];
 let allOtps = [];
-let userLast3s = [];
-let deletedNumbersMap = new Map(); // Store deleted numbers info for earnings reference
+let deletedNumbersMap = new Map();
 
-// Helper Functions
-function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
-function getPanelDate(o) {
-    let t = new Date(o.message_time || o.created_at || new Date());
-    t.setHours(t.getHours() - 1);
-    return t.toISOString().slice(0, 10);
+function getLast3Digits(num) { 
+    return num.toString().replace(/\D/g, '').slice(-3); 
 }
-function formatTime(o) {
-    if (o.message_time) return new Date(o.message_time).toLocaleTimeString();
-    if (o.created_at) return new Date(o.created_at).toLocaleTimeString();
-    return '-';
-}
-function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); }
 
-// Get user from URL and load data
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
+    let d = new Date(dateStr);
+    return d.toLocaleDateString();
+}
+
+function formatTime(dateStr) {
+    if (!dateStr) return '-';
+    let d = new Date(dateStr);
+    return d.toLocaleTimeString();
+}
+
+function escapeHtml(str) { 
+    if (!str) return ''; 
+    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); 
+}
+
 async function initFromUrl() {
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('id');
@@ -214,14 +218,11 @@ async function initFromUrl() {
         
         currentUser = users[0];
         
-        // Load user data
         await loadUserData();
         
-        // Setup menu
         const menu = document.getElementById('menu');
         menu.onchange = () => handleMenu(menu.value);
         
-        // Get saved page from localStorage or default to profile
         const savedPage = localStorage.getItem('elite_current_page');
         const pageToShow = (savedPage && savedPage !== 'logout' && savedPage !== 'support') ? savedPage : 'profile';
         
@@ -234,36 +235,39 @@ async function initFromUrl() {
     }
 }
 
-// Load User Data - Store both current and historical numbers (NO LIMIT applied)
 async function loadUserData() {
     // Fetch current allocated numbers
-    const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}`, {
+    const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}&is_deleted=eq.false`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
     userNumbers = await numRes.json();
     
-    // Get last3 digits from current numbers
-    userLast3s = [...new Set(userNumbers.map(n => getLast3Digits(n.number)))];
-    
-    // Fetch all OTPs for this user (including those from deleted numbers)
-    const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=2000`, {
+    // Fetch ALL OTPs from otp_logs1
+    const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs1?select=*&order=received_time.desc&limit=5000`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
     const allOtpsRaw = await otpRes.json();
     
-    // Get ALL last3 digits that ever had OTPs for this user
-    allOtps = allOtpsRaw.filter(otp => userLast3s.includes(otp.phone_last3));
+    // Filter OTPs that belong to numbers this user owns or has owned
+    allOtps = [];
+    const userNumberSet = new Set(userNumbers.map(n => n.number));
     
-    // Store map of numbers that have been deleted
-    const currentLast3s = new Set(userNumbers.map(n => n.last3));
-    allOtps.forEach(otp => {
-        if (!currentLast3s.has(otp.phone_last3)) {
-            deletedNumbersMap.set(otp.phone_last3, true);
+    for (const otp of allOtpsRaw) {
+        // Check if this number was ever allocated to this user
+        const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=id&number=eq.${otp.number}&user_id=eq.${currentUser.id}&limit=1`, {
+            headers: { 'apikey': SUPABASE_API_KEY }
+        });
+        const checkData = await checkRes.json();
+        
+        if (checkData.length > 0) {
+            allOtps.push(otp);
+            if (!userNumberSet.has(otp.number)) {
+                deletedNumbersMap.set(otp.number, true);
+            }
         }
-    });
+    }
 }
 
-// Handle Menu Navigation
 function handleMenu(value) {
     if (value === 'logout') {
         localStorage.removeItem('elite_current_page');
@@ -279,15 +283,8 @@ function handleMenu(value) {
     }
 }
 
-// PROFILE PAGE - Earnings calculated without daily limit
 function profilePage() {
-    // Count ALL OTPs without any daily limit per number
-    let totalOtps = 0;
-    // Each OTP earns $0.005 regardless of how many per number per day
-    allOtps.forEach(() => {
-        totalOtps++;
-    });
-    
+    let totalOtps = allOtps.length;
     let earned = (totalOtps * 0.005).toFixed(2);
     let avatar = localStorage.getItem("avatar") || "";
 
@@ -317,7 +314,6 @@ function profilePage() {
     </div>`;
 }
 
-// UPLOAD PROFILE PIC
 function uploadPic(e) {
     let file = e.target.files[0];
     let reader = new FileReader();
@@ -328,10 +324,8 @@ function uploadPic(e) {
     reader.readAsDataURL(file);
 }
 
-// ALLOCATION PAGE - Shows ONLY active numbers that haven't received OTP yet
 function allocationPage() {
-    // Filter to show: not deleted AND has NOT received OTP yet
-    let activeNumbersList = userNumbers.filter(n => n.is_deleted !== true && n.has_received_otp !== true);
+    let activeNumbersList = userNumbers.filter(n => n.has_received_otp !== true);
     let ranges = [...new Set(activeNumbersList.map(n => n.range_name))];
     
     if (ranges.length === 0) {
@@ -340,7 +334,7 @@ function allocationPage() {
     
     let html = `
     <div class="glass-card p-6 fade-in">
-        <h2 class="text-xl font-bold mb-4">📌 Number Allocation <span class="unlimited-badge"><i class="fas fa-infinity mr-1"></i>no earning limit</span></h2>
+        <h2 class="text-xl font-bold mb-4">📌 Number Allocation <span class="unlimited-badge"><i class="fas fa-infinity mr-1"></i>No earning limit</span></h2>
         <select id="rangeSelect" class="custom-select w-full border border-purple-200 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none mb-4">
             ${ranges.map(r => `<option value="${escapeHtml(r)}">📌 ${escapeHtml(r)}</option>`).join('')}
         </select>
@@ -359,15 +353,13 @@ function allocationPage() {
     return html;
 }
 
-// DISPLAY NUMBERS - Shows ONLY numbers that haven't received OTP yet
 function displayNumbers(r) {
-    // Filter: in this range, not deleted, and has NOT received OTP yet
-    let numbers = userNumbers.filter(n => n.range_name === r && n.is_deleted !== true && n.has_received_otp !== true);
+    let numbers = userNumbers.filter(n => n.range_name === r && n.has_received_otp !== true);
     
     let html = numbers.map(n => `
         <div class="number-item bg-gray-50 rounded-xl p-3 flex justify-between items-center">
             <span class="font-mono text-sm">📞 ${escapeHtml(n.number)}</span>
-            <span class="text-xs text-gray-400">last3: ${n.last3}</span>
+            <span class="text-xs text-gray-400">${n.last3}</span>
         </div>
     `).join('');
     
@@ -381,66 +373,35 @@ function displayNumbers(r) {
     if (numBox) numBox.innerHTML = html;
 }
 
-// Call this function whenever an OTP is received for a number
-function markNumberAsReceivedOTP(numberId) {
-    const numberIndex = userNumbers.findIndex(n => n.id === numberId);
-    
-    if (numberIndex !== -1 && !userNumbers[numberIndex].has_received_otp) {
-        // Mark as received OTP
-        userNumbers[numberIndex].has_received_otp = true;
-        
-        // Refresh the display to hide this number
-        const rangeSelect = document.getElementById('rangeSelect');
-        if (rangeSelect && rangeSelect.value) {
-            displayNumbers(rangeSelect.value);
-        }
-        
-        // Also refresh allocation page if it's currently showing
-        const mainContent = document.getElementById('mainContent');
-        if (mainContent && window.currentPage === 'allocation') {
-            mainContent.innerHTML = allocationPage();
-        }
-        
-        console.log(`Number ${userNumbers[numberIndex].number} marked as received OTP and hidden from allocation`);
-    }
-}
-
-// TODAY PAGE - Show ALL OTPs received today (no limit)
 function todayPage() {
-    let today = getPanelDate({message_time: new Date()});
-    let html = "";
-    
-    // Filter OTPs for today only - NO LIMIT on how many per number
-    const todayOtps = allOtps.filter(o => getPanelDate(o) === today);
+    const today = new Date().toISOString().slice(0, 10);
+    const todayOtps = allOtps.filter(otp => otp.received_time?.slice(0, 10) === today);
     
     if (todayOtps.length === 0) {
         return `<div class="glass-card p-8 text-center text-gray-500">📭 No OTPs received today</div>`;
-}
+    }
     
-    // Display ALL OTPs without any count restriction
-    todayOtps.forEach(o => {
-        let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-        let isFromDeleted = !match && deletedNumbersMap.has(o.phone_last3);
-        let deletedClass = isFromDeleted ? 'otp-entry-deleted' : '';
-        let deletedBadge = isFromDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
-        let phoneDisplay = match ? match.number : (isFromDeleted ? 'Deleted Number' : '***' + o.phone_last3);
+    let html = '';
+    todayOtps.forEach(otp => {
+        let isDeleted = deletedNumbersMap.has(otp.number);
+        let deletedClass = isDeleted ? 'otp-entry-deleted' : '';
+        let deletedBadge = isDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
         
         html += `
         <div class="otp-entry ${deletedClass}">
             <div class="flex justify-between items-start flex-wrap gap-2">
                 <div class="flex-1">
                     <div class="flex items-center gap-2 mb-2 flex-wrap">
-                        <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
-                        <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
+                        <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country)}</span>
                         ${deletedBadge}
                     </div>
                     <div class="text-sm">
-                        <div>📞 ${escapeHtml(phoneDisplay)}</div>
-                        <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(o.range || match?.range_name || '-')}</div>
+                        <div>📞 ${escapeHtml(otp.number)}</div>
                     </div>
                 </div>
-                <div class="text-xs text-gray-400">${formatTime(o)}</div>
+                <div class="text-xs text-gray-400">${formatTime(otp.received_time)}</div>
             </div>
+            <div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>
         </div>`;
     });
     
@@ -457,13 +418,10 @@ function todayPage() {
     </div>`;
 }
 
-// TOTAL OTP PAGE - Count ALL OTPs without limits
 function totalPage() {
-    let today = getPanelDate({message_time: new Date()});
-    // Count ALL OTPs from today without any per-number limit
-    let todayOtps = allOtps.filter(o => getPanelDate(o) === today);
+    const today = new Date().toISOString().slice(0, 10);
+    const todayOtps = allOtps.filter(otp => otp.received_time?.slice(0, 10) === today);
     let count = todayOtps.length;
-    
     let earn = (count * 0.005).toFixed(2);
     
     return `
@@ -484,30 +442,13 @@ function totalPage() {
     </div>`;
 }
 
-// COUNTDOWN TO 1AM (still shows reset time but no functional limit)
-setInterval(() => {
-    let now = new Date();
-    let next = new Date();
-    next.setHours(1, 0, 0, 0);
-    if (now >= next) next.setDate(next.getDate() + 1);
-    
-    let diff = next - now;
-    let h = Math.floor(diff / 3600000);
-    let m = Math.floor((diff % 3600000) / 60000);
-    let s = Math.floor((diff % 60000) / 1000);
-    
-    let el = document.getElementById("countdown");
-    if (el) el.innerHTML = `<i class="fas fa-clock mr-1"></i> Day resets in ${h}h ${m}m ${s}s (Note)`;
-}, 1000);
-
-// PAST RECORDS PAGE - Show ALL OTPs without daily limit
 function pastPage() {
     return `
     <div class="glass-card p-6 fade-in">
         <h2 class="text-xl font-bold mb-4">📋 Past OTP Records <span class="unlimited-badge"><i class="fas fa-infinity mr-1"></i>All OTPs included</span></h2>
         <div class="grid grid-cols-2 gap-3 mb-4">
-            <input type="date" id="start" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
-            <input type="date" id="end" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+            <input type="date" id="startDate" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
+            <input type="date" id="endDate" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
         </div>
         <button onclick="filterPast()" class="btn-purple w-full text-white py-2 rounded-xl font-semibold shadow-md mb-4">
             <i class="fas fa-search mr-2"></i> Filter
@@ -516,46 +457,42 @@ function pastPage() {
     </div>`;
 }
 
-// FILTER PAST - Show ALL matching OTPs (no limit per number per day)
 function filterPast() {
-    let s = document.getElementById('start').value;
-    let e = document.getElementById('end').value;
-    let html = "";
-    let total = 0;
+    let start = document.getElementById('startDate').value;
+    let end = document.getElementById('endDate').value;
     
-    // Filter all OTPs in date range - NO per-number daily limit applied
-    const filteredOtps = allOtps.filter(o => {
-        let d = getPanelDate(o);
-        return d >= s && d <= e;
+    if (!start || !end) {
+        alert('Please select both start and end dates');
+        return;
+    }
+    
+    const filteredOtps = allOtps.filter(otp => {
+        let otpDate = otp.received_time?.slice(0, 10);
+        return otpDate >= start && otpDate <= end;
     });
     
-    // Display EVERY OTP in the date range without any capping
-    filteredOtps.forEach(o => {
-        let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-        let isFromDeleted = !match && deletedNumbersMap.has(o.phone_last3);
-        total++;
-        
-        let deletedClass = isFromDeleted ? 'otp-entry-deleted' : '';
-        let deletedBadge = isFromDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
-        let phoneDisplay = match ? match.number : (isFromDeleted ? 'Deleted Number' : '***' + o.phone_last3);
-        let rangeDisplay = o.range || match?.range_name || '-';
+    let html = '';
+    let total = filteredOtps.length;
+    
+    filteredOtps.forEach(otp => {
+        let isDeleted = deletedNumbersMap.has(otp.number);
+        let deletedClass = isDeleted ? 'otp-entry-deleted' : '';
+        let deletedBadge = isDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
         
         html += `
         <div class="otp-entry ${deletedClass}">
             <div class="flex justify-between items-start flex-wrap gap-2">
                 <div class="flex-1">
-                    <div class="text-xs text-gray-400 mb-1">📅 ${getPanelDate(o)}</div>
+                    <div class="text-xs text-gray-400 mb-1">📅 ${formatDate(otp.received_time)}</div>
                     <div class="flex items-center gap-2 mb-2 flex-wrap">
-                        <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
-                        <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
+                        <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country)}</span>
                         ${deletedBadge}
                     </div>
                     <div class="text-sm">
-                        <div>📞 ${escapeHtml(phoneDisplay)}</div>
-                        <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(rangeDisplay)}</div>
+                        <div>📞 ${escapeHtml(otp.number)}</div>
                     </div>
                 </div>
-                <div class="text-xs text-gray-400">${formatTime(o)}</div>
+                <div class="text-xs text-gray-400">${formatTime(otp.received_time)}</div>
             </div>
             <div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>
         </div>`;
@@ -577,7 +514,6 @@ function filterPast() {
     </div>`;
 }
 
-// PAGE ROUTER
 function showPage(p) {
     const content = document.getElementById('content');
     
@@ -596,22 +532,36 @@ function showPage(p) {
         const weekAgo = new Date();
         weekAgo.setDate(today.getDate() - 7);
         setTimeout(() => {
-            const startInput = document.getElementById('start');
-            const endInput = document.getElementById('end');
+            const startInput = document.getElementById('startDate');
+            const endInput = document.getElementById('endDate');
             if (startInput) startInput.value = weekAgo.toISOString().slice(0, 10);
             if (endInput) endInput.value = today.toISOString().slice(0, 10);
-        }, 50);
+            filterPast();
+        }, 100);
         content.innerHTML = pastPage();
     }
 }
 
-// Make functions global
+setInterval(() => {
+    let now = new Date();
+    let next = new Date();
+    next.setHours(1, 0, 0, 0);
+    if (now >= next) next.setDate(next.getDate() + 1);
+    
+    let diff = next - now;
+    let h = Math.floor(diff / 3600000);
+    let m = Math.floor((diff % 3600000) / 60000);
+    let s = Math.floor((diff % 60000) / 1000);
+    
+    let el = document.getElementById("countdown");
+    if (el) el.innerHTML = `<i class="fas fa-clock mr-1"></i> Day resets in ${h}h ${m}m ${s}s`;
+}, 1000);
+
 window.uploadPic = uploadPic;
 window.displayNumbers = displayNumbers;
 window.filterPast = filterPast;
 window.showPage = showPage;
 
-// Start app
 initFromUrl();
 </script>
 </body>
