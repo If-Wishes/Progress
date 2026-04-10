@@ -173,7 +173,7 @@ const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 let currentUser = null;
 let userNumbers = [];
 let allOtps = [];
-let deletedNumbersMap = new Map();
+let allocationHistory = []; // Store all allocations with dates
 
 function getLast3Digits(num) { 
     return num.toString().replace(/\D/g, '').slice(-3); 
@@ -236,11 +236,22 @@ async function initFromUrl() {
 }
 
 async function loadUserData() {
-    // Fetch current allocated numbers
-    const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}&is_deleted=eq.false`, {
+    // Fetch ALL allocations for this user (including deleted ones) with dates
+    const allocRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}&order=allocated_at.asc`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
-    userNumbers = await numRes.json();
+    const allAllocations = await allocRes.json();
+    
+    // Store current active numbers
+    userNumbers = allAllocations.filter(n => n.is_deleted !== true);
+    
+    // Store allocation history for ownership checking
+    allocationHistory = allAllocations.map(alloc => ({
+        number: alloc.number,
+        allocated_at: alloc.allocated_at,
+        deleted_at: alloc.deleted_at,
+        is_deleted: alloc.is_deleted
+    }));
     
     // Fetch ALL OTPs from otp_logs1
     const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs1?select=*&order=received_time.desc&limit=5000`, {
@@ -248,22 +259,32 @@ async function loadUserData() {
     });
     const allOtpsRaw = await otpRes.json();
     
-    // Filter OTPs that belong to numbers this user owns or has owned
+    // Filter OTPs based on who owned the number at the time of OTP
     allOtps = [];
-    const userNumberSet = new Set(userNumbers.map(n => n.number));
     
     for (const otp of allOtpsRaw) {
-        // Check if this number was ever allocated to this user
-        const checkRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=id&number=eq.${otp.number}&user_id=eq.${currentUser.id}&limit=1`, {
-            headers: { 'apikey': SUPABASE_API_KEY }
-        });
-        const checkData = await checkRes.json();
+        const otpTime = new Date(otp.received_time);
         
-        if (checkData.length > 0) {
-            allOtps.push(otp);
-            if (!userNumberSet.has(otp.number)) {
-                deletedNumbersMap.set(otp.number, true);
+        // Find if this user owned this number at the exact time of OTP
+        const ownedAtTime = allocationHistory.some(alloc => {
+            if (alloc.number !== otp.number) return false;
+            
+            const allocTime = new Date(alloc.allocated_at);
+            
+            // Check if OTP time is after allocation time
+            if (otpTime < allocTime) return false;
+            
+            // Check if OTP time is before deletion (or never deleted)
+            if (alloc.deleted_at) {
+                const deleteTime = new Date(alloc.deleted_at);
+                return otpTime <= deleteTime;
             }
+            
+            return true; // Still active
+        });
+        
+        if (ownedAtTime) {
+            allOtps.push(otp);
         }
     }
 }
@@ -383,17 +404,12 @@ function todayPage() {
     
     let html = '';
     todayOtps.forEach(otp => {
-        let isDeleted = deletedNumbersMap.has(otp.number);
-        let deletedClass = isDeleted ? 'otp-entry-deleted' : '';
-        let deletedBadge = isDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
-        
         html += `
-        <div class="otp-entry ${deletedClass}">
+        <div class="otp-entry">
             <div class="flex justify-between items-start flex-wrap gap-2">
                 <div class="flex-1">
                     <div class="flex items-center gap-2 mb-2 flex-wrap">
                         <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country)}</span>
-                        ${deletedBadge}
                     </div>
                     <div class="text-sm">
                         <div>📞 ${escapeHtml(otp.number)}</div>
@@ -475,18 +491,13 @@ function filterPast() {
     let total = filteredOtps.length;
     
     filteredOtps.forEach(otp => {
-        let isDeleted = deletedNumbersMap.has(otp.number);
-        let deletedClass = isDeleted ? 'otp-entry-deleted' : '';
-        let deletedBadge = isDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
-        
         html += `
-        <div class="otp-entry ${deletedClass}">
+        <div class="otp-entry">
             <div class="flex justify-between items-start flex-wrap gap-2">
                 <div class="flex-1">
                     <div class="text-xs text-gray-400 mb-1">📅 ${formatDate(otp.received_time)}</div>
                     <div class="flex items-center gap-2 mb-2 flex-wrap">
                         <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(otp.country)}</span>
-                        ${deletedBadge}
                     </div>
                     <div class="text-sm">
                         <div>📞 ${escapeHtml(otp.number)}</div>
