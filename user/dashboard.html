@@ -31,6 +31,10 @@
             to { opacity: 1; transform: translateY(0); }
         }
         
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 10px; }
+        
         .number-item {
             transition: all 0.2s ease;
             border-left: 3px solid #7c3aed;
@@ -99,15 +103,6 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        
-        .badge-reassigned {
-            background: #10b981;
-            color: white;
-            font-size: 0.7rem;
-            padding: 2px 8px;
-            border-radius: 20px;
-            margin-left: 8px;
-        }
     </style>
 </head>
 <body>
@@ -152,7 +147,7 @@ const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 let currentUser = null;
 let userNumbers = [];
 let allOtps = [];
-let otpCountByNumber = new Map(); // Track OTP count per number
+let isLoading = false;
 
 function getFullDigits(numStr) {
     if (!numStr) return '';
@@ -190,6 +185,9 @@ function escapeHtml(str) {
 }
 
 async function initFromUrl() {
+    if (isLoading) return;
+    isLoading = true;
+    
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('id');
     
@@ -227,22 +225,24 @@ async function initFromUrl() {
     } catch (err) {
         console.error('Init error:', err);
         document.getElementById('content').innerHTML = '<div class="glass-card p-8 text-center text-red-600">Error loading dashboard. Please try again.</div>';
+    } finally {
+        isLoading = false;
     }
 }
 
 async function loadUserData() {
     try {
-        // Fetch ALL allocated numbers for this user (including deleted/reassigned)
-        const numRes = await fetch(SUPABASE_URL + '/rest/v1/allocated_numbers?select=*&user_id=eq.' + currentUser.id + '&order=allocated_at.desc', {
+        // Fetch user's allocated numbers
+        const numRes = await fetch(SUPABASE_URL + '/rest/v1/allocated_numbers?select=*&user_id=eq.' + currentUser.id + '&is_deleted=eq.false', {
             headers: { 'apikey': SUPABASE_API_KEY }
         });
         userNumbers = await numRes.json();
         
-        // Get user's CURRENT ACTIVE numbers (not deleted)
-        const activeNumbersSet = new Set();
+        // Get user's numbers as a set for matching
+        const userNumbersSet = new Set();
         for (let i = 0; i < userNumbers.length; i++) {
-            if (userNumbers[i].number && !userNumbers[i].is_deleted) {
-                activeNumbersSet.add(getFullDigits(userNumbers[i].number));
+            if (userNumbers[i].number) {
+                userNumbersSet.add(getFullDigits(userNumbers[i].number));
             }
         }
         
@@ -252,41 +252,12 @@ async function loadUserData() {
         });
         const allOtpsRaw = await otpRes.json();
         
-        // Filter OTPs that match user's numbers and count per number
+        // Filter OTPs that match user's numbers
         allOtps = [];
-        otpCountByNumber.clear();
-        
         for (let i = 0; i < allOtpsRaw.length; i++) {
             const otp = allOtpsRaw[i];
-            if (otp.number && activeNumbersSet.has(getFullDigits(otp.number))) {
+            if (otp.number && userNumbersSet.has(getFullDigits(otp.number))) {
                 allOtps.push(otp);
-                const fullDigits = getFullDigits(otp.number);
-                otpCountByNumber.set(fullDigits, (otpCountByNumber.get(fullDigits) || 0) + 1);
-            }
-        }
-        
-        // For each allocation, determine if it has received OTP SINCE this allocation
-        // A number is visible if it has received 0 OTPs during this specific allocation period
-        for (let i = 0; i < userNumbers.length; i++) {
-            const num = userNumbers[i];
-            if (num.number && !num.is_deleted) {
-                const fullDigits = getFullDigits(num.number);
-                const allocTime = new Date(num.allocated_at);
-                
-                // Count OTPs received AFTER this allocation time
-                let otpCountSinceAlloc = 0;
-                for (let j = 0; j < allOtps.length; j++) {
-                    const otp = allOtps[j];
-                    if (getFullDigits(otp.number) === fullDigits) {
-                        const otpTime = new Date(otp.created_at);
-                        if (otpTime >= allocTime) {
-                            otpCountSinceAlloc++;
-                        }
-                    }
-                }
-                
-                // Number is visible if it has received 0 OTPs during this allocation
-                num.has_received_otp_in_this_allocation = otpCountSinceAlloc > 0;
             }
         }
         
@@ -324,19 +295,6 @@ function profilePage() {
     }
     const todayEarned = (todayOtps.length * 0.005).toFixed(2);
     
-    // Count visible numbers (those that haven't received OTP in current allocation)
-    let visibleCount = 0;
-    let hiddenCount = 0;
-    for (let i = 0; i < userNumbers.length; i++) {
-        if (!userNumbers[i].is_deleted) {
-            if (userNumbers[i].has_received_otp_in_this_allocation) {
-                hiddenCount++;
-            } else {
-                visibleCount++;
-            }
-        }
-    }
-    
     return `
     <div class="glass-card p-6 text-center fade-in">
         <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="uploadPic(event)">
@@ -348,12 +306,6 @@ function profilePage() {
         </div>
         <h2 class="text-xl font-bold mt-4">${escapeHtml(currentUser.username)}</h2>
         <p class="text-gray-500 text-sm">${escapeHtml(currentUser.email || 'No email')}</p>
-        
-        <div class="flex justify-center gap-2 mt-2">
-            <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">✅ Visible: ${visibleCount}</span>
-            <span class="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">🔒 Hidden (OTP received): ${hiddenCount}</span>
-        </div>
-        
         <div class="grid grid-cols-2 gap-4 mt-6">
             <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4">
                 <p class="text-gray-600 text-xs">Today's Earnings</p>
@@ -368,7 +320,6 @@ function profilePage() {
         </div>
         <div class="mt-4 text-center">
             <span class="inline-block bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full"><i class="fas fa-infinity mr-1"></i> No daily limit</span>
-            <span class="inline-block bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full ml-2"><i class="fas fa-sync-alt mr-1"></i> Reappears on every reassignment</span>
         </div>
         <div class="mt-4 text-xs text-gray-400">Member since: ${currentUser.created_at ? currentUser.created_at.slice(0,10) : 'N/A'}</div>
     </div>`;
@@ -387,24 +338,16 @@ function uploadPic(e) {
 }
 
 function allocationPage() {
-    // Show ONLY numbers that have NOT received OTP in THIS allocation period
-    let visibleNumbers = userNumbers.filter(function(n) { 
-        return !n.is_deleted && !n.has_received_otp_in_this_allocation; 
-    });
-    
+    let activeNumbers = userNumbers.filter(function(n) { return !n.has_received_otp; });
     let ranges = [];
-    for (let i = 0; i < visibleNumbers.length; i++) {
-        if (visibleNumbers[i].range_name && ranges.indexOf(visibleNumbers[i].range_name) === -1) {
-            ranges.push(visibleNumbers[i].range_name);
+    for (let i = 0; i < activeNumbers.length; i++) {
+        if (activeNumbers[i].range_name && ranges.indexOf(activeNumbers[i].range_name) === -1) {
+            ranges.push(activeNumbers[i].range_name);
         }
     }
     
     if (ranges.length === 0) {
-        return `<div class="glass-card p-8 text-center">
-            <i class="fas fa-check-circle text-green-500 text-5xl mb-4"></i>
-            <p class="text-gray-600">All your numbers have received OTPs in their current allocation!</p>
-            <p class="text-sm text-gray-400 mt-2">Numbers will reappear here when reassigned by admin</p>
-        </div>`;
+        return '<div class="glass-card p-8 text-center text-gray-500">No active numbers available. Contact admin.</div>';
     }
     
     let optionsHtml = '';
@@ -415,12 +358,11 @@ function allocationPage() {
     let html = `
     <div class="glass-card p-6 fade-in">
         <h2 class="text-xl font-bold mb-4">📌 Number Allocation</h2>
-        <p class="text-sm text-gray-500 mb-3"><i class="fas fa-info-circle"></i> Numbers hide after receiving OTP, reappear on every reassignment</p>
         <select id="rangeSelect" class="custom-select w-full border border-purple-200 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none mb-4">
             ${optionsHtml}
         </select>
         <div id="numBox" class="space-y-2"></div>
-        <div class="mt-4 text-xs text-gray-400 text-center">✅ Each number hides after its 1st OTP per allocation, reappears when reassigned</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">✅ Numbers hide after receiving 1st OTP</div>
     </div>`;
     
     setTimeout(function() {
@@ -435,10 +377,7 @@ function allocationPage() {
 }
 
 function displayNumbers(r) {
-    // Show ONLY numbers that are active and haven't received OTP in THIS allocation
-    let numbers = userNumbers.filter(function(n) { 
-        return n.range_name === r && !n.is_deleted && !n.has_received_otp_in_this_allocation; 
-    });
+    let numbers = userNumbers.filter(function(n) { return n.range_name === r && !n.has_received_otp; });
     
     let html = '';
     for (let i = 0; i < numbers.length; i++) {
