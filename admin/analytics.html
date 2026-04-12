@@ -250,7 +250,6 @@
 </nav>
 
 <main class="max-w-7xl mx-auto px-4 py-8">
-    <!-- Header -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">📱 Number Management</h1>
@@ -266,7 +265,6 @@
         </div>
     </div>
     
-    <!-- Stats Overview -->
     <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
         <div class="stat-card rounded-2xl p-4 text-white" style="background: linear-gradient(135deg, #059669, #047857);">
             <p class="text-emerald-100 text-xs font-medium">Active Numbers</p>
@@ -283,7 +281,6 @@
     </div>
     
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Add Numbers Form -->
         <div class="glass-card p-6">
             <h2 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg">
                 <i class="fas fa-plus-circle text-purple-500"></i> Allocate Numbers
@@ -325,7 +322,6 @@ Example:
             </button>
         </div>
         
-        <!-- Allocated Numbers Display - Table Format -->
         <div class="glass-card p-6">
             <h2 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg">
                 <i class="fas fa-table-list text-purple-500"></i> Allocated Numbers
@@ -343,7 +339,6 @@ Example:
     </div>
 </main>
 
-<!-- Modal for New Range -->
 <div id="rangeModal" class="modal-overlay hidden">
     <div class="modal-content p-6">
         <div class="flex justify-between items-center mb-4">
@@ -365,7 +360,6 @@ Example:
 const SUPABASE_URL = 'https://uizrpckqnproauqllono.supabase.co';
 const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpenJwY2txbnByb2F1cWxsb25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNDc0NjQsImV4cCI6MjA5MDYyMzQ2NH0.qKVaCbH2NiksMuh85guJiRySQxykwSx-MkbWNuE-PdE';
 
-// Session check
 const session = JSON.parse(localStorage.getItem('elite_session') || 'null');
 if (!session || session.role !== 'admin') {
     window.location.href = '../index.html';
@@ -400,7 +394,7 @@ async function loadRanges() {
             headers: { 'apikey': API_KEY }
         });
         let data = await res.json();
-        if (data && data.length > 0) {
+        if (data && Array.isArray(data) && data.length > 0) {
             customRanges = data.map(r => r.name);
         } else {
             customRanges = ['Default'];
@@ -415,6 +409,7 @@ async function loadRanges() {
 
 function updateRangeDropdown() {
     const rangeSelect = document.getElementById('rangeSelect');
+    if (!rangeSelect) return;
     rangeSelect.innerHTML = '<option value="">-- Select Range --</option>' + 
         customRanges.map(r => `<option value="${escapeHtml(r)}">📌 ${escapeHtml(r)}</option>`).join('');
 }
@@ -441,30 +436,38 @@ async function addNewRange(rangeName) {
 }
 
 async function loadUsers() {
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id,username,role`, {
-        headers: { 'apikey': API_KEY }
-    });
-    const allUsers = await res.json();
-    
-    usersList = allUsers.filter(u => u.role === 'user');
-    
-    const userSelect = document.getElementById('userSelect');
-    if (usersList.length === 0) {
-        userSelect.innerHTML = '<option value="">-- No users found --</option>';
-    } else {
-        userSelect.innerHTML = '<option value="">-- Select User --</option>' + 
-            usersList.map(u => `<option value="${u.id}">👤 ${escapeHtml(u.username)}</option>`).join('');
+    try {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=id,username,role`, {
+            headers: { 'apikey': API_KEY }
+        });
+        const allUsers = await res.json();
+        
+        usersList = Array.isArray(allUsers) ? allUsers.filter(u => u.role === 'user') : [];
+        
+        const userSelect = document.getElementById('userSelect');
+        if (userSelect) {
+            if (usersList.length === 0) {
+                userSelect.innerHTML = '<option value="">-- No users found --</option>';
+            } else {
+                userSelect.innerHTML = '<option value="">-- Select User --</option>' + 
+                    usersList.map(u => `<option value="${u.id}">👤 ${escapeHtml(u.username)}</option>`).join('');
+            }
+        }
+        
+        const filterSelect = document.getElementById('filterSelect');
+        if (filterSelect) {
+            filterSelect.innerHTML = '<option value="">-- All Users --</option>' + 
+                usersList.map(u => `<option value="${u.id}">👤 ${escapeHtml(u.username)}</option>`).join('');
+        }
+        
+        document.getElementById('activeUsers').textContent = usersList.length;
+    } catch (err) {
+        console.error('Error loading users:', err);
     }
-    
-    const filterSelect = document.getElementById('filterSelect');
-    filterSelect.innerHTML = '<option value="">-- All Users --</option>' + 
-        usersList.map(u => `<option value="${u.id}">👤 ${escapeHtml(u.username)}</option>`).join('');
-    
-    document.getElementById('activeUsers').textContent = usersList.length;
 }
 
 async function loadAllocatedNumbers() {
-    const filterUserId = document.getElementById('filterSelect').value;
+    const filterUserId = document.getElementById('filterSelect')?.value;
     
     try {
         let url = `${SUPABASE_URL}/rest/v1/allocated_numbers?select=*,users(username)&order=allocated_at.desc`;
@@ -475,25 +478,25 @@ async function loadAllocatedNumbers() {
         const res = await fetch(url, { headers: { 'apikey': API_KEY } });
         let allocations = await res.json();
         
-        // Filter based on showDeleted toggle
+        if (!Array.isArray(allocations)) {
+            allocations = [];
+        }
+        
         let displayAllocations = allocations;
         if (!showDeleted) {
             displayAllocations = allocations.filter(a => a.is_deleted !== true);
         }
         
-        // When not showing deleted, also hide numbers that received OTP
         if (!showDeleted) {
             displayAllocations = displayAllocations.filter(a => a.has_received_otp !== true);
         }
         
-        // Update stats (only active numbers count)
         const activeNums = allocations.filter(a => a.is_deleted !== true && a.has_received_otp !== true).length;
         const uniqueRanges = [...new Set(allocations.map(a => a.range_name).filter(r => r))];
         
         document.getElementById('activeNumbers').textContent = activeNums;
         document.getElementById('totalRanges').textContent = uniqueRanges.length;
         
-        // Group by user first, then by range
         const usersData = {};
         for (const item of displayAllocations) {
             const userName = item.users?.username || 'Unknown';
@@ -518,14 +521,12 @@ async function loadAllocatedNumbers() {
         const container = document.getElementById('allocationsContainer');
         const viewStatus = document.getElementById('viewStatus');
         
-        if (showDeleted) {
-            viewStatus.innerHTML = '(Showing deleted & received numbers)';
-        } else {
-            viewStatus.innerHTML = '(Active numbers only)';
+        if (viewStatus) {
+            viewStatus.innerHTML = showDeleted ? '(Showing deleted & received numbers)' : '(Active numbers only)';
         }
         
         if (Object.keys(usersData).length === 0) {
-            container.innerHTML = '<div class="text-center py-8 text-gray-400">📭 No numbers to display</div>';
+            if (container) container.innerHTML = '<div class="text-center py-8 text-gray-400">📭 No numbers to display</div>';
             return;
         }
         
@@ -535,7 +536,6 @@ async function loadAllocatedNumbers() {
             const user = usersData[userId];
             const ranges = Object.keys(user.ranges);
             
-            // Find max numbers in any range for this user
             let maxNumbers = 0;
             for (const range of ranges) {
                 if (user.ranges[range].length > maxNumbers) {
@@ -543,7 +543,6 @@ async function loadAllocatedNumbers() {
                 }
             }
             
-            // Build table for this user
             html += `<div class="user-section">
                 <div class="user-title">
                     <i class="fas fa-user mr-2"></i>${escapeHtml(user.userName)}
@@ -552,7 +551,6 @@ async function loadAllocatedNumbers() {
                     <thead>
                         <tr>`;
             
-            // Range headers with delete buttons
             for (const range of ranges) {
                 html += `<th>
                     📌 ${escapeHtml(range)}<br>
@@ -564,7 +562,6 @@ async function loadAllocatedNumbers() {
             
             html += `</tr></thead><tbody>`;
             
-            // Number rows
             for (let i = 0; i < maxNumbers; i++) {
                 html += '<tr>';
                 for (const range of ranges) {
@@ -591,7 +588,6 @@ async function loadAllocatedNumbers() {
                 html += '</tr>';
             }
             
-            // Totals row
             html += `<tr class="totals-row">`;
             for (const range of ranges) {
                 const total = user.ranges[range].length;
@@ -607,15 +603,15 @@ async function loadAllocatedNumbers() {
             html += `</tbody></table></div><br>`;
         }
         
-        container.innerHTML = html;
+        if (container) container.innerHTML = html;
         
     } catch (err) {
         console.error('Error loading allocations:', err);
-        document.getElementById('allocationsContainer').innerHTML = '<div class="text-center py-8 text-red-500">Error loading data</div>';
+        const container = document.getElementById('allocationsContainer');
+        if (container) container.innerHTML = '<div class="text-center py-8 text-red-500">Error loading data</div>';
     }
 }
 
-// Delete single number
 window.deleteSingleNumber = async function(userId, number) {
     if (!confirm(`⚠️ Delete number ${number}?\n\nThis number will be hidden from the user but earnings will be preserved.`)) return;
     
@@ -630,8 +626,6 @@ window.deleteSingleNumber = async function(userId, number) {
             await loadAllocatedNumbers();
             showToast(`✅ Number ${number} deleted`, 'success');
         } else {
-            const error = await res.text();
-            console.error('Delete error:', error);
             showToast('Error deleting number', 'error');
         }
     } catch (err) {
@@ -640,7 +634,6 @@ window.deleteSingleNumber = async function(userId, number) {
     }
 };
 
-// Delete all numbers in a range for a user
 window.deleteRange = async function(userId, range) {
     if (!confirm(`⚠️ Delete ALL numbers in "${range}" for this user?\n\nNumbers will be hidden from users but earnings will be preserved.`)) return;
     
@@ -664,9 +657,9 @@ window.deleteRange = async function(userId, range) {
 };
 
 async function addNumbers() {
-    const userId = document.getElementById('userSelect').value;
-    const rangeName = document.getElementById('rangeSelect').value;
-    const numbersInput = document.getElementById('numbersInput').value;
+    const userId = document.getElementById('userSelect')?.value;
+    const rangeName = document.getElementById('rangeSelect')?.value;
+    const numbersInput = document.getElementById('numbersInput')?.value;
     
     if (!userId) { showToast('Please select a user', 'error'); return; }
     if (!rangeName) { showToast('Please select a range', 'error'); return; }
@@ -675,18 +668,17 @@ async function addNumbers() {
     let numbers = numbersInput.split(/[,\n]/).map(n => n.trim()).filter(n => n.length > 0);
     if (numbers.length === 0) { showToast('No valid numbers found', 'error'); return; }
     
-    // Show loading state
     const addBtn = document.getElementById('addBtn');
     const originalText = addBtn.innerHTML;
     addBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Adding...';
     addBtn.disabled = true;
     
     try {
-        // First, get all existing numbers for this user
         const existingRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&select=number,is_deleted,has_received_otp`, {
             headers: { 'apikey': API_KEY }
         });
-        const existingNumbers = await existingRes.json();
+        const existingData = await existingRes.json();
+        const existingNumbers = Array.isArray(existingData) ? existingData : [];
         
         const existingNumbersMap = new Map();
         existingNumbers.forEach(item => {
@@ -699,44 +691,34 @@ async function addNumbers() {
         
         for (const number of numbers) {
             const last3 = getLast3Digits(number);
-            if (last3.length < 3) {
-                console.warn(`Invalid number: ${number}`);
-                continue;
-            }
+            if (last3.length < 3) continue;
             
             const existing = existingNumbersMap.get(number);
             
             if (existing) {
                 if (existing.is_deleted === true) {
-                    // Restore deleted number
                     const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&number=eq.${encodeURIComponent(number)}`, {
                         method: 'PATCH',
                         headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ is_deleted: false, deleted_at: null })
                     });
-                    if (res.ok) {
-                        restoredCount++;
-                    } else {
-                        console.error('Failed to restore:', await res.text());
-                    }
+                    if (res.ok) restoredCount++;
                 } else {
                     duplicateCount++;
                 }
                 continue;
             }
             
-            // Add new number - only include fields that exist in the table
             const newNumber = {
                 user_id: userId,
                 number: number,
                 last3: last3,
                 range_name: rangeName,
                 is_deleted: false,
+                has_received_otp: false,
                 allocated_at: new Date().toISOString()
             };
             
-            // Only add has_received_otp if the column exists (it might not)
-            // We'll try without it first
             const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
                 method: 'POST',
                 headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
@@ -748,18 +730,6 @@ async function addNumbers() {
             } else {
                 const errorText = await res.text();
                 console.error('Add error:', errorText);
-                // If error is about missing column, try without has_received_otp
-                if (errorText.includes('has_received_otp')) {
-                    delete newNumber.has_received_otp;
-                    const retryRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
-                        method: 'POST',
-                        headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
-                        body: JSON.stringify(newNumber)
-                    });
-                    if (retryRes.ok) {
-                        successCount++;
-                    }
-                }
             }
         }
         
@@ -770,12 +740,12 @@ async function addNumbers() {
         
         if (successCount > 0 || restoredCount > 0) {
             showToast(message || 'Numbers processed!', 'success');
-            document.getElementById('numbersInput').value = '';
+            if (document.getElementById('numbersInput')) document.getElementById('numbersInput').value = '';
             await loadAllocatedNumbers();
         } else if (duplicateCount > 0) {
             showToast(`⚠️ ${duplicateCount} numbers already active`, 'error');
         } else {
-            showToast(`❌ Failed to add numbers. Check console for details.`, 'error');
+            showToast(`❌ Failed to add numbers`, 'error');
         }
     } catch (err) {
         console.error('Error adding numbers:', err);
@@ -795,18 +765,19 @@ function setupModal() {
     
     if (addRangeBtn) {
         addRangeBtn.onclick = () => {
-            modal.classList.remove('hidden');
-            document.getElementById('newRangeName').value = '';
+            if (modal) modal.classList.remove('hidden');
+            const newRangeName = document.getElementById('newRangeName');
+            if (newRangeName) newRangeName.value = '';
         };
     }
     
-    const closeModal = () => modal.classList.add('hidden');
+    const closeModal = () => { if (modal) modal.classList.add('hidden'); };
     if (closeModalBtn) closeModalBtn.onclick = closeModal;
     if (cancelModalBtn) cancelModalBtn.onclick = closeModal;
     
     if (saveRangeBtn) {
         saveRangeBtn.onclick = async () => {
-            const newName = document.getElementById('newRangeName').value.trim();
+            const newName = document.getElementById('newRangeName')?.value.trim();
             if (!newName) {
                 showToast('Please enter a range name', 'error');
                 return;
@@ -832,27 +803,30 @@ function setupDropdown() {
     if (menuBtn) {
         menuBtn.addEventListener('click', function(e) {
             e.stopPropagation();
-            dropdown.classList.toggle('hidden-dropdown');
+            if (dropdown) dropdown.classList.toggle('hidden-dropdown');
         });
     }
     document.addEventListener('click', function(e) {
-        if (!menuBtn?.contains(e.target) && !dropdown?.contains(e.target)) {
-            dropdown?.classList.add('hidden-dropdown');
+        if (menuBtn && dropdown && !menuBtn.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.add('hidden-dropdown');
         }
     });
 }
 
-// Event listeners
 const logoutBtn = document.getElementById('logoutBtn');
 if (logoutBtn) {
     logoutBtn.onclick = (e) => { e.preventDefault(); localStorage.removeItem('elite_session'); window.location.href = '../index.html'; };
 }
+
 const addBtn = document.getElementById('addBtn');
 if (addBtn) addBtn.onclick = addNumbers;
+
 const totalStatsBtn = document.getElementById('totalStatsBtn');
 if (totalStatsBtn) totalStatsBtn.onclick = () => { window.location.href = 'total.html'; };
+
 const filterSelect = document.getElementById('filterSelect');
 if (filterSelect) filterSelect.onchange = () => { loadAllocatedNumbers(); };
+
 const showDeletedBtn = document.getElementById('showDeletedBtn');
 if (showDeletedBtn) {
     showDeletedBtn.onclick = () => {
