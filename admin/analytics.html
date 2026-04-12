@@ -107,10 +107,6 @@
             color: #1a1a2e;
         }
         
-        .range-header {
-            background: #faf5ff;
-        }
-        
         .delete-range-btn, .delete-single-btn {
             background: #dc2626;
             color: white;
@@ -377,7 +373,7 @@ if (!session || session.role !== 'admin') {
 document.getElementById('adminName').innerText = session.username || 'Administrator';
 
 let usersList = [];
-let customRanges = ['Carmine', 'Carrot'];
+let customRanges = [];
 let showDeleted = false;
 
 function getLast3Digits(number) {
@@ -404,11 +400,15 @@ async function loadRanges() {
             headers: { 'apikey': API_KEY }
         });
         let data = await res.json();
-        if (data.length > 0) {
+        if (data && data.length > 0) {
             customRanges = data.map(r => r.name);
+        } else {
+            customRanges = ['Default'];
         }
         updateRangeDropdown();
     } catch (err) {
+        console.error('Error loading ranges:', err);
+        customRanges = ['Default'];
         updateRangeDropdown();
     }
 }
@@ -435,6 +435,7 @@ async function addNewRange(rangeName) {
         }
         return false;
     } catch (err) {
+        console.error('Error adding range:', err);
         return false;
     }
 }
@@ -480,7 +481,7 @@ async function loadAllocatedNumbers() {
             displayAllocations = allocations.filter(a => a.is_deleted !== true);
         }
         
-        // Also need to check has_received_otp for visibility - when not showing deleted, hide numbers that received OTP
+        // When not showing deleted, also hide numbers that received OTP
         if (!showDeleted) {
             displayAllocations = displayAllocations.filter(a => a.has_received_otp !== true);
         }
@@ -518,7 +519,7 @@ async function loadAllocatedNumbers() {
         const viewStatus = document.getElementById('viewStatus');
         
         if (showDeleted) {
-            viewStatus.innerHTML = '(Showing deleted numbers)';
+            viewStatus.innerHTML = '(Showing deleted & received numbers)';
         } else {
             viewStatus.innerHTML = '(Active numbers only)';
         }
@@ -610,7 +611,7 @@ async function loadAllocatedNumbers() {
         
     } catch (err) {
         console.error('Error loading allocations:', err);
-        document.getElementById('allocationsContainer').innerHTML = '<div class="error-box text-center py-8 text-red-500">Error loading data</div>';
+        document.getElementById('allocationsContainer').innerHTML = '<div class="text-center py-8 text-red-500">Error loading data</div>';
     }
 }
 
@@ -619,15 +620,22 @@ window.deleteSingleNumber = async function(userId, number) {
     if (!confirm(`⚠️ Delete number ${number}?\n\nThis number will be hidden from the user but earnings will be preserved.`)) return;
     
     try {
-        await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&number=eq.${encodeURIComponent(number)}&is_deleted=eq.false`, {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&number=eq.${encodeURIComponent(number)}&is_deleted=eq.false`, {
             method: 'PATCH',
             headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({ is_deleted: true, deleted_at: new Date().toISOString() })
         });
         
-        await loadAllocatedNumbers();
-        showToast(`✅ Number ${number} deleted`, 'success');
+        if (res.ok) {
+            await loadAllocatedNumbers();
+            showToast(`✅ Number ${number} deleted`, 'success');
+        } else {
+            const error = await res.text();
+            console.error('Delete error:', error);
+            showToast('Error deleting number', 'error');
+        }
     } catch (err) {
+        console.error('Delete error:', err);
         showToast('Error deleting number', 'error');
     }
 };
@@ -637,15 +645,20 @@ window.deleteRange = async function(userId, range) {
     if (!confirm(`⚠️ Delete ALL numbers in "${range}" for this user?\n\nNumbers will be hidden from users but earnings will be preserved.`)) return;
     
     try {
-        await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&range_name=eq.${encodeURIComponent(range)}&is_deleted=eq.false`, {
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&range_name=eq.${encodeURIComponent(range)}&is_deleted=eq.false`, {
             method: 'PATCH',
             headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
             body: JSON.stringify({ is_deleted: true, deleted_at: new Date().toISOString() })
         });
         
-        await loadAllocatedNumbers();
-        showToast(`✅ All numbers in "${range}" deleted`, 'success');
+        if (res.ok) {
+            await loadAllocatedNumbers();
+            showToast(`✅ All numbers in "${range}" deleted`, 'success');
+        } else {
+            showToast('Error deleting numbers', 'error');
+        }
     } catch (err) {
+        console.error('Delete error:', err);
         showToast('Error deleting numbers', 'error');
     }
 };
@@ -662,7 +675,14 @@ async function addNumbers() {
     let numbers = numbersInput.split(/[,\n]/).map(n => n.trim()).filter(n => n.length > 0);
     if (numbers.length === 0) { showToast('No valid numbers found', 'error'); return; }
     
+    // Show loading state
+    const addBtn = document.getElementById('addBtn');
+    const originalText = addBtn.innerHTML;
+    addBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Adding...';
+    addBtn.disabled = true;
+    
     try {
+        // First, get all existing numbers for this user
         const existingRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&select=number,is_deleted,has_received_otp`, {
             headers: { 'apikey': API_KEY }
         });
@@ -679,7 +699,10 @@ async function addNumbers() {
         
         for (const number of numbers) {
             const last3 = getLast3Digits(number);
-            if (last3.length < 3) continue;
+            if (last3.length < 3) {
+                console.warn(`Invalid number: ${number}`);
+                continue;
+            }
             
             const existing = existingNumbersMap.get(number);
             
@@ -691,28 +714,53 @@ async function addNumbers() {
                         headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ is_deleted: false, deleted_at: null })
                     });
-                    if (res.ok) restoredCount++;
+                    if (res.ok) {
+                        restoredCount++;
+                    } else {
+                        console.error('Failed to restore:', await res.text());
+                    }
                 } else {
                     duplicateCount++;
                 }
                 continue;
             }
             
-            // Add new number
+            // Add new number - only include fields that exist in the table
+            const newNumber = {
+                user_id: userId,
+                number: number,
+                last3: last3,
+                range_name: rangeName,
+                is_deleted: false,
+                allocated_at: new Date().toISOString()
+            };
+            
+            // Only add has_received_otp if the column exists (it might not)
+            // We'll try without it first
             const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
                 method: 'POST',
                 headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: userId,
-                    number: number,
-                    last3: last3,
-                    range_name: rangeName,
-                    is_deleted: false,
-                    has_received_otp: false
-                })
+                body: JSON.stringify(newNumber)
             });
             
-            if (res.ok) successCount++;
+            if (res.ok) {
+                successCount++;
+            } else {
+                const errorText = await res.text();
+                console.error('Add error:', errorText);
+                // If error is about missing column, try without has_received_otp
+                if (errorText.includes('has_received_otp')) {
+                    delete newNumber.has_received_otp;
+                    const retryRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
+                        method: 'POST',
+                        headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newNumber)
+                    });
+                    if (retryRes.ok) {
+                        successCount++;
+                    }
+                }
+            }
         }
         
         let message = '';
@@ -727,10 +775,14 @@ async function addNumbers() {
         } else if (duplicateCount > 0) {
             showToast(`⚠️ ${duplicateCount} numbers already active`, 'error');
         } else {
-            showToast(`❌ Failed to add numbers`, 'error');
+            showToast(`❌ Failed to add numbers. Check console for details.`, 'error');
         }
     } catch (err) {
-        showToast('Error adding numbers', 'error');
+        console.error('Error adding numbers:', err);
+        showToast('Error adding numbers: ' + err.message, 'error');
+    } finally {
+        addBtn.innerHTML = originalText;
+        addBtn.disabled = false;
     }
 }
 
@@ -741,31 +793,37 @@ function setupModal() {
     const cancelModalBtn = document.getElementById('cancelModalBtn');
     const saveRangeBtn = document.getElementById('saveRangeBtn');
     
-    addRangeBtn.onclick = () => {
-        modal.classList.remove('hidden');
-        document.getElementById('newRangeName').value = '';
-    };
+    if (addRangeBtn) {
+        addRangeBtn.onclick = () => {
+            modal.classList.remove('hidden');
+            document.getElementById('newRangeName').value = '';
+        };
+    }
     
     const closeModal = () => modal.classList.add('hidden');
-    closeModalBtn.onclick = closeModal;
-    cancelModalBtn.onclick = closeModal;
+    if (closeModalBtn) closeModalBtn.onclick = closeModal;
+    if (cancelModalBtn) cancelModalBtn.onclick = closeModal;
     
-    saveRangeBtn.onclick = async () => {
-        const newName = document.getElementById('newRangeName').value.trim();
-        if (!newName) {
-            showToast('Please enter a range name', 'error');
-            return;
-        }
-        const success = await addNewRange(newName);
-        if (success) {
-            showToast(`✅ Range "${newName}" created!`, 'success');
-            closeModal();
-        } else {
-            showToast('❌ Range already exists', 'error');
-        }
-    };
+    if (saveRangeBtn) {
+        saveRangeBtn.onclick = async () => {
+            const newName = document.getElementById('newRangeName').value.trim();
+            if (!newName) {
+                showToast('Please enter a range name', 'error');
+                return;
+            }
+            const success = await addNewRange(newName);
+            if (success) {
+                showToast(`✅ Range "${newName}" created!`, 'success');
+                closeModal();
+            } else {
+                showToast('❌ Range already exists or error occurred', 'error');
+            }
+        };
+    }
     
-    modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+    if (modal) {
+        modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+    }
 }
 
 function setupDropdown() {
@@ -785,17 +843,26 @@ function setupDropdown() {
 }
 
 // Event listeners
-document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); localStorage.removeItem('elite_session'); window.location.href = '../index.html'; };
-document.getElementById('addBtn').onclick = addNumbers;
-document.getElementById('totalStatsBtn').onclick = () => { window.location.href = 'total.html'; };
-document.getElementById('filterSelect').onchange = () => { loadAllocatedNumbers(); };
-document.getElementById('showDeletedBtn').onclick = () => {
-    showDeleted = !showDeleted;
-    document.getElementById('showDeletedBtn').innerHTML = showDeleted ? 
-        '<i class="fas fa-eye mr-1"></i> Show Active' : 
-        '<i class="fas fa-eye-slash mr-1"></i> Show Deleted';
-    loadAllocatedNumbers();
-};
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+    logoutBtn.onclick = (e) => { e.preventDefault(); localStorage.removeItem('elite_session'); window.location.href = '../index.html'; };
+}
+const addBtn = document.getElementById('addBtn');
+if (addBtn) addBtn.onclick = addNumbers;
+const totalStatsBtn = document.getElementById('totalStatsBtn');
+if (totalStatsBtn) totalStatsBtn.onclick = () => { window.location.href = 'total.html'; };
+const filterSelect = document.getElementById('filterSelect');
+if (filterSelect) filterSelect.onchange = () => { loadAllocatedNumbers(); };
+const showDeletedBtn = document.getElementById('showDeletedBtn');
+if (showDeletedBtn) {
+    showDeletedBtn.onclick = () => {
+        showDeleted = !showDeleted;
+        showDeletedBtn.innerHTML = showDeleted ? 
+            '<i class="fas fa-eye mr-1"></i> Show Active' : 
+            '<i class="fas fa-eye-slash mr-1"></i> Show Deleted';
+        loadAllocatedNumbers();
+    };
+}
 
 async function init() {
     setupDropdown();
