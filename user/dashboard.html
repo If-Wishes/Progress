@@ -44,11 +44,6 @@
             background-color: #f5f3ff;
         }
         
-        /* No hidden state anymore - all numbers always visible */
-        .number-item-hidden {
-            display: none; /* Not used but kept for compatibility */
-        }
-        
         .otp-badge {
             background: linear-gradient(135deg, #7c3aed, #6d28d9);
             color: white;
@@ -120,8 +115,6 @@
             border-color: #ef4444;
         }
         
-        .hidden-dropdown { display: none !important; }
-        
         .unlimited-badge {
             background: #10b981;
             color: white;
@@ -173,11 +166,31 @@ const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 let currentUser = null;
 let userNumbers = [];
 let allOtps = [];
-let userLast3s = [];
-let deletedNumbersMap = new Map(); // Store deleted numbers info for earnings reference
+let deletedNumbersMap = new Map(); // Track deleted numbers by FULL phone number (string)
 
-// Helper Functions
-function getLast3Digits(num) { return num.toString().replace(/\D/g, '').slice(-3); }
+// Helper: Extract full digits (remove non-digits)
+function getFullDigits(numStr) {
+    if (!numStr) return '';
+    return numStr.toString().replace(/\D/g, '');
+}
+
+// Helper: Check if OTP belongs to any allocated number (past or present) using FULL number match
+// For otp_logs table, we have 'number' field containing full phone number (like "249122228761")
+// For allocated_numbers table, we have 'number' field as well
+function matchOtpToNumber(otpNumberFull, allocatedNumberFull) {
+    const otpDigits = getFullDigits(otpNumberFull);
+    const allocDigits = getFullDigits(allocatedNumberFull);
+    if (!otpDigits || !allocDigits) return false;
+    // Match full digits (complete phone number)
+    return otpDigits === allocDigits;
+}
+
+// Get last3 for display purposes only (NOT for matching)
+function getLast3Digits(num) { 
+    const digits = getFullDigits(num);
+    return digits.slice(-3); 
+}
+
 function getPanelDate(o) {
     let t = new Date(o.message_time || o.created_at || new Date());
     t.setHours(t.getHours() - 1);
@@ -233,7 +246,7 @@ async function initFromUrl() {
     }
 }
 
-// Load User Data - Store both current and historical numbers (NO LIMIT applied)
+// Load User Data - Match OTPs by FULL number digits (not last3)
 async function loadUserData() {
     // Fetch current allocated numbers
     const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}`, {
@@ -241,23 +254,60 @@ async function loadUserData() {
     });
     userNumbers = await numRes.json();
     
-    // Get last3 digits from current numbers
-    userLast3s = [...new Set(userNumbers.map(n => getLast3Digits(n.number)))];
+    // Build a set of FULL phone numbers (digit strings) that belong to this user (including historical/deleted)
+    // We'll also track which numbers are currently active (not deleted)
+    const userFullNumbersSet = new Set();
+    userNumbers.forEach(n => {
+        if (n.number) {
+            userFullNumbersSet.add(getFullDigits(n.number));
+        }
+    });
     
-    // Fetch all OTPs for this user (including those from deleted numbers)
-    const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs?select=*&order=date.desc&limit=2000`, {
+    // Fetch all OTPs from otp_logs1 table (as per user requirement: "otp_logs1 table, not the otp_logs")
+    // The table name is otp_logs1 based on the user instruction.
+    // Using otp_logs1 endpoint
+    const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs1?select=*&order=date.desc&limit=2000`, {
         headers: { 'apikey': SUPABASE_API_KEY }
     });
     const allOtpsRaw = await otpRes.json();
     
-    // Get ALL last3 digits that ever had OTPs for this user
-    allOtps = allOtpsRaw.filter(otp => userLast3s.includes(otp.phone_last3));
+    // Filter OTPs: match by FULL phone number digits with any number the user has (current or past)
+    // The otp_logs1 table contains fields: country, number, received_time, etc.
+    // We match by 'number' field from otp_logs1 with user's allocated numbers full digits
+    allOtps = allOtpsRaw.filter(otp => {
+        if (!otp.number) return false;
+        const otpFullDigits = getFullDigits(otp.number);
+        // Check if this OTP's full number matches any allocated number (current or deleted) for this user
+        return userFullNumbersSet.has(otpFullDigits);
+    });
     
-    // Store map of numbers that have been deleted
-    const currentLast3s = new Set(userNumbers.map(n => n.last3));
+    // Build deleted numbers map for UI indication (numbers that are no longer active but have OTPs)
+    const currentActiveNumbersSet = new Set();
+    userNumbers.forEach(n => {
+        if (n.is_deleted !== true && n.number) {
+            currentActiveNumbersSet.add(getFullDigits(n.number));
+        }
+    });
+    
     allOtps.forEach(otp => {
-        if (!currentLast3s.has(otp.phone_last3)) {
-            deletedNumbersMap.set(otp.phone_last3, true);
+        if (otp.number) {
+            const fullDigits = getFullDigits(otp.number);
+            if (!currentActiveNumbersSet.has(fullDigits)) {
+                deletedNumbersMap.set(fullDigits, true);
+            }
+        }
+    });
+    
+    // Also mark has_received_otp for numbers based on OTP existence (for allocation page)
+    // Update userNumbers in-memory: if a number has ANY OTP (matched by full digits), set has_received_otp = true
+    userNumbers.forEach(num => {
+        if (num.number) {
+            const numFullDigits = getFullDigits(num.number);
+            const hasOtp = allOtps.some(otp => otp.number && getFullDigits(otp.number) === numFullDigits);
+            if (hasOtp && num.has_received_otp !== true) {
+                num.has_received_otp = true;
+                // Optionally we could persist to DB, but for UI we just update in memory
+            }
         }
     });
 }
@@ -280,13 +330,8 @@ function handleMenu(value) {
 
 // PROFILE PAGE - Earnings calculated without daily limit
 function profilePage() {
-    // Count ALL OTPs without any daily limit per number
-    let totalOtps = 0;
-    // Each OTP earns $0.005 regardless of how many per number per day
-    allOtps.forEach(() => {
-        totalOtps++;
-    });
-    
+    // Count ALL OTPs (already matched by full number)
+    let totalOtps = allOtps.length;
     let earned = (totalOtps * 0.005).toFixed(2);
     let avatar = localStorage.getItem("avatar") || "";
 
@@ -327,12 +372,21 @@ function uploadPic(e) {
     reader.readAsDataURL(file);
 }
 
-// ALLOCATION PAGE - Show ALL numbers, none hidden
+// ALLOCATION PAGE - Shows ONLY active numbers that haven't received OTP yet (based on full number match)
 function allocationPage() {
-    let ranges = [...new Set(userNumbers.map(n => n.range_name))];
+    // Filter: not deleted AND has NOT received OTP (check by full number existence in allOtps)
+    let activeNumbersList = userNumbers.filter(n => {
+        if (n.is_deleted === true) return false;
+        // Check if this number has any OTP matched by full digits
+        const numFullDigits = getFullDigits(n.number);
+        const hasReceived = allOtps.some(otp => otp.number && getFullDigits(otp.number) === numFullDigits);
+        return !hasReceived;
+    });
+    
+    let ranges = [...new Set(activeNumbersList.map(n => n.range_name))];
     
     if (ranges.length === 0) {
-        return `<div class="glass-card p-8 text-center text-gray-500">No numbers allocated yet. Contact admin.</div>`;
+        return `<div class="glass-card p-8 text-center text-gray-500">No active numbers available. Contact admin.</div>`;
     }
     
     let html = `
@@ -342,7 +396,7 @@ function allocationPage() {
             ${ranges.map(r => `<option value="${escapeHtml(r)}">📌 ${escapeHtml(r)}</option>`).join('')}
         </select>
         <div id="numBox" class="space-y-2"></div>
-        <div class="mt-4 text-xs text-gray-400 text-center">✅ All numbers are always available - no daily limits applied</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">✅ Numbers hide automatically after receiving 1st OTP</div>
     </div>`;
     
     setTimeout(() => {
@@ -356,46 +410,52 @@ function allocationPage() {
     return html;
 }
 
-// DISPLAY ALL NUMBERS - No hiding, no daily limit
+// DISPLAY NUMBERS - Shows numbers that haven't received OTP yet (full digit match)
 function displayNumbers(r) {
-    let numbers = userNumbers.filter(n => n.range_name === r);
+    let numbers = userNumbers.filter(n => {
+        if (n.range_name !== r) return false;
+        if (n.is_deleted === true) return false;
+        const numFullDigits = getFullDigits(n.number);
+        const hasReceived = allOtps.some(otp => otp.number && getFullDigits(otp.number) === numFullDigits);
+        return !hasReceived;
+    });
     
-    // Show ALL numbers regardless of how many OTPs they received today
     let html = numbers.map(n => `
         <div class="number-item bg-gray-50 rounded-xl p-3 flex justify-between items-center">
             <span class="font-mono text-sm">📞 ${escapeHtml(n.number)}</span>
-            <span class="text-xs text-gray-400">last3: ${n.last3}</span>
+            <span class="text-xs text-gray-400">last3: ${getLast3Digits(n.number)}</span>
         </div>
     `).join('');
     
     if (numbers.length === 0) {
-        html = '<p class="text-gray-400 text-center py-4">⚠️ No numbers in this range.</p>';
+        html = '<p class="text-gray-400 text-center py-4">⚠️ No fresh numbers in this range.</p>';
     } else {
-        html += `<div class="mt-3 text-xs text-green-600 text-center">✨ All ${numbers.length} number(s) are active</div>`;
+        html += `<div class="mt-3 text-xs text-green-600 text-center">✨ ${numbers.length} available number(s)</div>`;
     }
     
-    document.getElementById('numBox').innerHTML = html;
+    const numBox = document.getElementById('numBox');
+    if (numBox) numBox.innerHTML = html;
 }
 
-// TODAY PAGE - Show ALL OTPs received today (no limit)
+// TODAY PAGE - Show ALL OTPs received today (matched by full number)
 function todayPage() {
     let today = getPanelDate({message_time: new Date()});
     let html = "";
     
-    // Filter OTPs for today only - NO LIMIT on how many per number
     const todayOtps = allOtps.filter(o => getPanelDate(o) === today);
     
     if (todayOtps.length === 0) {
         return `<div class="glass-card p-8 text-center text-gray-500">📭 No OTPs received today</div>`;
     }
     
-    // Display ALL OTPs without any count restriction
+    // For each OTP, find matching number info by FULL digits
     todayOtps.forEach(o => {
-        let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-        let isFromDeleted = !match && deletedNumbersMap.has(o.phone_last3);
+        const otpFullDigits = getFullDigits(o.number);
+        let match = userNumbers.find(n => getFullDigits(n.number) === otpFullDigits);
+        let isFromDeleted = !match && deletedNumbersMap.has(otpFullDigits);
         let deletedClass = isFromDeleted ? 'otp-entry-deleted' : '';
         let deletedBadge = isFromDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
-        let phoneDisplay = match ? match.number : (isFromDeleted ? 'Deleted Number' : '***' + o.phone_last3);
+        let phoneDisplay = match ? match.number : (isFromDeleted ? (o.number || 'Deleted Number') : (o.number || '***' + otpFullDigits.slice(-3)));
         
         html += `
         <div class="otp-entry ${deletedClass}">
@@ -403,7 +463,7 @@ function todayPage() {
                 <div class="flex-1">
                     <div class="flex items-center gap-2 mb-2 flex-wrap">
                         <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
-                        <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
+                        <span class="otp-badge text-xs">${escapeHtml(o.otp || o.code || 'N/A')}</span>
                         ${deletedBadge}
                     </div>
                     <div class="text-sm">
@@ -425,17 +485,15 @@ function todayPage() {
             <span class="text-sm font-semibold text-purple-700">Earnings: $${(todayOtps.length * 0.005).toFixed(2)}</span>
         </div>
         <div class="space-y-3">${html}</div>
-        <div class="mt-4 text-xs text-gray-400 text-center">🎉 No daily limits - every OTP counts!</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">🎉 No daily limits - every OTP counts! (Matched by full number)</div>
     </div>`;
 }
 
-// TOTAL OTP PAGE - Count ALL OTPs without limits
+// TOTAL OTP PAGE - Count ALL OTPs without limits (full number match)
 function totalPage() {
     let today = getPanelDate({message_time: new Date()});
-    // Count ALL OTPs from today without any per-number limit
     let todayOtps = allOtps.filter(o => getPanelDate(o) === today);
     let count = todayOtps.length;
-    
     let earn = (count * 0.005).toFixed(2);
     
     return `
@@ -456,7 +514,7 @@ function totalPage() {
     </div>`;
 }
 
-// COUNTDOWN TO 1AM (still shows reset time but no functional limit)
+// COUNTDOWN TO 1AM
 setInterval(() => {
     let now = new Date();
     let next = new Date();
@@ -472,7 +530,7 @@ setInterval(() => {
     if (el) el.innerHTML = `<i class="fas fa-clock mr-1"></i> Day resets in ${h}h ${m}m ${s}s (Note)`;
 }, 1000);
 
-// PAST RECORDS PAGE - Show ALL OTPs without daily limit
+// PAST RECORDS PAGE - Show ALL OTPs matched by full number
 function pastPage() {
     return `
     <div class="glass-card p-6 fade-in">
@@ -488,28 +546,27 @@ function pastPage() {
     </div>`;
 }
 
-// FILTER PAST - Show ALL matching OTPs (no limit per number per day)
+// FILTER PAST - Show ALL matching OTPs by full number
 function filterPast() {
     let s = document.getElementById('start').value;
     let e = document.getElementById('end').value;
     let html = "";
     let total = 0;
     
-    // Filter all OTPs in date range - NO per-number daily limit applied
     const filteredOtps = allOtps.filter(o => {
         let d = getPanelDate(o);
         return d >= s && d <= e;
     });
     
-    // Display EVERY OTP in the date range without any capping
     filteredOtps.forEach(o => {
-        let match = userNumbers.find(n => getLast3Digits(n.number) === o.phone_last3);
-        let isFromDeleted = !match && deletedNumbersMap.has(o.phone_last3);
+        const otpFullDigits = getFullDigits(o.number);
+        let match = userNumbers.find(n => getFullDigits(n.number) === otpFullDigits);
+        let isFromDeleted = !match && deletedNumbersMap.has(otpFullDigits);
         total++;
         
         let deletedClass = isFromDeleted ? 'otp-entry-deleted' : '';
         let deletedBadge = isFromDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
-        let phoneDisplay = match ? match.number : (isFromDeleted ? 'Deleted Number' : '***' + o.phone_last3);
+        let phoneDisplay = match ? match.number : (isFromDeleted ? (o.number || 'Deleted Number') : (o.number || '***' + otpFullDigits.slice(-3)));
         let rangeDisplay = o.range || match?.range_name || '-';
         
         html += `
@@ -519,7 +576,7 @@ function filterPast() {
                     <div class="text-xs text-gray-400 mb-1">📅 ${getPanelDate(o)}</div>
                     <div class="flex items-center gap-2 mb-2 flex-wrap">
                         <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
-                        <span class="otp-badge text-xs">${escapeHtml(o.otp)}</span>
+                        <span class="otp-badge text-xs">${escapeHtml(o.otp || o.code || 'N/A')}</span>
                         ${deletedBadge}
                     </div>
                     <div class="text-sm">
@@ -545,7 +602,7 @@ function filterPast() {
         <span class="font-semibold">Total OTPs: ${total}</span>
         <span class="mx-2">|</span>
         <span class="font-bold text-purple-700">$${earn}</span>
-        <p class="text-xs text-gray-400 mt-1">✅ Every OTP counted - no daily restrictions</p>
+        <p class="text-xs text-gray-400 mt-1">✅ Every OTP counted - matched by full phone number</p>
     </div>`;
 }
 
