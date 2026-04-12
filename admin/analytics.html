@@ -111,20 +111,47 @@
             background: #faf5ff;
         }
         
-        .delete-range-btn {
+        .delete-range-btn, .delete-single-btn {
             background: #dc2626;
             color: white;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 11px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 10px;
             font-weight: 600;
             border: none;
             cursor: pointer;
             transition: all 0.2s;
             margin-top: 5px;
         }
-        .delete-range-btn:hover {
+        .delete-range-btn:hover, .delete-single-btn:hover {
             background: #b91c1c;
+        }
+        
+        .delete-single-btn {
+            background: #ef4444;
+            font-size: 9px;
+            padding: 3px 6px;
+            margin-left: 5px;
+        }
+        
+        .received-badge {
+            background: #10b981;
+            color: white;
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+            display: inline-block;
+        }
+        
+        .deleted-badge {
+            background: #6b7280;
+            color: white;
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 5px;
+            display: inline-block;
         }
         
         .toast {
@@ -148,7 +175,11 @@
             font-family: 'Courier New', monospace;
             font-size: 12px;
             padding: 4px 0;
-            display: block;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 5px;
         }
         
         .user-section {
@@ -169,6 +200,19 @@
         .totals-row {
             background: #f0fdf4;
             font-weight: bold;
+        }
+        
+        .show-deleted-btn {
+            background: #6b7280;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .show-deleted-btn:hover {
+            background: #4b5563;
         }
     </style>
 </head>
@@ -219,6 +263,9 @@
         <div class="flex gap-3">
             <button id="totalStatsBtn" class="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md transition flex items-center gap-2">
                 <i class="fas fa-chart-line"></i> Total Stats
+            </button>
+            <button id="showDeletedBtn" class="show-deleted-btn">
+                <i class="fas fa-eye-slash mr-1"></i> Show Deleted
             </button>
         </div>
     </div>
@@ -273,8 +320,8 @@ Example:
 +2348123456789
 +2348023456789
 +2349023456789"></textarea>
-                <p class="text-xs text-gray-400 mt-1">💡</p>
-                <p class="text-xs text-blue-500 mt-1">⚠️</p>
+                <p class="text-xs text-gray-400 mt-1">💡 Numbers are hidden from users after receiving 1st OTP</p>
+                <p class="text-xs text-blue-500 mt-1">⚠️ Deleted numbers can be reallocated later</p>
             </div>
             
             <button id="addBtn" class="w-full bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white py-2.5 rounded-xl transition shadow-md font-semibold">
@@ -286,6 +333,7 @@ Example:
         <div class="glass-card p-6">
             <h2 class="font-bold text-gray-800 mb-4 flex items-center gap-2 text-lg">
                 <i class="fas fa-table-list text-purple-500"></i> Allocated Numbers
+                <span id="viewStatus" class="text-xs text-gray-500 ml-2"></span>
             </h2>
             
             <select id="filterSelect" class="w-full border border-purple-200 rounded-xl px-4 py-2.5 mb-4 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
@@ -330,6 +378,7 @@ document.getElementById('adminName').innerText = session.username || 'Administra
 
 let usersList = [];
 let customRanges = ['Carmine', 'Carrot'];
+let showDeleted = false;
 
 function getLast3Digits(number) {
     let cleaned = number.toString().replace(/[^0-9]/g, '');
@@ -425,11 +474,19 @@ async function loadAllocatedNumbers() {
         const res = await fetch(url, { headers: { 'apikey': API_KEY } });
         let allocations = await res.json();
         
-        // Only show active numbers (not deleted)
-        const activeAllocations = allocations.filter(a => a.is_deleted !== true);
+        // Filter based on showDeleted toggle
+        let displayAllocations = allocations;
+        if (!showDeleted) {
+            displayAllocations = allocations.filter(a => a.is_deleted !== true);
+        }
         
-        // Update stats
-        const activeNums = activeAllocations.length;
+        // Also need to check has_received_otp for visibility - when not showing deleted, hide numbers that received OTP
+        if (!showDeleted) {
+            displayAllocations = displayAllocations.filter(a => a.has_received_otp !== true);
+        }
+        
+        // Update stats (only active numbers count)
+        const activeNums = allocations.filter(a => a.is_deleted !== true && a.has_received_otp !== true).length;
         const uniqueRanges = [...new Set(allocations.map(a => a.range_name).filter(r => r))];
         
         document.getElementById('activeNumbers').textContent = activeNums;
@@ -437,11 +494,13 @@ async function loadAllocatedNumbers() {
         
         // Group by user first, then by range
         const usersData = {};
-        for (const item of activeAllocations) {
+        for (const item of displayAllocations) {
             const userName = item.users?.username || 'Unknown';
             const userId = item.user_id;
             const rangeName = item.range_name || 'Unknown';
             const number = item.number;
+            const hasReceived = item.has_received_otp === true;
+            const isDeleted = item.is_deleted === true;
             
             if (!usersData[userId]) {
                 usersData[userId] = {
@@ -452,13 +511,20 @@ async function loadAllocatedNumbers() {
             if (!usersData[userId].ranges[rangeName]) {
                 usersData[userId].ranges[rangeName] = [];
             }
-            usersData[userId].ranges[rangeName].push(number);
+            usersData[userId].ranges[rangeName].push({ number, hasReceived, isDeleted });
         }
         
         const container = document.getElementById('allocationsContainer');
+        const viewStatus = document.getElementById('viewStatus');
+        
+        if (showDeleted) {
+            viewStatus.innerHTML = '(Showing deleted numbers)';
+        } else {
+            viewStatus.innerHTML = '(Active numbers only)';
+        }
         
         if (Object.keys(usersData).length === 0) {
-            container.innerHTML = '<div class="text-center py-8 text-gray-400">📭 No active numbers allocated</div>';
+            container.innerHTML = '<div class="text-center py-8 text-gray-400">📭 No numbers to display</div>';
             return;
         }
         
@@ -490,7 +556,7 @@ async function loadAllocatedNumbers() {
                 html += `<th>
                     📌 ${escapeHtml(range)}<br>
                     <button class="delete-range-btn" onclick="deleteRange('${userId}', '${escapeHtml(range).replace(/'/g, "\\'")}')">
-                        <i class="fas fa-trash-alt mr-1"></i>Delete
+                        <i class="fas fa-trash-alt mr-1"></i>Delete All
                     </button>
                 </th>`;
             }
@@ -501,8 +567,25 @@ async function loadAllocatedNumbers() {
             for (let i = 0; i < maxNumbers; i++) {
                 html += '<tr>';
                 for (const range of ranges) {
-                    const number = user.ranges[range][i] || '';
-                    html += `<td>${number ? `<div class="number-cell">📞 ${escapeHtml(number)}</div>` : ''}</td>`;
+                    const item = user.ranges[range][i];
+                    if (item && item.number) {
+                        let badge = '';
+                        if (item.hasReceived) {
+                            badge = '<span class="received-badge"><i class="fas fa-check-circle mr-1"></i>OTP Received</span>';
+                        }
+                        if (item.isDeleted) {
+                            badge = '<span class="deleted-badge"><i class="fas fa-trash mr-1"></i>Deleted</span>';
+                        }
+                        html += `<td>
+                            <div class="number-cell">
+                                📞 ${escapeHtml(item.number)}
+                                ${badge}
+                                ${!item.hasReceived && !item.isDeleted ? `<button class="delete-single-btn" onclick="deleteSingleNumber('${userId}', '${escapeHtml(item.number).replace(/'/g, "\\'")}')"><i class="fas fa-trash"></i></button>` : ''}
+                            </div>
+                        </td>`;
+                    } else {
+                        html += `<td></td>`;
+                    }
                 }
                 html += '</tr>';
             }
@@ -510,7 +593,13 @@ async function loadAllocatedNumbers() {
             // Totals row
             html += `<tr class="totals-row">`;
             for (const range of ranges) {
-                html += `<td><strong>Total: ${user.ranges[range].length}</strong></td>`;
+                const total = user.ranges[range].length;
+                const receivedCount = user.ranges[range].filter(i => i.hasReceived).length;
+                const deletedCount = user.ranges[range].filter(i => i.isDeleted).length;
+                html += `<td><strong>Total: ${total}</strong><br>
+                    <span class="text-xs text-green-600">✓ Received: ${receivedCount}</span><br>
+                    <span class="text-xs text-gray-500">🗑 Deleted: ${deletedCount}</span>
+                </td>`;
             }
             html += `</tr>`;
             
@@ -525,9 +614,27 @@ async function loadAllocatedNumbers() {
     }
 }
 
+// Delete single number
+window.deleteSingleNumber = async function(userId, number) {
+    if (!confirm(`⚠️ Delete number ${number}?\n\nThis number will be hidden from the user but earnings will be preserved.`)) return;
+    
+    try {
+        await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&number=eq.${encodeURIComponent(number)}&is_deleted=eq.false`, {
+            method: 'PATCH',
+            headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ is_deleted: true, deleted_at: new Date().toISOString() })
+        });
+        
+        await loadAllocatedNumbers();
+        showToast(`✅ Number ${number} deleted`, 'success');
+    } catch (err) {
+        showToast('Error deleting number', 'error');
+    }
+};
+
 // Delete all numbers in a range for a user
 window.deleteRange = async function(userId, range) {
-    if (!confirm(`⚠️ Delete ALL numbers in "${range}" for this user?\n\nNumbers will be hidden from users but remain in database. You can add the same numbers again later.`)) return;
+    if (!confirm(`⚠️ Delete ALL numbers in "${range}" for this user?\n\nNumbers will be hidden from users but earnings will be preserved.`)) return;
     
     try {
         await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&range_name=eq.${encodeURIComponent(range)}&is_deleted=eq.false`, {
@@ -556,30 +663,42 @@ async function addNumbers() {
     if (numbers.length === 0) { showToast('No valid numbers found', 'error'); return; }
     
     try {
-        const existingRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&select=number,is_deleted`, {
+        const existingRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&select=number,is_deleted,has_received_otp`, {
             headers: { 'apikey': API_KEY }
         });
         const existingNumbers = await existingRes.json();
         
-        const activeNumbersMap = new Map();
+        const existingNumbersMap = new Map();
         existingNumbers.forEach(item => {
-            if (item.is_deleted !== true) {
-                activeNumbersMap.set(item.number, item);
-            }
+            existingNumbersMap.set(item.number, item);
         });
         
         let successCount = 0;
         let duplicateCount = 0;
+        let restoredCount = 0;
         
         for (const number of numbers) {
             const last3 = getLast3Digits(number);
             if (last3.length < 3) continue;
             
-            if (activeNumbersMap.has(number)) {
-                duplicateCount++;
+            const existing = existingNumbersMap.get(number);
+            
+            if (existing) {
+                if (existing.is_deleted === true) {
+                    // Restore deleted number
+                    const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&number=eq.${encodeURIComponent(number)}`, {
+                        method: 'PATCH',
+                        headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ is_deleted: false, deleted_at: null })
+                    });
+                    if (res.ok) restoredCount++;
+                } else {
+                    duplicateCount++;
+                }
                 continue;
             }
             
+            // Add new number
             const res = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers`, {
                 method: 'POST',
                 headers: { 'apikey': API_KEY, 'Content-Type': 'application/json' },
@@ -588,21 +707,25 @@ async function addNumbers() {
                     number: number,
                     last3: last3,
                     range_name: rangeName,
-                    is_deleted: false
+                    is_deleted: false,
+                    has_received_otp: false
                 })
             });
             
             if (res.ok) successCount++;
         }
         
-        if (successCount > 0) {
-            let message = `✅ Added ${successCount} numbers!`;
-            if (duplicateCount > 0) message += ` ⚠️ ${duplicateCount} duplicates skipped`;
-            showToast(message, 'success');
+        let message = '';
+        if (successCount > 0) message += `✅ Added ${successCount} new numbers! `;
+        if (restoredCount > 0) message += `🔄 Restored ${restoredCount} deleted numbers! `;
+        if (duplicateCount > 0) message += `⚠️ ${duplicateCount} active duplicates skipped`;
+        
+        if (successCount > 0 || restoredCount > 0) {
+            showToast(message || 'Numbers processed!', 'success');
             document.getElementById('numbersInput').value = '';
             await loadAllocatedNumbers();
         } else if (duplicateCount > 0) {
-            showToast(`⚠️ ${duplicateCount} duplicate numbers skipped`, 'error');
+            showToast(`⚠️ ${duplicateCount} numbers already active`, 'error');
         } else {
             showToast(`❌ Failed to add numbers`, 'error');
         }
@@ -666,6 +789,13 @@ document.getElementById('logoutBtn').onclick = (e) => { e.preventDefault(); loca
 document.getElementById('addBtn').onclick = addNumbers;
 document.getElementById('totalStatsBtn').onclick = () => { window.location.href = 'total.html'; };
 document.getElementById('filterSelect').onchange = () => { loadAllocatedNumbers(); };
+document.getElementById('showDeletedBtn').onclick = () => {
+    showDeleted = !showDeleted;
+    document.getElementById('showDeletedBtn').innerHTML = showDeleted ? 
+        '<i class="fas fa-eye mr-1"></i> Show Active' : 
+        '<i class="fas fa-eye-slash mr-1"></i> Show Deleted';
+    loadAllocatedNumbers();
+};
 
 async function init() {
     setupDropdown();
