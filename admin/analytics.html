@@ -482,16 +482,36 @@ async function loadAllocatedNumbers() {
             allocations = [];
         }
         
+        // Get OTP counts from otp_logs1 to determine which numbers received OTP
+        const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs1?select=number`, {
+            headers: { 'apikey': API_KEY }
+        });
+        const otpData = await otpRes.json();
+        const numbersWithOtp = new Set();
+        if (Array.isArray(otpData)) {
+            otpData.forEach(otp => {
+                if (otp.number) {
+                    numbersWithOtp.add(otp.number);
+                }
+            });
+        }
+        
+        // Enhance allocations with has_received_otp based on actual OTP data
+        allocations = allocations.map(alloc => ({
+            ...alloc,
+            has_received_otp: numbersWithOtp.has(alloc.number)
+        }));
+        
         let displayAllocations = allocations;
         if (!showDeleted) {
             displayAllocations = allocations.filter(a => a.is_deleted !== true);
         }
         
         if (!showDeleted) {
-            displayAllocations = displayAllocations.filter(a => a.has_received_otp !== true);
+            displayAllocations = displayAllocations.filter(a => !a.has_received_otp);
         }
         
-        const activeNums = allocations.filter(a => a.is_deleted !== true && a.has_received_otp !== true).length;
+        const activeNums = allocations.filter(a => a.is_deleted !== true && !numbersWithOtp.has(a.number)).length;
         const uniqueRanges = [...new Set(allocations.map(a => a.range_name).filter(r => r))];
         
         document.getElementById('activeNumbers').textContent = activeNums;
@@ -674,7 +694,7 @@ async function addNumbers() {
     addBtn.disabled = true;
     
     try {
-        const existingRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&select=number,is_deleted,has_received_otp`, {
+        const existingRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?user_id=eq.${userId}&select=number,is_deleted`, {
             headers: { 'apikey': API_KEY }
         });
         const existingData = await existingRes.json();
@@ -715,7 +735,6 @@ async function addNumbers() {
                 last3: last3,
                 range_name: rangeName,
                 is_deleted: false,
-                has_received_otp: false,
                 allocated_at: new Date().toISOString()
             };
             
@@ -745,7 +764,7 @@ async function addNumbers() {
         } else if (duplicateCount > 0) {
             showToast(`⚠️ ${duplicateCount} numbers already active`, 'error');
         } else {
-            showToast(`❌ Failed to add numbers`, 'error');
+            showToast(`❌ Failed to add numbers. Check console for details.`, 'error');
         }
     } catch (err) {
         console.error('Error adding numbers:', err);
