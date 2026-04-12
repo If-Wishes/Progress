@@ -44,23 +44,9 @@
             background-color: #f5f3ff;
         }
         
-        .otp-badge {
-            background: linear-gradient(135deg, #7c3aed, #6d28d9);
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-family: monospace;
-            font-size: 0.9rem;
-        }
-        
         .stat-card {
             transition: all 0.3s ease;
             background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-        }
-        .stat-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -12px rgba(124, 58, 237, 0.4);
         }
         
         .custom-select {
@@ -78,19 +64,11 @@
             object-fit: cover;
             border: 3px solid #7c3aed;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            transition: all 0.3s;
-        }
-        .avatar-preview:hover {
-            transform: scale(1.05);
         }
         
         .btn-purple {
             background: linear-gradient(135deg, #7c3aed, #6d28d9);
             transition: all 0.2s;
-        }
-        .btn-purple:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
         }
         
         .otp-entry {
@@ -99,20 +77,6 @@
             padding: 12px 16px;
             margin-bottom: 10px;
             border: 1px solid #e9d5ff;
-            transition: all 0.2s;
-        }
-        .otp-entry:hover {
-            border-color: #7c3aed;
-            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1);
-        }
-        
-        .otp-entry-deleted {
-            background: #fef2f2;
-            border-color: #fecaca;
-            opacity: 0.8;
-        }
-        .otp-entry-deleted:hover {
-            border-color: #ef4444;
         }
         
         .unlimited-badge {
@@ -143,10 +107,7 @@
 </head>
 <body>
 
-<!-- DASHBOARD SECTION -->
 <div id="dashboard" class="min-h-screen">
-    
-    <!-- Navigation Bar -->
     <nav class="bg-white shadow-md border-b border-purple-100 sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -171,7 +132,6 @@
         </div>
     </nav>
     
-    <!-- Main Content -->
     <div id="content" class="max-w-4xl mx-auto p-4 fade-in">
         <div class="loading-spinner">
             <i class="fas fa-spinner"></i>
@@ -187,45 +147,28 @@ const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 let currentUser = null;
 let userNumbers = [];
 let allOtps = [];
-let deletedNumbersMap = new Map();
 let isLoading = false;
 
-// Helper: Extract full digits (remove non-digits)
 function getFullDigits(numStr) {
     if (!numStr) return '';
-    return numStr.toString().replace(/\D/g, '');
+    return String(numStr).replace(/\D/g, '');
 }
 
-// Helper: Check if OTP belongs to any allocated number using FULL number match
-function matchOtpToNumber(otpNumberFull, allocatedNumberFull) {
-    const otpDigits = getFullDigits(otpNumberFull);
-    const allocDigits = getFullDigits(allocatedNumberFull);
-    if (!otpDigits || !allocDigits) return false;
-    return otpDigits === allocDigits;
-}
-
-function getLast3Digits(num) { 
-    const digits = getFullDigits(num);
-    return digits.slice(-3); 
-}
-
-function getPanelDate(o) {
+function formatDate(dateStr) {
+    if (!dateStr) return '-';
     try {
-        let t = new Date(o.received_time || o.message_time || o.created_at || new Date());
-        if (isNaN(t.getTime())) t = new Date();
-        t.setHours(t.getHours() - 1);
-        return t.toISOString().slice(0, 10);
+        let d = new Date(dateStr);
+        return d.toLocaleDateString();
     } catch(e) {
-        return new Date().toISOString().slice(0, 10);
+        return '-';
     }
 }
 
-function formatTime(o) {
+function formatTime(dateStr) {
+    if (!dateStr) return '-';
     try {
-        if (o.received_time) return new Date(o.received_time).toLocaleTimeString();
-        if (o.message_time) return new Date(o.message_time).toLocaleTimeString();
-        if (o.created_at) return new Date(o.created_at).toLocaleTimeString();
-        return '-';
+        let d = new Date(dateStr);
+        return d.toLocaleTimeString();
     } catch(e) {
         return '-';
     }
@@ -233,12 +176,15 @@ function formatTime(o) {
 
 function escapeHtml(str) { 
     if (!str) return ''; 
-    return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m] || m)); 
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 
-// Get user from URL and load data
 async function initFromUrl() {
-    // Prevent multiple simultaneous loads
     if (isLoading) return;
     isLoading = true;
     
@@ -251,14 +197,9 @@ async function initFromUrl() {
     }
     
     try {
-        const res = await fetch(`${SUPABASE_URL}/rest/v1/users?select=*&id=eq.${encodeURIComponent(userId)}`, {
-            headers: { 
-                'apikey': SUPABASE_API_KEY,
-                'Content-Type': 'application/json'
-            }
+        const res = await fetch(SUPABASE_URL + '/rest/v1/users?select=*&id=eq.' + encodeURIComponent(userId), {
+            headers: { 'apikey': SUPABASE_API_KEY }
         });
-        
-        if (!res.ok) throw new Error('Failed to fetch user');
         
         const users = await res.json();
         
@@ -268,17 +209,13 @@ async function initFromUrl() {
         }
         
         currentUser = users[0];
-        
-        // Load user data
         await loadUserData();
         
-        // Setup menu
         const menu = document.getElementById('menu');
         if (menu) {
-            menu.onchange = () => handleMenu(menu.value);
+            menu.onchange = function() { handleMenu(menu.value); };
         }
         
-        // Get saved page from localStorage or default to profile
         const savedPage = localStorage.getItem('elite_current_page');
         const pageToShow = (savedPage && savedPage !== 'logout' && savedPage !== 'support') ? savedPage : 'profile';
         
@@ -287,84 +224,48 @@ async function initFromUrl() {
         
     } catch (err) {
         console.error('Init error:', err);
-        document.getElementById('content').innerHTML = `
-            <div class="glass-card p-8 text-center text-red-600">
-                <i class="fas fa-exclamation-triangle text-4xl mb-4"></i>
-                <p>Error loading dashboard. Please try again later.</p>
-                <button onclick="location.reload()" class="mt-4 btn-purple text-white px-4 py-2 rounded-xl">Retry</button>
-            </div>
-        `;
+        document.getElementById('content').innerHTML = '<div class="glass-card p-8 text-center text-red-600">Error loading dashboard. Please try again.</div>';
     } finally {
         isLoading = false;
     }
 }
 
-// Load User Data - Match OTPs by FULL number digits
 async function loadUserData() {
     try {
-        // Fetch current allocated numbers
-        const numRes = await fetch(`${SUPABASE_URL}/rest/v1/allocated_numbers?select=*&user_id=eq.${currentUser.id}`, {
-            headers: { 
-                'apikey': SUPABASE_API_KEY,
-                'Content-Type': 'application/json'
-            }
+        // Fetch user's allocated numbers
+        const numRes = await fetch(SUPABASE_URL + '/rest/v1/allocated_numbers?select=*&user_id=eq.' + currentUser.id + '&is_deleted=eq.false', {
+            headers: { 'apikey': SUPABASE_API_KEY }
         });
-        
-        if (!numRes.ok) throw new Error('Failed to fetch numbers');
-        
         userNumbers = await numRes.json();
         
-        // Build a set of FULL phone numbers that belong to this user
-        const userFullNumbersSet = new Set();
-        userNumbers.forEach(n => {
-            if (n.number) {
-                userFullNumbersSet.add(getFullDigits(n.number));
+        // Get user's numbers as a set for matching
+        const userNumbersSet = new Set();
+        for (let i = 0; i < userNumbers.length; i++) {
+            if (userNumbers[i].number) {
+                userNumbersSet.add(getFullDigits(userNumbers[i].number));
             }
+        }
+        
+        // Fetch OTPs from otp_logs1
+        const otpRes = await fetch(SUPABASE_URL + '/rest/v1/otp_logs1?select=*&order=created_at.desc&limit=5000', {
+            headers: { 'apikey': SUPABASE_API_KEY }
         });
-        
-        // Fetch OTPs from otp_logs1 table
-        const otpRes = await fetch(`${SUPABASE_URL}/rest/v1/otp_logs1?select=*&order=received_time.desc&limit=2000`, {
-            headers: { 
-                'apikey': SUPABASE_API_KEY,
-                'Content-Type': 'application/json'
-            }
-        });
-        
-        if (!otpRes.ok) throw new Error('Failed to fetch OTPs');
-        
         const allOtpsRaw = await otpRes.json();
         
-        // Filter OTPs: match by FULL phone number digits
-        allOtps = allOtpsRaw.filter(otp => {
-            if (!otp.number) return false;
-            const otpFullDigits = getFullDigits(otp.number);
-            return userFullNumbersSet.has(otpFullDigits);
-        });
-        
-        // Build deleted numbers map
-        const currentActiveNumbersSet = new Set();
-        userNumbers.forEach(n => {
-            if (n.is_deleted !== true && n.number) {
-                currentActiveNumbersSet.add(getFullDigits(n.number));
+        // Filter OTPs that match user's numbers
+        allOtps = [];
+        for (let i = 0; i < allOtpsRaw.length; i++) {
+            const otp = allOtpsRaw[i];
+            if (otp.number && userNumbersSet.has(getFullDigits(otp.number))) {
+                allOtps.push(otp);
             }
-        });
-        
-        allOtps.forEach(otp => {
-            if (otp.number) {
-                const fullDigits = getFullDigits(otp.number);
-                if (!currentActiveNumbersSet.has(fullDigits)) {
-                    deletedNumbersMap.set(fullDigits, true);
-                }
-            }
-        });
+        }
         
     } catch (err) {
         console.error('Error loading user data:', err);
-        throw err;
     }
 }
 
-// Handle Menu Navigation
 function handleMenu(value) {
     if (value === 'logout') {
         localStorage.removeItem('elite_current_page');
@@ -372,8 +273,7 @@ function handleMenu(value) {
     } else if (value === 'support') {
         window.open('https://wa.me/2348113903584', '_blank');
         const savedPage = localStorage.getItem('elite_current_page') || 'profile';
-        const menu = document.getElementById('menu');
-        if (menu) menu.value = savedPage;
+        document.getElementById('menu').value = savedPage;
         showPage(savedPage);
     } else {
         localStorage.setItem('elite_current_page', value);
@@ -381,248 +281,242 @@ function handleMenu(value) {
     }
 }
 
-// PROFILE PAGE
 function profilePage() {
     let totalOtps = allOtps.length;
     let earned = (totalOtps * 0.005).toFixed(2);
-    let avatar = localStorage.getItem("avatar") || "";
-
+    let avatar = localStorage.getItem('avatar') || '';
+    
+    const today = new Date().toISOString().slice(0, 10);
+    let todayOtps = [];
+    for (let i = 0; i < allOtps.length; i++) {
+        if (allOtps[i].created_at && allOtps[i].created_at.slice(0, 10) === today) {
+            todayOtps.push(allOtps[i]);
+        }
+    }
+    const todayEarned = (todayOtps.length * 0.005).toFixed(2);
+    
     return `
     <div class="glass-card p-6 text-center fade-in">
         <input type="file" id="avatarInput" accept="image/*" class="hidden" onchange="uploadPic(event)">
         <div class="relative inline-block cursor-pointer" onclick="document.getElementById('avatarInput').click()">
-            <img src="${avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(currentUser.username) + '&background=7c3aed&color=fff&size=100'}" class="avatar-preview" alt="Avatar">
+            <img src="${avatar || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(currentUser.username) + '&background=7c3aed&color=fff&size=100'}" class="avatar-preview">
             <div class="absolute bottom-0 right-0 bg-purple-600 text-white p-1 rounded-full w-8 h-8 flex items-center justify-center shadow-md">
                 <i class="fas fa-camera text-xs"></i>
             </div>
         </div>
-
         <h2 class="text-xl font-bold mt-4">${escapeHtml(currentUser.username)}</h2>
         <p class="text-gray-500 text-sm">${escapeHtml(currentUser.email || 'No email')}</p>
-
-        <div class="mt-6 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4">
-            <p class="text-gray-600 text-sm">Total Lifetime Earnings</p>
-            <h3 class="text-3xl font-bold text-purple-700">$${earned}</h3>
-            <p class="text-xs text-gray-500 mt-1">${totalOtps} total OTPs received</p>
-            <span class="inline-block mt-2 bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full"><i class="fas fa-infinity mr-1"></i> No daily limit</span>
+        <div class="grid grid-cols-2 gap-4 mt-6">
+            <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4">
+                <p class="text-gray-600 text-xs">Today's Earnings</p>
+                <h3 class="text-2xl font-bold text-purple-700">$${todayEarned}</h3>
+                <p class="text-xs text-gray-500">${todayOtps.length} OTPs</p>
+            </div>
+            <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-4">
+                <p class="text-gray-600 text-xs">Lifetime</p>
+                <h3 class="text-2xl font-bold text-purple-700">$${earned}</h3>
+                <p class="text-xs text-gray-500">${totalOtps} total OTPs</p>
+            </div>
         </div>
-        
-        <div class="mt-4 text-sm text-gray-500">
-            <i class="fas fa-calendar-alt mr-1"></i> Member since: ${currentUser.created_at?.slice(0,10) || 'N/A'}
+        <div class="mt-4 text-center">
+            <span class="inline-block bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full"><i class="fas fa-infinity mr-1"></i> No daily limit</span>
         </div>
+        <div class="mt-4 text-xs text-gray-400">Member since: ${currentUser.created_at ? currentUser.created_at.slice(0,10) : 'N/A'}</div>
     </div>`;
 }
 
-// UPLOAD PROFILE PIC
 function uploadPic(e) {
     let file = e.target.files[0];
     if (file) {
         let reader = new FileReader();
-        reader.onload = () => {
-            localStorage.setItem("avatar", reader.result);
-            showPage("profile");
+        reader.onload = function() {
+            localStorage.setItem('avatar', reader.result);
+            showPage('profile');
         };
         reader.readAsDataURL(file);
     }
 }
 
-// ALLOCATION PAGE
 function allocationPage() {
-    let activeNumbersList = userNumbers.filter(n => {
-        if (n.is_deleted === true) return false;
-        const numFullDigits = getFullDigits(n.number);
-        const hasReceived = allOtps.some(otp => otp.number && getFullDigits(otp.number) === numFullDigits);
-        return !hasReceived;
-    });
-    
-    let ranges = [...new Set(activeNumbersList.map(n => n.range_name).filter(r => r))];
+    let activeNumbers = userNumbers.filter(function(n) { return !n.has_received_otp; });
+    let ranges = [];
+    for (let i = 0; i < activeNumbers.length; i++) {
+        if (activeNumbers[i].range_name && ranges.indexOf(activeNumbers[i].range_name) === -1) {
+            ranges.push(activeNumbers[i].range_name);
+        }
+    }
     
     if (ranges.length === 0) {
-        return `<div class="glass-card p-8 text-center text-gray-500">No active numbers available. Contact admin.</div>`;
+        return '<div class="glass-card p-8 text-center text-gray-500">No active numbers available. Contact admin.</div>';
+    }
+    
+    let optionsHtml = '';
+    for (let i = 0; i < ranges.length; i++) {
+        optionsHtml += '<option value="' + escapeHtml(ranges[i]) + '">📌 ' + escapeHtml(ranges[i]) + '</option>';
     }
     
     let html = `
     <div class="glass-card p-6 fade-in">
-        <h2 class="text-xl font-bold mb-4">📌 Number Allocation <span class="unlimited-badge"><i class="fas fa-infinity mr-1"></i>no earning limit</span></h2>
+        <h2 class="text-xl font-bold mb-4">📌 Number Allocation</h2>
         <select id="rangeSelect" class="custom-select w-full border border-purple-200 rounded-xl px-4 py-3 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none mb-4">
-            ${ranges.map(r => `<option value="${escapeHtml(r)}">📌 ${escapeHtml(r)}</option>`).join('')}
+            ${optionsHtml}
         </select>
         <div id="numBox" class="space-y-2"></div>
-        <div class="mt-4 text-xs text-gray-400 text-center">✅ Numbers hide automatically after receiving 1st OTP</div>
+        <div class="mt-4 text-xs text-gray-400 text-center">✅ Numbers hide after receiving 1st OTP</div>
     </div>`;
     
-    setTimeout(() => {
+    setTimeout(function() {
         const rangeSelect = document.getElementById('rangeSelect');
         if (rangeSelect && ranges.length > 0) {
             displayNumbers(rangeSelect.value);
-            rangeSelect.onchange = () => displayNumbers(rangeSelect.value);
+            rangeSelect.onchange = function() { displayNumbers(rangeSelect.value); };
         }
     }, 100);
     
     return html;
 }
 
-// DISPLAY NUMBERS
 function displayNumbers(r) {
-    let numbers = userNumbers.filter(n => {
-        if (n.range_name !== r) return false;
-        if (n.is_deleted === true) return false;
-        const numFullDigits = getFullDigits(n.number);
-        const hasReceived = allOtps.some(otp => otp.number && getFullDigits(otp.number) === numFullDigits);
-        return !hasReceived;
-    });
+    let numbers = userNumbers.filter(function(n) { return n.range_name === r && !n.has_received_otp; });
     
-    let html = numbers.map(n => `
-        <div class="number-item bg-gray-50 rounded-xl p-3 flex justify-between items-center">
-            <span class="font-mono text-sm">📞 ${escapeHtml(n.number)}</span>
-            <span class="text-xs text-gray-400">last3: ${getLast3Digits(n.number)}</span>
-        </div>
-    `).join('');
+    let html = '';
+    for (let i = 0; i < numbers.length; i++) {
+        html += '<div class="number-item bg-gray-50 rounded-xl p-3 flex justify-between items-center">' +
+            '<span class="font-mono text-sm">📞 ' + escapeHtml(numbers[i].number) + '</span>' +
+            '<span class="text-xs text-gray-400">' + (numbers[i].last3 || getFullDigits(numbers[i].number).slice(-3)) + '</span>' +
+            '</div>';
+    }
     
     if (numbers.length === 0) {
         html = '<p class="text-gray-400 text-center py-4">⚠️ No fresh numbers in this range.</p>';
     } else {
-        html += `<div class="mt-3 text-xs text-green-600 text-center">✨ ${numbers.length} available number(s)</div>`;
+        html += '<div class="mt-3 text-xs text-green-600 text-center">✨ ' + numbers.length + ' available number(s)</div>';
     }
     
     const numBox = document.getElementById('numBox');
     if (numBox) numBox.innerHTML = html;
 }
 
-// TODAY PAGE
 function todayPage() {
-    let today = getPanelDate({received_time: new Date()});
-    const todayOtps = allOtps.filter(o => getPanelDate(o) === today);
-    
-    if (todayOtps.length === 0) {
-        return `<div class="glass-card p-8 text-center text-gray-500">📭 No OTPs received today</div>`;
+    const today = new Date().toISOString().slice(0, 10);
+    let todayOtps = [];
+    for (let i = 0; i < allOtps.length; i++) {
+        if (allOtps[i].created_at && allOtps[i].created_at.slice(0, 10) === today) {
+            todayOtps.push(allOtps[i]);
+        }
     }
     
-    let html = "";
-    todayOtps.forEach(o => {
-        const otpFullDigits = getFullDigits(o.number);
-        let match = userNumbers.find(n => getFullDigits(n.number) === otpFullDigits);
-        let isFromDeleted = !match && deletedNumbersMap.has(otpFullDigits);
-        let deletedClass = isFromDeleted ? 'otp-entry-deleted' : '';
-        let deletedBadge = isFromDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
-        let phoneDisplay = match ? match.number : (isFromDeleted ? (o.number || 'Deleted Number') : (o.number || '***' + otpFullDigits.slice(-3)));
-        
-        html += `
-        <div class="otp-entry ${deletedClass}">
-            <div class="flex justify-between items-start flex-wrap gap-2">
-                <div class="flex-1">
-                    <div class="flex items-center gap-2 mb-2 flex-wrap">
-                        <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
-                        <span class="otp-badge text-xs">${escapeHtml(o.otp || 'N/A')}</span>
-                        ${deletedBadge}
-                    </div>
-                    <div class="text-sm">
-                        <div>📞 ${escapeHtml(phoneDisplay)}</div>
-                        <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(o.range || match?.range_name || '-')}</div>
-                    </div>
-                </div>
-                <div class="text-xs text-gray-400">${formatTime(o)}</div>
-            </div>
-        </div>`;
-    });
+    if (todayOtps.length === 0) {
+        return '<div class="glass-card p-8 text-center text-gray-500">📭 No OTPs received today</div>';
+    }
     
-    return `
-    <div class="glass-card p-6 fade-in">
-        <h2 class="text-xl font-bold mb-4">📊 Today's OTP Statistics <span class="unlimited-badge"><i class="fas fa-infinity mr-1"></i>Unlimited</span></h2>
-        <div class="bg-purple-50 rounded-xl p-3 mb-4 text-center">
-            <span class="text-sm font-semibold">Total OTPs Today: ${todayOtps.length}</span>
-            <span class="mx-2">|</span>
-            <span class="text-sm font-semibold text-purple-700">Earnings: $${(todayOtps.length * 0.005).toFixed(2)}</span>
-        </div>
-        <div class="space-y-3">${html}</div>
-        <div class="mt-4 text-xs text-gray-400 text-center">🎉 No daily limits - every OTP counts! (Matched by full number)</div>
-    </div>`;
+    let html = '';
+    for (let i = 0; i < todayOtps.length; i++) {
+        const otp = todayOtps[i];
+        html += '<div class="otp-entry">' +
+            '<div class="flex justify-between items-start flex-wrap gap-2">' +
+            '<div class="flex-1">' +
+            '<div class="flex items-center gap-2 mb-2 flex-wrap">' +
+            '<span class="text-sm font-medium text-gray-500">🌍 ' + escapeHtml(otp.country) + '</span>' +
+            '</div>' +
+            '<div class="text-sm">📞 ' + escapeHtml(otp.number) + '</div>' +
+            '</div>' +
+            '<div class="text-xs text-gray-400">' + formatTime(otp.created_at) + '</div>' +
+            '</div>' +
+            '<div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>' +
+            '</div>';
+    }
+    
+    return '<div class="glass-card p-6 fade-in">' +
+        '<h2 class="text-xl font-bold mb-4">📊 Today\'s OTP Statistics</h2>' +
+        '<div class="bg-purple-50 rounded-xl p-3 mb-4 text-center">' +
+        '<span class="text-sm font-semibold">Total OTPs Today: ' + todayOtps.length + '</span>' +
+        '<span class="mx-2">|</span>' +
+        '<span class="text-sm font-semibold text-purple-700">Earnings: $' + (todayOtps.length * 0.005).toFixed(2) + '</span>' +
+        '</div>' +
+        '<div class="space-y-3">' + html + '</div>' +
+        '</div>';
 }
 
-// TOTAL OTP PAGE
 function totalPage() {
-    let today = getPanelDate({received_time: new Date()});
-    let todayOtps = allOtps.filter(o => getPanelDate(o) === today);
+    const today = new Date().toISOString().slice(0, 10);
+    let todayOtps = [];
+    for (let i = 0; i < allOtps.length; i++) {
+        if (allOtps[i].created_at && allOtps[i].created_at.slice(0, 10) === today) {
+            todayOtps.push(allOtps[i]);
+        }
+    }
     let count = todayOtps.length;
     let earn = (count * 0.005).toFixed(2);
     
-    return `
-    <div class="glass-card p-6 fade-in">
-        <div class="text-center">
-            <div class="stat-card rounded-2xl p-6 text-white mb-4">
-                <p class="text-purple-100 text-sm">Total OTP Today</p>
-                <p class="text-5xl font-bold mt-2">${count}</p>
-                <p class="text-purple-100 text-xs mt-1">✨</p>
-            </div>
-            <div class="stat-card rounded-2xl p-6 text-white">
-                <p class="text-purple-100 text-sm">Today's Earnings</p>
-                <p class="text-4xl font-bold mt-2">$${earn}</p>
-                <p class="text-purple-100 text-xs mt-2">($0.005 per OTP)</p>
-            </div>
-            <p id="countdown" class="mt-4 text-sm text-gray-500"></p>
-        </div>
-    </div>`;
+    return '<div class="glass-card p-6 fade-in">' +
+        '<div class="text-center">' +
+        '<div class="stat-card rounded-2xl p-6 text-white mb-4">' +
+        '<p class="text-purple-100 text-sm">Total OTP Today</p>' +
+        '<p class="text-5xl font-bold mt-2">' + count + '</p>' +
+        '</div>' +
+        '<div class="stat-card rounded-2xl p-6 text-white">' +
+        '<p class="text-purple-100 text-sm">Today\'s Earnings</p>' +
+        '<p class="text-4xl font-bold mt-2">$' + earn + '</p>' +
+        '<p class="text-purple-100 text-xs mt-2">($0.005 per OTP)</p>' +
+        '</div>' +
+        '<div class="mt-4 bg-purple-50 rounded-xl p-3">' +
+        '<p class="text-sm">Lifetime Total: ' + allOtps.length + ' OTPs</p>' +
+        '<p class="text-lg font-bold text-purple-700">$' + (allOtps.length * 0.005).toFixed(2) + '</p>' +
+        '</div>' +
+        '</div>' +
+        '</div>';
 }
 
-// PAST RECORDS PAGE
 function pastPage() {
-    return `
-    <div class="glass-card p-6 fade-in">
-        <h2 class="text-xl font-bold mb-4">📋 Past OTP Records <span class="unlimited-badge"><i class="fas fa-infinity mr-1"></i>All OTPs included</span></h2>
-        <div class="grid grid-cols-2 gap-3 mb-4">
-            <input type="date" id="start" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
-            <input type="date" id="end" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">
-        </div>
-        <button onclick="filterPast()" class="btn-purple w-full text-white py-2 rounded-xl font-semibold shadow-md mb-4">
-            <i class="fas fa-search mr-2"></i> Filter
-        </button>
-        <div id="pastBox" class="space-y-3"></div>
-    </div>`;
+    return '<div class="glass-card p-6 fade-in">' +
+        '<h2 class="text-xl font-bold mb-4">📋 Past OTP Records</h2>' +
+        '<div class="grid grid-cols-2 gap-3 mb-4">' +
+        '<input type="date" id="startDate" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">' +
+        '<input type="date" id="endDate" class="border border-purple-200 rounded-xl px-4 py-2 bg-gray-50 focus:ring-2 focus:ring-purple-500 outline-none">' +
+        '</div>' +
+        '<button onclick="filterPast()" class="btn-purple w-full text-white py-2 rounded-xl font-semibold shadow-md mb-4">' +
+        '<i class="fas fa-search mr-2"></i> Filter</button>' +
+        '<div id="pastBox" class="space-y-3"></div>' +
+        '</div>';
 }
 
-// FILTER PAST
 function filterPast() {
-    let s = document.getElementById('start').value;
-    let e = document.getElementById('end').value;
-    let html = "";
-    let total = 0;
+    let start = document.getElementById('startDate').value;
+    let end = document.getElementById('endDate').value;
     
-    const filteredOtps = allOtps.filter(o => {
-        let d = getPanelDate(o);
-        return d >= s && d <= e;
-    });
+    if (!start || !end) {
+        alert('Please select both start and end dates');
+        return;
+    }
     
-    filteredOtps.forEach(o => {
-        const otpFullDigits = getFullDigits(o.number);
-        let match = userNumbers.find(n => getFullDigits(n.number) === otpFullDigits);
-        let isFromDeleted = !match && deletedNumbersMap.has(otpFullDigits);
-        total++;
-        
-        let deletedClass = isFromDeleted ? 'otp-entry-deleted' : '';
-        let deletedBadge = isFromDeleted ? '<span class="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full ml-2">Number Deleted</span>' : '';
-        let phoneDisplay = match ? match.number : (isFromDeleted ? (o.number || 'Deleted Number') : (o.number || '***' + otpFullDigits.slice(-3)));
-        let rangeDisplay = o.range || match?.range_name || '-';
-        
-        html += `
-        <div class="otp-entry ${deletedClass}">
-            <div class="flex justify-between items-start flex-wrap gap-2">
-                <div class="flex-1">
-                    <div class="text-xs text-gray-400 mb-1">📅 ${getPanelDate(o)}</div>
-                    <div class="flex items-center gap-2 mb-2 flex-wrap">
-                        <span class="text-sm font-medium text-gray-500">🌍 ${escapeHtml(o.country || '-')}</span>
-                        <span class="otp-badge text-xs">${escapeHtml(o.otp || 'N/A')}</span>
-                        ${deletedBadge}
-                    </div>
-                    <div class="text-sm">
-                        <div>📞 ${escapeHtml(phoneDisplay)}</div>
-                        <div class="text-gray-500 text-xs mt-1">📩 ${escapeHtml(o.sender || '-')} | 📌 ${escapeHtml(rangeDisplay)}</div>
-                    </div>
-                </div>
-                <div class="text-xs text-gray-400">${formatTime(o)}</div>
-            </div>
-            <div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>
-        </div>`;
-    });
+    let filteredOtps = [];
+    for (let i = 0; i < allOtps.length; i++) {
+        let otpDate = allOtps[i].created_at ? allOtps[i].created_at.slice(0, 10) : '';
+        if (otpDate >= start && otpDate <= end) {
+            filteredOtps.push(allOtps[i]);
+        }
+    }
+    
+    let html = '';
+    let total = filteredOtps.length;
+    
+    for (let i = 0; i < filteredOtps.length; i++) {
+        const otp = filteredOtps[i];
+        html += '<div class="otp-entry">' +
+            '<div class="flex justify-between items-start flex-wrap gap-2">' +
+            '<div class="flex-1">' +
+            '<div class="text-xs text-gray-400 mb-1">📅 ' + formatDate(otp.created_at) + '</div>' +
+            '<div class="flex items-center gap-2 mb-2 flex-wrap">' +
+            '<span class="text-sm font-medium text-gray-500">🌍 ' + escapeHtml(otp.country) + '</span>' +
+            '</div>' +
+            '<div class="text-sm">📞 ' + escapeHtml(otp.number) + '</div>' +
+            '</div>' +
+            '<div class="text-xs text-gray-400">' + formatTime(otp.created_at) + '</div>' +
+            '</div>' +
+            '<div class="text-right text-emerald-600 text-xs font-semibold mt-2">+$0.005</div>' +
+            '</div>';
+    }
     
     let earn = (total * 0.005).toFixed(2);
     
@@ -631,67 +525,48 @@ function filterPast() {
         return;
     }
     
-    document.getElementById('pastBox').innerHTML = html + `
-    <div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">
-        <span class="font-semibold">Total OTPs: ${total}</span>
-        <span class="mx-2">|</span>
-        <span class="font-bold text-purple-700">$${earn}</span>
-        <p class="text-xs text-gray-400 mt-1">✅ Every OTP counted - matched by full phone number</p>
-    </div>`;
+    document.getElementById('pastBox').innerHTML = html + 
+        '<div class="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl p-3 text-center mt-4">' +
+        '<span class="font-semibold">Total OTPs: ' + total + '</span>' +
+        '<span class="mx-2">|</span>' +
+        '<span class="font-bold text-purple-700">$' + earn + '</span>' +
+        '</div>';
 }
 
-// PAGE ROUTER
-function showPage(p) {
+function showPage(page) {
     const content = document.getElementById('content');
     if (!content) return;
     
-    if (p !== 'support') {
-        localStorage.setItem('elite_current_page', p);
+    if (page !== 'support') {
+        localStorage.setItem('elite_current_page', page);
         const menu = document.getElementById('menu');
-        if (menu) menu.value = p;
+        if (menu) menu.value = page;
     }
     
-    if (p === "profile") content.innerHTML = profilePage();
-    else if (p === "allocation") content.innerHTML = allocationPage();
-    else if (p === "today") content.innerHTML = todayPage();
-    else if (p === "total") content.innerHTML = totalPage();
-    else if (p === "past") {
+    if (page === "profile") content.innerHTML = profilePage();
+    else if (page === "allocation") content.innerHTML = allocationPage();
+    else if (page === "today") content.innerHTML = todayPage();
+    else if (page === "total") content.innerHTML = totalPage();
+    else if (page === "past") {
         content.innerHTML = pastPage();
-        setTimeout(() => {
+        setTimeout(function() {
             const today = new Date();
             const weekAgo = new Date();
             weekAgo.setDate(today.getDate() - 7);
-            const startInput = document.getElementById('start');
-            const endInput = document.getElementById('end');
+            const startInput = document.getElementById('startDate');
+            const endInput = document.getElementById('endDate');
             if (startInput) startInput.value = weekAgo.toISOString().slice(0, 10);
             if (endInput) endInput.value = today.toISOString().slice(0, 10);
+            filterPast();
         }, 100);
     }
 }
 
-// Countdown timer
-setInterval(() => {
-    let now = new Date();
-    let next = new Date();
-    next.setHours(1, 0, 0, 0);
-    if (now >= next) next.setDate(next.getDate() + 1);
-    
-    let diff = next - now;
-    let h = Math.floor(diff / 3600000);
-    let m = Math.floor((diff % 3600000) / 60000);
-    let s = Math.floor((diff % 60000) / 1000);
-    
-    let el = document.getElementById("countdown");
-    if (el) el.innerHTML = `<i class="fas fa-clock mr-1"></i> Day resets in ${h}h ${m}m ${s}s`;
-}, 1000);
-
-// Make functions global
 window.uploadPic = uploadPic;
 window.displayNumbers = displayNumbers;
 window.filterPast = filterPast;
 window.showPage = showPage;
 
-// Start app
 initFromUrl();
 </script>
 </body>
